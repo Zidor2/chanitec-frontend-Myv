@@ -1,0 +1,290 @@
+// --- Added for pixel-perfect match with reference HTML ---
+.reference-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: left;
+  gap: 7%;
+  margin: 0 auto;
+}
+.reference-logo {
+  width: 80px;
+  margin-bottom: 10px;
+}
+.reference-title {
+  font-size: 24px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-align: center;
+  letter-spacing: 1px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  margin: 0 auto;
+  right: unset;
+}
+.reference-subtitle {
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-align: center;
+  margin-top: 0;
+}
+.client-info-box {
+  background: #f8f9fa;
+  border: 1px solid #d3d3d3;
+  border-radius: 8px;
+  padding: 18px 5px 10px 5px;
+}
+.client-info-grid {
+  display: grid;
+  grid-template-columns: 70px 1fr 70px 1fr;
+  gap: 10px 5px;
+  align-items: center;
+}
+.client-info-label {
+  font-weight: bold;
+  color: #222;
+  text-align: right;
+}
+.client-info-value input,
+.client-info-value select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #d3d3d3;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 18px;
+}
+.summary-table {
+  float: right;
+  margin-top: 10px;
+  border-collapse: collapse;
+  min-width: 270px;
+}
+.summary-table th, .summary-table td {
+  border: 1px solid #d3d3d3;
+  padding: 7px 14px;
+  text-align: right;
+  font-size: 15px;
+}
+.summary-table th {
+  background: #e3f0fa;
+  color: #1976d2;
+  font-weight: bold;
+  text-align: left;
+}
+.section-title {
+  color: #1976d2;
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 0px 0 10px 0;
+  text-align: left;
+  background: transparent !important;
+}
+.input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent !important;
+}
+.input-row input, .input-row select {
+  padding: 6px 10px;
+  border: 1px solid #d3d3d3;
+  border-radius: 4px;
+  font-size: 15px;
+  background: #fff;
+}
+.input-row label {
+  font-weight: bold;
+  font-size: 15px;
+  color: #222;
+}
+.tx-row span {
+  font-weight: bold;
+  font-size: 15px;
+  color: #222;
+}
+.tx-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+}
+.input-row .add-btn {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 7px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.input-row .add-btn:hover {
+  background: #1256a3;
+}
+.item-actions{
+  margin-bottom: 10px;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  background: #fff;
+  background: transparent !important;
+}
+.data-table th, .data-table td {
+  border: 1px solid #d3d3d3;
+  padding: 7px 10px;
+  font-size: 15px;
+  text-align: left;
+}
+.data-table th {
+  background: #e3f0fa;
+  color: #1976d2;
+  font-weight: bold;
+}
+.data-table input {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid #d3d3d3;
+  border-radius: 4px;
+  font-size: 15px;
+  background: #f8f9fa;
+  text-align: right;
+}
+.data-table .delete-btn {
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.data-table .delete-btn:hover {
+  background: #b71c1c;
+}
+.data-table tfoot td {
+  font-weight: bold;
+  background: #f8f9fa;
+  background: transparent !important;
+}
+.totals-row td {
+  background: #f8f9fa;
+  font-weight: bold;
+  background: transparent !important;
+}
+.clearfix::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+.btn-update {
+  background-color: #2196F3;
+  color: white;
+  margin-right: 10px;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 15px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.btn-update:disabled {
+  background: #b0bec5;
+  color: #fff;
+  cursor: not-allowed;
+}
+.btn-update:hover {
+  background-color: #1976D2;
+}
+.btn-save {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.btn-save:hover {
+  background-color: #45a049;
+}
+.btn-print {
+  background-color: #008CBA;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.btn-print:hover {
+  background-color: #007399;
+}
+
+// Hide action buttons in print and PDF mode only
+@media print, screen and (class: is-pdf-mode) {
+  .btn-print,
+  .btn-save,
+  .btn-update,
+  .add-btn,
+  .delete-btn {
+    display: none !important;
+  }
+}
+
+// Hide background logos by default
+.background-logo,
+.background-logo-second {
+  display: none;
+}
+
+// --- Unified Print and PDF Styles ---
+@media print, screen and (class: is-pdf-mode) {
+  .background-logo {
+    display: block;
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.1;
+    z-index: 1000;
+    width: 90%;
+    max-width: 600px;
+    pointer-events: none;
+  }
+  .background-logo-second {
+    display: block;
+    position: absolute;
+    top: 75%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.1;
+    z-index: 1000;
+    width: 60%;
+    max-width: 400px;
+    pointer-events: none;
+  }
+  body, .main-content, .quote-test-root, #root {
+    background: transparent !important;
+  }
+}
+
+// --- End of added styles ---
+

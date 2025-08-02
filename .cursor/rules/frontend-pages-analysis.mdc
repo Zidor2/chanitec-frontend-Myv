@@ -1,0 +1,38 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Frontend Pages Analysis
+
+## 1. employeesPage.tsx / orgChartPage.tsx
+- **employeesPage.tsx**: Manages employee records, listing, and possibly CRUD operations for employees.
+- **orgChartPage.tsx**: Displays an organizational chart, showing the hierarchy or structure of employees or departments.
+
+## 2. QuotePage
+- **QuotePage.tsx / QuotePage.scss**: Main page for creating, editing, or viewing a single quote. Contains forms for quote details, item selection, client/site selection, and total calculations.
+
+## 3. PriceOfferPage
+- **PriceOfferPage.tsx / PriceOfferPage.scss**: For generating or viewing price offers based on quotes. Shows quote summary, pricing breakdown, and options to send/export the offer.
+
+## 4. LoginPage
+- **LoginPage.tsx / LoginPage.scss**: Handles user authentication. Provides a login form for users to access the application.
+
+## 5. ItemsPage
+- **ItemsPage.tsx / ItemsPage.scss**: Manages the catalog of items/products/services that can be added to quotes. Includes item listing, search/filter, and CRUD operations.
+
+## 6. HomePage
+- **HomePage.tsx / HomePage.scss**: The landing or dashboard page after login. May show recent activity, quick links, or statistics.
+
+## 7. HistoryPage
+- **HistoryPage.tsx / HistoryPage.scss**: Displays the history of quotes. Includes advanced filtering (by client, site, date, etc.), quote versioning, and actions like viewing, deleting, or setting reminders.
+
+## 8. ClientsPage
+- **ClientsPage.tsx / ClientsPage.scss**: Manages client records and their associated sites. Includes client listing, site management, and CRUD operations for both.
+
+## General Observations
+- Each main business entity (Quote, Price Offer, Item, Client, Employee) has its own management page.
+- Pages are paired with SCSS files for styling.
+- The structure is modular, with each business function separated into its own directory or file.
+- The application supports advanced business logic, such as quote versioning, reminders, and organizational structure.
+

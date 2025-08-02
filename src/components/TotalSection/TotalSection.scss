@@ -1,0 +1,53 @@
+.total-section {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  width: 50%;
+  margin-left: auto;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+
+  @media print {
+    padding: 0;
+    margin-right: 50%;
+    width: 50%;
+  }
+
+  .section-title {
+    font-weight: 700;
+    color: #1976d2;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+
+    @media print {
+      padding: 0;
+      border-bottom: none;
+    }
+  }
+
+  table {
+    .total-label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .total-value {
+      font-weight: 600;
+      min-width: 100px;
+    }
+
+    .grand-total-row {
+      background-color: #f5f5f5;
+    }
+
+    .grand-total {
+      font-weight: 700;
+      color: #1976d2;
+      font-size: 1.1rem;
+    }
+  }
+}
+
+// Print styles

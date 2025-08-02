@@ -1,0 +1,289 @@
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  margin-top: 2rem;
+}
+
+.quote-content {
+  padding-bottom: 2rem;
+  position: relative;
+
+  &.pdf-print-mode {
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    transform: scale(1);
+    transform-origin: top center;
+    page-break-inside: avoid;
+
+    .quote-header,
+    .supplies-section,
+    .labor-section,
+    .total-section {
+      margin: 0;
+      padding: 0;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .total-section {
+      padding-bottom: 0;
+      margin-top: 0;
+    }
+
+    // Adjust table styles for print
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin: 0;
+
+      th, td {
+        padding: 2px;
+        border: 1px solid #ddd;
+        font-size: 8pt;
+      }
+
+      th {
+        background-color: #f5f5f5;
+      }
+    }
+
+    // Hide action buttons and other unnecessary elements
+    .quote-actions,
+    .MuiButton-root,
+    .MuiIconButton-root,
+    .add-item-button,
+    .add-labor-button,
+    .item-actions,
+    .add-labor-form {
+      display: none !important;
+    }
+
+    // Optimize spacing in sections
+    .section-title {
+      font-size: 10pt;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+
+    // Reduce spacing in form fields
+    .MuiTextField-root {
+      margin: 0;
+
+      .MuiInputBase-root {
+        font-size: 8pt;
+        padding: 0;
+      }
+    }
+
+    // Adjust total containers
+    .total-container {
+      margin: 0;
+      padding: 0;
+      background: none;
+      border: none;
+    }
+
+    // Ensure proper page breaks
+    .supplies-section,
+    .labor-section {
+      page-break-after: auto;
+      page-break-inside: avoid;
+    }
+
+    // Hide decorative elements
+    .MuiPaper-root {
+      box-shadow: none;
+      background: none;
+    }
+
+    // Page header styles
+    .page-header {
+      background-color: transparent;
+
+      .page-title {
+        color: black;
+      }
+    }
+  }
+}
+
+.page-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+  flex-direction: column;
+
+  .page-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .original-quote-id {
+    font-size: 0.875rem;
+    color: #666;
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+}
+
+// Print styles
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .quote-content {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    transform: scale(1);
+    transform-origin: top center;
+    page-break-inside: avoid;
+
+    .quote-header,
+    .supplies-section,
+    .labor-section,
+    .total-section {
+      margin: 0;
+      padding: 0;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .total-section {
+      padding-bottom: 0;
+      margin-top: 0;
+    }
+
+    // Adjust table styles for print
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin: 0;
+
+      th, td {
+        padding: 2px;
+        border: 1px solid #ddd;
+        font-size: 8pt;
+      }
+
+      th {
+        background-color: #f5f5f5;
+      }
+    }
+
+    // Hide action buttons and other unnecessary elements
+    .quote-actions,
+    .MuiButton-root,
+    .MuiIconButton-root,
+    .add-item-button,
+    .add-labor-button,
+    .item-actions,
+    .add-labor-form {
+      display: none !important;
+    }
+
+    // Optimize spacing in sections
+    .section-title {
+      font-size: 10pt;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+
+    // Reduce spacing in form fields
+    .MuiTextField-root {
+      margin: 0;
+
+      .MuiInputBase-root {
+        font-size: 8pt;
+        padding: 0;
+      }
+    }
+
+    // Adjust total containers
+    .total-container {
+      margin: 0;
+      padding: 0;
+      background: none;
+      border: none;
+    }
+
+    // Ensure proper page breaks
+    .supplies-section,
+    .labor-section {
+      page-break-after: auto;
+      page-break-inside: avoid;
+    }
+
+    // Hide decorative elements
+    .MuiPaper-root {
+      box-shadow: none;
+      background: none;
+    }
+
+    // Page header styles
+    .page-header {
+      background-color: transparent;
+
+      .page-title {
+        color: black;
+      }
+    }
+  }
+}
+
+.quote-actions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  justify-content: flex-end;
+
+  .MuiButton-root {
+    text-transform: none;
+
+    &.confirm-button {
+      background-color: #4caf50;
+      color: white;
+
+      &:hover {
+        background-color: #388e3c;
+      }
+
+      &.Mui-disabled {
+        background-color: #a5d6a7;
+        color: white;
+      }
+    }
+  }
+}

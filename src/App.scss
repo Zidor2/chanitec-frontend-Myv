@@ -1,0 +1,175 @@
+// Reset some browser defaults
+html, body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Roboto', 'Arial', sans-serif;
+}
+
+// General style resets and defaults
+* {
+  box-sizing: border-box;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+// Base styles
+body {
+  background-color: #f5f5f5;
+  color: rgba(0, 0, 0, 0.87);
+  line-height: 1.43;
+  letter-spacing: 0.01071em;
+}
+
+// Custom number input styling
+.custom-number-input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+    width: 60px;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+
+  .number-controls {
+    display: inline-flex;
+    margin-left: 4px;
+
+    button {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      color: #666;
+
+      &:first-child {
+        border-radius: 4px 0 0 4px;
+        border-right: none;
+      }
+
+      &:last-child {
+        border-radius: 0 4px 4px 0;
+      }
+
+      &:hover {
+        background: #f5f5f5;
+      }
+
+      &:active {
+        background: #e0e0e0;
+      }
+    }
+  }
+}
+
+// Page header styling
+.page-header {
+  background-color: #1976d2;
+  color: white;
+  padding: 1rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  .page-title {
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin: 0;
+  }
+}
+
+// Print-specific styles
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+
+  .page-header {
+    display: none; // Hide the page header when printing
+  }
+
+  button, input[type="submit"], input[type="reset"] {
+    display: none !important;
+  }
+
+
+
+  .quote-content,
+  .quote-content > div,
+  .layout-root {
+    page-break-inside: avoid !important;
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  // Hide all input fields and form elements
+  .MuiInputBase-root, .MuiTextField-root, .MuiFormLabel-root, .MuiOutlinedInput-notchedOutline {
+    border: none !important;
+  }
+
+  .MuiInputLabel-root {
+    position: relative !important;
+    transform: none !important;
+    font-weight: bold !important;
+  }
+
+  .MuiInputBase-input, .MuiSelect-select {
+    padding-left: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .rates-container {
+    display: none !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  // Hide all add/edit buttons and forms globally
+  button[class*="add"],
+  button[class*="edit"],
+  form[class*="add"],
+  .MuiButtonBase-root[class*="add"],
+  div[class*="add-labor"],
+  div[class*="add-item"],
+  .add-labor-form,
+  .item-actions {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
+.App {
+  text-align: center;
+  padding: 20px;
+}
+
+h1 {
+  color: #1976d2;
+}

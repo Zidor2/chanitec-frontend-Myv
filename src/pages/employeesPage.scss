@@ -1,0 +1,25 @@
+.employees-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+
+  .MuiTableContainer-root {
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .MuiTableCell-root {
+    padding: 16px;
+  }
+
+  .MuiIconButton-root {
+    margin: 0 4px;
+  }
+
+  .MuiDialog-paper {
+    min-width: 400px;
+  }
+
+  .MuiTextField-root {
+    margin-bottom: 16px;
+  }
+}

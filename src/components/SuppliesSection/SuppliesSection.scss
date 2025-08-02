@@ -1,0 +1,154 @@
+.supplies-section {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media print {
+    padding: 0;
+    margin: 0;
+  }
+
+  .section-title {
+    font-weight: 700;
+    color: #1976d2;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+
+    @media print {
+      margin: 0;
+      padding: 0;
+      border-bottom: none;
+    }
+  }
+
+  .description-field {
+    margin-bottom: 1rem;
+
+    @media print {
+      margin: 0;
+    }
+  }
+
+  .rates-container {
+    margin-bottom: 1.5rem;
+
+    @media print {
+      margin: 0;
+    }
+
+    .rates-container-item {
+      width: 40px !important;
+    }
+  }
+
+  .item-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 1rem;
+
+    @media print {
+      margin: 0;
+      display: none;
+    }
+
+    .add-item-button {
+      background-color: #4caf50;
+
+      &:hover {
+        background-color: #388e3c;
+      }
+    }
+  }
+
+  .items-table-container {
+    margin-bottom: 1rem;
+
+    @media print {
+      margin: 0;
+    }
+
+    table {
+      th {
+        font-weight: 700;
+        background-color: #f5f5f5;
+
+        @media print {
+          &:last-child {
+            display: none;
+          }
+        }
+      }
+
+      td {
+        @media print {
+          &:last-child {
+            display: none;
+          }
+        }
+      }
+    }
+  }
+
+  .total-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+
+    @media print {
+      margin: 0;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .total-label {
+      font-weight: 700;
+      margin-right: 0.5rem;
+
+      @media print {
+        margin: 0;
+      }
+    }
+
+    .total-value {
+      font-weight: 700;
+      color: #1976d2;
+    }
+  }
+}
+
+// Dialog styles
+.search-container {
+  margin-bottom: 1rem;
+
+  @media print {
+    display: none;
+  }
+}
+
+.search-results-container {
+  height: 300px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+
+  @media print {
+    display: none;
+  }
+
+  .selected-item {
+    background-color: #e3f2fd;
+  }
+}
+
+.quantity-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+
+  @media print {
+    display: none;
+  }
+}

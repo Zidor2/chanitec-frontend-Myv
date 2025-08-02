@@ -1,0 +1,3062 @@
+The following is a digest of the repository "chanitec-backend".
+This digest is designed to be easily parsed by Large Language Models.
+
+--- SUMMARY ---
+Repository: chanitec-backend
+Files Analyzed: 43
+Total Text Size: 92.67 KB
+Estimated Tokens (text only): ~21,301
+
+--- DIRECTORY STRUCTURE ---
+chanitec-backend/
+├── controllers/
+│   ├── clientController.js
+│   ├── debugController.js
+│   ├── departmentController.js
+│   ├── employeeController.js
+│   ├── itemController.js
+│   ├── laborItemController.js
+│   ├── quoteController.js
+│   ├── siteController.js
+│   ├── splitController.js
+│   └── supplyItemController.js
+├── database/
+│   ├── database.js
+│   ├── init-db.js
+│   ├── pool.js
+│   └── run-migration.js
+├── middleware/
+│   ├── auth.js
+│   ├── errorHandler.js
+│   └── validation.js
+├── models/
+│   ├── clientModel.js
+│   ├── Department.js
+│   ├── Employee.js
+│   ├── laborItemModel.js
+│   ├── quoteModel.js
+│   ├── siteModel.js
+│   ├── splitModel.js
+│   └── supplyItemModel.js
+├── routes/
+│   ├── clientRoutes.js
+│   ├── debugRoutes.js
+│   ├── departmentRoutes.js
+│   ├── employeeRoutes.js
+│   ├── index.js
+│   ├── itemRoutes.js
+│   ├── laborItemRoutes.js
+│   ├── quoteRoutes.js
+│   ├── siteRoutes.js
+│   ├── splitRoutes.js
+│   └── supplyItemRoutes.js
+├── utils/
+│   └── excelProcessor.js
+├── app.js
+├── fly.toml
+├── impl.txt
+├── package.json
+├── railway.json
+└── server.js
+
+
+--- FILE CONTENTS ---
+============================================================
+FILE: controllers/clientController.js
+============================================================
+const pool = require('../database/pool');
+
+// Get all clients
+const getAllClients = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM clients');
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching clients:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+          });
+        res.status(500).json({ error: 'Error fetching clients' });
+    }
+};
+
+// Get client by ID
+const getClientById = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM clients WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error fetching client:', error);
+        res.status(500).json({ error: 'Error fetching client' });
+    }
+};
+
+// Create new client
+const createClient = async (req, res) => {
+    const { name, Taux_marge } = req.body;
+    if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+    }
+
+    try {
+        const [result] = await pool.query(
+            'INSERT INTO clients (id, name, Taux_marge) VALUES (UUID(), ?, ?)',
+            [name, Taux_marge || null]
+        );
+
+        // Get the newly created client using UUID() generated
+        const [rows] = await pool.query(
+            'SELECT * FROM clients WHERE name = ? ORDER BY created_at DESC LIMIT 1',
+            [name]
+        );
+
+        if (rows.length === 0) {
+            throw new Error('Failed to retrieve newly created client');
+        }
+
+        // Return complete client object
+        const newClient = {
+            id: rows[0].id,
+            name: rows[0].name,
+            Taux_marge: rows[0].Taux_marge,
+            created_at: rows[0].created_at,
+            updated_at: rows[0].updated_at
+        };
+
+        res.status(201).json(newClient);
+    } catch (error) {
+        console.error('Error creating client:', error);
+        res.status(500).json({
+            error: 'Error creating client',
+            details: error.message
+        });
+    }
+};
+
+// Update client
+const updateClient = async (req, res) => {
+    const { name, Taux_marge } = req.body;
+    if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+    }
+
+    try {
+        const [result] = await pool.query(
+            'UPDATE clients SET name = ?, Taux_marge = ? WHERE id = ?',
+            [name, Taux_marge || null, req.params.id]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+        const [updatedClient] = await pool.query('SELECT * FROM clients WHERE id = ?', [req.params.id]);
+        res.json(updatedClient[0]);
+    } catch (error) {
+        console.error('Error updating client:', error);
+        res.status(500).json({ error: 'Error updating client' });
+    }
+};
+
+// Delete client
+const deleteClient = async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM clients WHERE id = ?', [req.params.id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting client:', error);
+        res.status(500).json({ error: 'Error deleting client' });
+    }
+};
+
+module.exports = {
+    getAllClients,
+    getClientById,
+    createClient,
+    updateClient,
+    deleteClient
+};
+
+
+============================================================
+FILE: controllers/debugController.js
+============================================================
+const pool = require('../database/pool');
+
+// Get database tables and structure information
+const getDatabaseStructure = async (req, res) => {
+    try {
+        console.log('Getting database structure information');
+
+        // Get tables list
+        const [tables] = await pool.query(`
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+        `);
+
+        const tableNames = tables.map(t => t.table_name);
+        console.log('Tables found:', tableNames);
+
+        // Get structure for each table
+        const tableStructures = {};
+        for (const tableName of tableNames) {
+            const [columns] = await pool.query(`
+                SELECT column_name, column_type, is_nullable, column_key, column_default
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE() AND table_name = ?
+                ORDER BY ordinal_position
+            `, [tableName]);
+
+            tableStructures[tableName] = columns;
+
+            // Also get a few sample rows from each table
+            try {
+                const [samples] = await pool.query(`SELECT * FROM ${tableName} LIMIT 3`);
+                tableStructures[tableName + '_samples'] = samples;
+            } catch (error) {
+                console.error(`Error getting samples for table ${tableName}:`, error);
+                tableStructures[tableName + '_samples'] = { error: error.message };
+            }
+        }
+
+        // Get foreign key relationships
+        const [relationships] = await pool.query(`
+            SELECT
+                table_name,
+                column_name,
+                referenced_table_name,
+                referenced_column_name
+            FROM information_schema.key_column_usage
+            WHERE referenced_table_name IS NOT NULL
+            AND table_schema = DATABASE()
+            ORDER BY table_name, column_name
+        `);
+
+        res.json({
+            tables: tableNames,
+            structures: tableStructures,
+            relationships: relationships
+        });
+    } catch (error) {
+        console.error('Error getting database structure:', error);
+        res.status(500).json({ error: 'Error getting database structure' });
+    }
+};
+
+// Test site lookup for a specific client
+const testSiteLookup = async (req, res) => {
+    const clientId = req.params.clientId;
+
+    if (!clientId) {
+        return res.status(400).json({ error: 'Client ID is required' });
+    }
+
+    try {
+        // Check if client exists
+        const [client] = await pool.query('SELECT * FROM clients WHERE id = ?', [clientId]);
+
+        if (client.length === 0) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+
+        // Get all sites for direct comparison
+        const [allSites] = await pool.query('SELECT * FROM sites');
+
+        // Get sites for the client
+        const [clientSites] = await pool.query('SELECT * FROM sites WHERE client_id = ?', [clientId]);
+
+        res.json({
+            client: client[0],
+            clientSites: clientSites,
+            allSitesCount: allSites.length,
+            matchingSitesCount: clientSites.length,
+            // For debugging, show some sites and their client_id
+            sampleSites: allSites.slice(0, 5).map(site => ({
+                id: site.id,
+                name: site.name,
+                client_id: site.client_id,
+                matches: site.client_id === clientId
+            }))
+        });
+    } catch (error) {
+        console.error('Error testing site lookup:', error);
+        res.status(500).json({ error: 'Error testing site lookup' });
+    }
+};
+
+module.exports = {
+    getDatabaseStructure,
+    testSiteLookup
+};
+
+============================================================
+FILE: controllers/departmentController.js
+============================================================
+const Department = require('../models/Department');
+
+// Get all departments
+exports.getAllDepartments = async (req, res) => {
+    try {
+        const departments = await Department.findAll();
+        res.json(departments);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get department by ID
+exports.getDepartmentById = async (req, res) => {
+    try {
+        const department = await Department.findByPk(req.params.id);
+        if (!department) {
+            return res.status(404).json({ message: 'Department not found' });
+        }
+        res.json(department);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Create new department
+exports.createDepartment = async (req, res) => {
+    try {
+        const department = await Department.create(req.body);
+        res.status(201).json(department);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// Update department
+exports.updateDepartment = async (req, res) => {
+    try {
+        const department = await Department.findByPk(req.params.id);
+        if (!department) {
+            return res.status(404).json({ message: 'Department not found' });
+        }
+        await department.update(req.body);
+        res.json(department);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// Delete department
+exports.deleteDepartment = async (req, res) => {
+    try {
+        const department = await Department.findByPk(req.params.id);
+        if (!department) {
+            return res.status(404).json({ message: 'Department not found' });
+        }
+        await department.destroy();
+        res.json({ message: 'Department deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+============================================================
+FILE: controllers/employeeController.js
+============================================================
+const Employee = require('../models/Employee');
+
+// Get all employees
+const getAllEmployees = async (req, res) => {
+    try {
+        const employees = await Employee.findAll();
+        res.json(employees);
+    } catch (error) {
+        console.error('Error fetching employees:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
+        res.status(500).json({ error: 'Error fetching employees' });
+    }
+};
+
+// Get employee by ID
+const getEmployeeById = async (req, res) => {
+    try {
+        const employee = await Employee.findById(req.params.id);
+        if (!employee) {
+            return res.status(404).json({ error: 'Employee not found' });
+        }
+        res.json(employee);
+    } catch (error) {
+        console.error('Error fetching employee:', error);
+        res.status(500).json({ error: 'Error fetching employee' });
+    }
+};
+
+// Create new employee
+const createEmployee = async (req, res) => {
+    const { full_name, civil_status, birth_date, entry_date, seniority, contract_type, job_title, fonction } = req.body;
+
+    // Validate required fields
+    if (!full_name || !civil_status || !birth_date || !entry_date || !seniority || !contract_type || !job_title || !fonction) {
+        return res.status(400).json({ error: 'All required fields must be provided' });
+    }
+
+    try {
+        const newEmployee = await Employee.create(req.body);
+        res.status(201).json(newEmployee);
+    } catch (error) {
+        console.error('Error creating employee:', error);
+        res.status(500).json({
+            error: 'Error creating employee',
+            details: error.message
+        });
+    }
+};
+
+// Update employee
+const updateEmployee = async (req, res) => {
+    const { full_name, civil_status, birth_date, entry_date, seniority, contract_type, job_title, fonction } = req.body;
+
+    // Validate required fields
+    if (!full_name || !civil_status || !birth_date || !entry_date || !seniority || !contract_type || !job_title || !fonction) {
+        return res.status(400).json({ error: 'All required fields must be provided' });
+    }
+
+    try {
+        const updatedEmployee = await Employee.update(req.params.id, req.body);
+        if (!updatedEmployee) {
+            return res.status(404).json({ error: 'Employee not found' });
+        }
+        res.json(updatedEmployee);
+    } catch (error) {
+        console.error('Error updating employee:', error);
+        res.status(500).json({ error: 'Error updating employee' });
+    }
+};
+
+// Delete employee
+const deleteEmployee = async (req, res) => {
+    try {
+        const employee = await Employee.findById(req.params.id);
+        if (!employee) {
+            return res.status(404).json({ error: 'Employee not found' });
+        }
+        await Employee.delete(req.params.id);
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting employee:', error);
+        res.status(500).json({ error: 'Error deleting employee' });
+    }
+};
+
+module.exports = {
+    getAllEmployees,
+    getEmployeeById,
+    createEmployee,
+    updateEmployee,
+    deleteEmployee
+};
+
+============================================================
+FILE: controllers/itemController.js
+============================================================
+const pool = require('../database/pool');
+const { processExcelFile } = require('../utils/excelProcessor');
+
+// Get all items
+const getAllItems = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM items ORDER BY created_at DESC');
+
+        // Add debug logging to see what fields are present
+        if (rows.length > 0) {
+            console.log('Database response - first item fields:', Object.keys(rows[0]));
+            console.log('Database response - sample item:', rows[0]);
+        } else {
+            console.log('Database response: No items found');
+        }
+
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching items:', error);
+        res.status(500).json({
+            error: 'Error fetching items',
+            details: error.message
+        });
+    }
+};
+
+// Get item by ID
+const getItemById = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM items WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Item not found' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error fetching item:', error);
+        res.status(500).json({
+            error: 'Error fetching item',
+            details: error.message
+        });
+    }
+};
+
+// Create new item
+const createItem = async (req, res) => {
+    console.log('Received create item request with body:', req.body);
+
+    const { description, price, quantity } = req.body;
+    console.log('Extracted values:', { description, price, quantity });
+
+    if (!description || !price || quantity === undefined) {
+        console.log('Missing required fields. Received:', { description, price, quantity });
+        return res.status(400).json({
+            error: 'Missing required fields',
+            required: ['description', 'price', 'quantity'],
+            received: req.body
+        });
+    }
+
+    try {
+        console.log('Attempting to insert item with values:', { description, price, quantity });
+        const [result] = await pool.query(
+            'INSERT INTO items (id, description, price, quantity) VALUES (UUID(), ?, ?, ?)',
+            [description, price, quantity]
+        );
+        console.log('Insert result:', result);
+
+        // Get the newly created item
+        const [rows] = await pool.query(
+            'SELECT * FROM items WHERE description = ? ORDER BY created_at DESC LIMIT 1',
+            [description]
+        );
+        console.log('Retrieved item:', rows[0]);
+
+        if (rows.length === 0) {
+            throw new Error('Failed to retrieve newly created item');
+        }
+
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        console.error('Error creating item:', error);
+        res.status(500).json({
+            error: 'Error creating item',
+            details: error.message
+        });
+    }
+};
+
+// Update item
+const updateItem = async (req, res) => {
+    const { description, price, quantity } = req.body;
+
+    if (!description || !price || quantity === undefined) {
+        return res.status(400).json({
+            error: 'Missing required fields',
+            required: ['description', 'price', 'quantity']
+        });
+    }
+
+    try {
+        const [result] = await pool.query(
+            'UPDATE items SET description = ?, price = ?, quantity = ? WHERE id = ?',
+            [description, price, quantity, req.params.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Item not found' });
+        }
+
+        const [updatedItem] = await pool.query('SELECT * FROM items WHERE id = ?', [req.params.id]);
+        res.json(updatedItem[0]);
+    } catch (error) {
+        console.error('Error updating item:', error);
+        res.status(500).json({
+            error: 'Error updating item',
+            details: error.message
+        });
+    }
+};
+
+// Delete item
+const deleteItem = async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM items WHERE id = ?', [req.params.id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Item not found' });
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting item:', error);
+        res.status(500).json({
+            error: 'Error deleting item',
+            details: error.message
+        });
+    }
+};
+
+// Import items from Excel
+const importItems = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    try {
+        // Process the Excel file
+        const processResult = await processExcelFile(req.file);
+
+        // Initialize results tracking
+        const results = {
+            totalProcessed: processResult.totalRows,
+            successful: [],
+            failed: [...processResult.invalidItems],
+            summary: {
+                total: processResult.totalRows,
+                valid: processResult.validItems.length,
+                invalid: processResult.invalidItems.length,
+                imported: 0,
+                errors: processResult.invalidItems.length
+            }
+        };
+
+        // Process valid items one by one
+        for (const validItem of processResult.validItems) {
+            try {
+                const newItem = await pool.query(
+                    'INSERT INTO items (description, price) VALUES ($1, $2) RETURNING *',
+                    [validItem.item.description, validItem.item.price]
+                );
+
+                results.successful.push({
+                    rowIndex: validItem.rowIndex,
+                    item: newItem.rows[0],
+                    rawData: validItem.rawData
+                });
+                results.summary.imported++;
+            } catch (error) {
+                results.failed.push({
+                    rowIndex: validItem.rowIndex,
+                    error: `Database insertion failed: ${error.message}`,
+                    rawData: validItem.rawData
+                });
+                results.summary.errors++;
+            }
+        }
+
+        return res.status(200).json({
+            message: 'Import completed',
+            results: results
+        });
+    } catch (error) {
+        console.error('Import error:', error);
+        return res.status(500).json({
+            error: 'Error processing import',
+            details: error.message
+        });
+    }
+};
+
+// Clear all items
+const clearItems = async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM items');
+        res.json({
+            message: 'All items cleared successfully',
+            deletedCount: result.affectedRows
+        });
+    } catch (error) {
+        console.error('Error clearing items:', error);
+        res.status(500).json({
+            error: 'Error clearing items',
+            details: error.message
+        });
+    }
+};
+
+module.exports = {
+    getAllItems,
+    getItemById,
+    createItem,
+    updateItem,
+    deleteItem,
+    importItems,
+    clearItems
+};
+
+============================================================
+FILE: controllers/laborItemController.js
+============================================================
+const pool = require('../database/pool');
+
+// Get all labor items for a quote
+const getLaborItemsByQuoteId = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM labor_items WHERE quote_id = ?', [req.params.quoteId]);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching labor items:', error);
+        res.status(500).json({ error: 'Error fetching labor items' });
+    }
+};
+
+// Get labor item by ID
+const getLaborItemById = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM labor_items WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Labor item not found' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error fetching labor item:', error);
+        res.status(500).json({ error: 'Error fetching labor item' });
+    }
+};
+
+// Create new labor item
+const createLaborItem = async (req, res) => {
+    try {
+        const {
+            description,
+            nb_technicians,
+            nb_hours,
+            weekend_multiplier,
+            price_euro,
+            price_dollar,
+            unit_price_dollar,
+            total_price_dollar
+        } = req.body;
+
+        // Get quote_id from the URL parameter
+        const quote_id = req.params.quoteId;
+
+        // Validate required fields and data types
+        if (!quote_id || quote_id.length !== 36) {
+            return res.status(400).json({ error: 'Invalid quote_id format' });
+        }
+
+        // Validate and convert data types
+        const validatedData = {
+            quote_id,
+            description: description ? String(description) : null,
+            nb_technicians: nb_technicians ? parseInt(nb_technicians) : null,
+            nb_hours: nb_hours ? parseFloat(Number(nb_hours).toFixed(2)) : null,
+            weekend_multiplier: weekend_multiplier ? parseFloat(Number(weekend_multiplier).toFixed(2)) : null,
+            price_euro: price_euro ? parseFloat(Number(price_euro).toFixed(2)) : null,
+            price_dollar: price_dollar ? parseFloat(Number(price_dollar).toFixed(2)) : null,
+            unit_price_dollar: unit_price_dollar ? parseFloat(Number(unit_price_dollar).toFixed(2)) : null,
+            total_price_dollar: total_price_dollar ? parseFloat(Number(total_price_dollar).toFixed(2)) : null
+        };
+
+        // Validate required fields
+        if (!validatedData.description ||
+            validatedData.nb_technicians === null ||
+            validatedData.nb_hours === null ||
+            validatedData.weekend_multiplier === null ||
+            validatedData.price_euro === null) {
+            return res.status(400).json({
+                error: 'Missing or invalid required fields',
+                required: {
+                    description: 'text',
+                    nb_technicians: 'integer',
+                    nb_hours: 'decimal(10,2)',
+                    weekend_multiplier: 'decimal(10,2)',
+                    price_euro: 'decimal(10,2)'
+                }
+            });
+        }
+
+        // Validate numeric fields are positive
+        if (validatedData.nb_technicians <= 0 ||
+            validatedData.nb_hours <= 0 ||
+            validatedData.weekend_multiplier <= 0 ||
+            validatedData.price_euro <= 0) {
+            return res.status(400).json({ error: 'Numeric fields must be positive values' });
+        }
+
+        // Insert the labor item with UUID generation
+        const [result] = await pool.query(
+            `INSERT INTO labor_items (
+                id, quote_id, description, nb_technicians, nb_hours,
+                weekend_multiplier, price_euro, price_dollar,
+                unit_price_dollar, total_price_dollar
+            ) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                validatedData.quote_id,
+                validatedData.description,
+                validatedData.nb_technicians,
+                validatedData.nb_hours,
+                validatedData.weekend_multiplier,
+                validatedData.price_euro,
+                validatedData.price_dollar,
+                validatedData.unit_price_dollar,
+                validatedData.total_price_dollar
+            ]
+        );
+
+        // Fetch the newly created item
+        const [rows] = await pool.query(
+            'SELECT * FROM labor_items WHERE quote_id = ? AND description = ? ORDER BY created_at DESC LIMIT 1',
+            [quote_id, validatedData.description]
+        );
+
+        if (rows.length === 0) {
+            throw new Error('Failed to retrieve newly created labor item');
+        }
+
+        // Transform the response to match frontend expectations
+        const newItem = {
+            id: rows[0].id,
+            description: rows[0].description,
+            nbTechnicians: rows[0].nb_technicians,
+            nbHours: parseFloat(rows[0].nb_hours),
+            weekendMultiplier: parseFloat(rows[0].weekend_multiplier),
+            priceEuro: parseFloat(rows[0].price_euro),
+            priceDollar: rows[0].price_dollar ? parseFloat(rows[0].price_dollar) : null,
+            unitPriceDollar: rows[0].unit_price_dollar ? parseFloat(rows[0].unit_price_dollar) : null,
+            totalPriceDollar: rows[0].total_price_dollar ? parseFloat(rows[0].total_price_dollar) : null,
+            created_at: rows[0].created_at,
+            updated_at: rows[0].updated_at
+        };
+
+        res.status(201).json(newItem);
+    } catch (error) {
+        console.error('Error creating labor item:', error);
+        res.status(500).json({
+            error: 'Error creating labor item',
+            details: error.message
+        });
+    }
+};
+
+// Update labor item
+const updateLaborItem = async (req, res) => {
+    const {
+        description,
+        nb_technicians,
+        nb_hours,
+        weekend_multiplier,
+        price_euro,
+        price_dollar,
+        unit_price_dollar,
+        total_price_dollar
+    } = req.body;
+
+    if (!description || !nb_technicians || !nb_hours || !weekend_multiplier || !price_euro) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const [result] = await pool.query(
+            `UPDATE labor_items SET
+                description = ?, nb_technicians = ?, nb_hours = ?,
+                weekend_multiplier = ?, price_euro = ?, price_dollar = ?,
+                unit_price_dollar = ?, total_price_dollar = ?
+            WHERE id = ?`,
+            [
+                description, nb_technicians, nb_hours,
+                weekend_multiplier, price_euro, price_dollar,
+                unit_price_dollar, total_price_dollar, req.params.id
+            ]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Labor item not found' });
+        }
+        const [updatedItem] = await pool.query('SELECT * FROM labor_items WHERE id = ?', [req.params.id]);
+        res.json(updatedItem[0]);
+    } catch (error) {
+        console.error('Error updating labor item:', error);
+        res.status(500).json({ error: 'Error updating labor item' });
+    }
+};
+
+// Delete labor item
+const deleteLaborItem = async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM labor_items WHERE id = ?', [req.params.id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Labor item not found' });
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting labor item:', error);
+        res.status(500).json({ error: 'Error deleting labor item' });
+    }
+};
+
+module.exports = {
+    getLaborItemsByQuoteId,
+    getLaborItemById,
+    createLaborItem,
+    updateLaborItem,
+    deleteLaborItem
+};
+
+============================================================
+FILE: controllers/quoteController.js
+============================================================
+const pool = require('../database/pool');
+const crypto = require('crypto');
+
+// Get all quotes
+const getAllQuotes = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM quotes ORDER BY date DESC, created_at DESC');
+
+        // Convert field names from snake_case to camelCase for frontend
+        const quotes = rows.map(row => ({
+            id: row.id,
+            clientName: row.client_name,
+            siteName: row.site_name,
+            object: row.object,
+            date: row.date,
+            reminderDate: row.reminderDate,
+            confirmed: row.confirmed,
+            supplyDescription: row.supply_description,
+            laborDescription: row.labor_description,
+            supplyExchangeRate: row.supply_exchange_rate,
+            supplyMarginRate: row.supply_margin_rate,
+            laborExchangeRate: row.labor_exchange_rate,
+            laborMarginRate: row.labor_margin_rate,
+            totalSuppliesHT: row.total_supplies_ht,
+            totalLaborHT: row.total_labor_ht,
+            totalHT: row.total_ht,
+            tva: row.tva,
+            totalTTC: row.total_ttc,
+            parentId: row.parentId,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            splitId: row.split_id,
+        }));
+
+        res.json(quotes);
+    } catch (error) {
+        console.error('Error fetching quotes:', error);
+        res.status(500).json({ error: 'Error fetching quotes' });
+    }
+};
+
+// Get quote by ID
+const getQuoteById = async (req, res) => {
+    try {
+        // Get the quote
+        const [quoteRows] = await pool.query('SELECT * FROM quotes WHERE id = ?', [req.params.id]);
+
+        if (quoteRows.length === 0) {
+            return res.status(404).json({ error: 'Quote not found' });
+        }
+
+        // Get supply items for this quote
+        const [supplyItems] = await pool.query(
+            'SELECT * FROM supply_items WHERE quote_id = ?',
+            [req.params.id]
+        );
+
+        // Get labor items for this quote
+        const [laborItems] = await pool.query(
+            'SELECT * FROM labor_items WHERE quote_id = ?',
+            [req.params.id]
+        );
+
+        // Format the response
+        const quote = {
+            id: quoteRows[0].id,
+            clientName: quoteRows[0].client_name,
+            siteName: quoteRows[0].site_name,
+            object: quoteRows[0].object,
+            date: quoteRows[0].date,
+            supplyDescription: quoteRows[0].supply_description,
+            laborDescription: quoteRows[0].labor_description,
+            supplyExchangeRate: quoteRows[0].supply_exchange_rate,
+            supplyMarginRate: quoteRows[0].supply_margin_rate,
+            laborExchangeRate: quoteRows[0].labor_exchange_rate,
+            laborMarginRate: quoteRows[0].labor_margin_rate,
+            totalSuppliesHT: quoteRows[0].total_supplies_ht,
+            totalLaborHT: quoteRows[0].total_labor_ht,
+            totalHT: quoteRows[0].total_ht,
+            tva: quoteRows[0].tva,
+            totalTTC: quoteRows[0].total_ttc,
+            parentId: quoteRows[0].parentId,
+            createdAt: quoteRows[0].created_at,
+            updatedAt: quoteRows[0].updated_at,
+            splitId: quoteRows[0].split_id,
+            supplyItems: supplyItems.map(item => ({
+                id: item.id,
+                description: item.description,
+                quantity: item.quantity,
+                priceEuro: item.price_euro,
+                priceDollar: item.price_dollar,
+                unitPriceDollar: item.unit_price_dollar,
+                totalPriceDollar: item.total_price_dollar
+            })),
+            laborItems: laborItems.map(item => ({
+                id: item.id,
+                description: item.description,
+                nbTechnicians: item.nb_technicians,
+                nbHours: item.nb_hours,
+                weekendMultiplier: item.weekend_multiplier,
+                priceEuro: item.price_euro,
+                priceDollar: item.price_dollar,
+                unitPriceDollar: item.unit_price_dollar,
+                totalPriceDollar: item.total_price_dollar
+            }))
+        };
+
+        res.json(quote);
+    } catch (error) {
+        console.error('Error getting quote:', error);
+        res.status(500).json({ error: 'Error getting quote' });
+    }
+};
+
+
+const setReminderDate = async (req, res) => {
+    const { reminderDate } = req.body;
+
+    try {
+        // Validate date format
+        if (!reminderDate || !Date.parse(reminderDate)) {
+            return res.status(400).json({ error: 'Invalid reminder date format' });
+        }
+
+        const [result] = await pool.query(
+            'UPDATE quotes SET reminderDate = ? WHERE id = ?',
+            [reminderDate, req.params.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Quote not found' });
+        }
+
+        // Return the updated quote
+        const [updatedQuote] = await pool.query('SELECT * FROM quotes WHERE id = ?', [req.params.id]);
+        res.json(updatedQuote[0]);
+    } catch (error) {
+        console.error('Error setting reminder date:', error);
+        res.status(500).json({ error: 'Error setting reminder date' });
+    }
+};
+
+const confirmQuote = async (req, res) => {
+    const { confirmed, number_chanitec } = req.body;
+
+    try {
+        // Validate confirmed value
+        if (typeof confirmed !== 'boolean') {
+            return res.status(400).json({ error: 'Confirmed status must be a boolean' });
+        }
+        // Validate number_chanitec (optional: you can add more validation)
+        if (!number_chanitec || typeof number_chanitec !== 'string') {
+            return res.status(400).json({ error: 'number_chanitec is required and must be a string' });
+        }
+
+        const [result] = await pool.query(
+            'UPDATE quotes SET confirmed = ?, number_chanitec = ? WHERE id = ?',
+            [confirmed, number_chanitec, req.params.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Quote not found' });
+        }
+
+        res.json({ message: 'Quote confirmation status and number_chanitec updated successfully' });
+    } catch (error) {
+        console.error('Error updating quote confirmation:', error);
+        res.status(500).json({ error: 'Error updating quote confirmation' });
+    }
+};
+
+// Create new quote
+const createQuote = async (req, res) => {
+    // Start a transaction
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+        // 1. Check for duplicate quote
+        const [existingQuotes] = await connection.query(
+            `SELECT id FROM quotes WHERE
+            client_name = ? AND
+            site_name = ? AND
+            object = ? AND
+            date = ? AND
+            supply_description = ? AND
+            labor_description = ? AND
+            supply_exchange_rate = ? AND
+            supply_margin_rate = ? AND
+            labor_exchange_rate = ? AND
+            labor_margin_rate = ? AND
+            total_supplies_ht = ? AND
+            total_labor_ht = ? AND
+            total_ht = ? AND
+            tva = ? AND
+            total_ttc = ? AND
+            parentId = ?`,
+            [
+                req.body.clientName,
+                req.body.siteName,
+                req.body.object,
+                req.body.date,
+                req.body.supplyDescription,
+                req.body.laborDescription,
+                req.body.supplyExchangeRate,
+                req.body.supplyMarginRate,
+                req.body.laborExchangeRate,
+                req.body.laborMarginRate,
+                req.body.totalSuppliesHT,
+                req.body.totalLaborHT,
+                req.body.totalHT,
+                req.body.tva,
+                req.body.totalTTC,
+                req.body.parentId || 0,
+                req.body.splitId || null
+            ]
+        );
+
+        if (existingQuotes.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({
+                error: 'A quote with these exact details already exists',
+                existingQuoteId: existingQuotes[0].id
+            });
+        }
+
+        // 2. Create the quote
+        const quoteData = {
+            client_name: req.body.clientName,
+            site_name: req.body.siteName,
+            object: req.body.object,
+            date: req.body.date,
+            supply_description: req.body.supplyDescription,
+            labor_description: req.body.laborDescription,
+            supply_exchange_rate: req.body.supplyExchangeRate,
+            supply_margin_rate: req.body.supplyMarginRate,
+            labor_exchange_rate: req.body.laborExchangeRate,
+            labor_margin_rate: req.body.laborMarginRate,
+            total_supplies_ht: req.body.totalSuppliesHT,
+            total_labor_ht: req.body.totalLaborHT,
+            total_ht: req.body.totalHT,
+            tva: req.body.tva,
+            total_ttc: req.body.totalTTC,
+            parentId: req.body.parentId || 0,
+            split_id: req.body.splitId || null
+        };
+
+        // Generate quote ID
+        const quoteId = req.body.id || crypto.randomUUID();
+
+        // Insert quote
+        const [quoteResult] = await connection.query(
+            `INSERT INTO quotes (
+                id, client_name, site_name, object, date,
+                supply_description, labor_description,
+                supply_exchange_rate, supply_margin_rate,
+                labor_exchange_rate, labor_margin_rate,
+                total_supplies_ht, total_labor_ht, total_ht,
+                tva, total_ttc, parentId, split_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`,
+            [
+                quoteId,
+                quoteData.client_name,
+                quoteData.site_name,
+                quoteData.object,
+                quoteData.date,
+                quoteData.supply_description,
+                quoteData.labor_description,
+                quoteData.supply_exchange_rate,
+                quoteData.supply_margin_rate,
+                quoteData.labor_exchange_rate,
+                quoteData.labor_margin_rate,
+                quoteData.total_supplies_ht,
+                quoteData.total_labor_ht,
+                quoteData.total_ht,
+                quoteData.tva,
+                quoteData.total_ttc,
+                quoteData.parentId || 0,
+                quoteData.split_id
+            ]
+        );
+
+        // 2. Insert supply items
+        if (req.body.supplyItems && req.body.supplyItems.length > 0) {
+            for (const item of req.body.supplyItems) {
+                await connection.query(
+                    `INSERT INTO supply_items (
+                        id, quote_id, description, quantity,
+                        price_euro, price_dollar, unit_price_dollar,
+                        total_price_dollar
+                    ) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        quoteId,
+                        item.description,
+                        item.quantity,
+                        item.priceEuro,
+                        item.priceDollar,
+                        item.unitPriceDollar,
+                        item.totalPriceDollar
+                    ]
+                );
+            }
+        }
+
+        // 3. Insert labor items
+        if (req.body.laborItems && req.body.laborItems.length > 0) {
+            for (const item of req.body.laborItems) {
+                await connection.query(
+                    `INSERT INTO labor_items (
+                        id, quote_id, description, nb_technicians,
+                        nb_hours, weekend_multiplier, price_euro,
+                        price_dollar, unit_price_dollar, total_price_dollar
+                    ) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        quoteId,
+                        item.description,
+                        item.nbTechnicians,
+                        item.nbHours,
+                        item.weekendMultiplier,
+                        item.priceEuro,
+                        item.priceDollar,
+                        item.unitPriceDollar,
+                        item.totalPriceDollar
+                    ]
+                );
+            }
+        }
+
+        // Commit the transaction
+        await connection.commit();
+
+        // 4. Fetch the complete quote with items
+        const [quoteRows] = await connection.query('SELECT * FROM quotes WHERE id = ?', [quoteId]);
+        const [supplyItems] = await connection.query('SELECT * FROM supply_items WHERE quote_id = ?', [quoteId]);
+        const [laborItems] = await connection.query('SELECT * FROM labor_items WHERE quote_id = ?', [quoteId]);
+
+        // Convert to frontend format
+        const savedQuote = {
+            id: quoteRows[0].id,
+            clientName: quoteRows[0].client_name,
+            siteName: quoteRows[0].site_name,
+            object: quoteRows[0].object,
+            date: quoteRows[0].date,
+            supplyDescription: quoteRows[0].supply_description,
+            laborDescription: quoteRows[0].labor_description,
+            supplyExchangeRate: quoteRows[0].supply_exchange_rate,
+            supplyMarginRate: quoteRows[0].supply_margin_rate,
+            laborExchangeRate: quoteRows[0].labor_exchange_rate,
+            laborMarginRate: quoteRows[0].labor_margin_rate,
+            totalSuppliesHT: quoteRows[0].total_supplies_ht,
+            totalLaborHT: quoteRows[0].total_labor_ht,
+            totalHT: quoteRows[0].total_ht,
+            tva: quoteRows[0].tva,
+            totalTTC: quoteRows[0].total_ttc,
+            parentId: quoteRows[0].parentId,
+            createdAt: quoteRows[0].created_at,
+            updatedAt: quoteRows[0].updated_at,
+            supplyItems: supplyItems.map(item => ({
+                id: item.id,
+                description: item.description,
+                quantity: item.quantity,
+                priceEuro: item.price_euro,
+                priceDollar: item.price_dollar,
+                unitPriceDollar: item.unit_price_dollar,
+                totalPriceDollar: item.total_price_dollar
+            })),
+            laborItems: laborItems.map(item => ({
+                id: item.id,
+                description: item.description,
+                nbTechnicians: item.nb_technicians,
+                nbHours: item.nb_hours,
+                weekendMultiplier: item.weekend_multiplier,
+                priceEuro: item.price_euro,
+                priceDollar: item.price_dollar,
+                unitPriceDollar: item.unit_price_dollar,
+                totalPriceDollar: item.total_price_dollar
+            }))
+        };
+
+        res.status(201).json(savedQuote);
+
+    } catch (error) {
+        // Rollback the transaction on error
+        await connection.rollback();
+        console.error('Error creating quote:', error);
+        res.status(500).json({
+            error: 'Error creating quote',
+            details: error.message
+        });
+    } finally {
+        connection.release();
+    }
+};
+
+// Update quote
+const updateQuote = async (req, res) => {
+    // Log the entire request body
+    console.log('=== UPDATE QUOTE REQUEST BODY ===');
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log('=== END REQUEST BODY ===');
+
+    const {
+        client_name,
+        site_name,
+        object,
+        date,
+        supply_description,
+        labor_description,
+        supply_exchange_rate,
+        supply_margin_rate,
+        labor_exchange_rate,
+        labor_margin_rate,
+        total_supplies_ht,
+        total_labor_ht,
+        total_ht,
+        tva,
+        total_ttc,
+        confirmed,
+        reminderDate,
+        parentId,
+        split_id // <-- Use split_id here
+    } = req.body;
+
+    // Validate required fields
+    if (!client_name || !site_name || !date || !supply_exchange_rate || !supply_margin_rate ||
+        !labor_exchange_rate || !labor_margin_rate || !total_supplies_ht || !total_labor_ht ||
+        !total_ht || !tva || !total_ttc) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const [result] = await pool.query(
+            `UPDATE quotes SET
+                client_name = ?, site_name = ?, object = ?, date = ?,
+                supply_description = ?, labor_description = ?,
+                supply_exchange_rate = ?, supply_margin_rate = ?,
+                labor_exchange_rate = ?, labor_margin_rate = ?,
+                total_supplies_ht = ?, total_labor_ht = ?, total_ht = ?,
+                tva = ?, total_ttc = ?, confirmed = ?, reminderDate = ?,
+                parentId = ?, split_id = ?
+            WHERE id = ?`,
+            [
+                client_name, site_name, object, date, supply_description, labor_description,
+                supply_exchange_rate, supply_margin_rate, labor_exchange_rate, labor_margin_rate,
+                total_supplies_ht, total_labor_ht, total_ht, tva, total_ttc,
+                confirmed || false, reminderDate || null, parentId || null, split_id || null,
+                req.params.id
+            ]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Quote not found' });
+        }
+        const [updatedQuote] = await pool.query('SELECT * FROM quotes WHERE id = ?', [req.params.id]);
+        res.json(updatedQuote[0]);
+    } catch (error) {
+        console.error('Error updating quote:', error);
+        res.status(500).json({ error: 'Error updating quote' });
+    }
+};
+
+// Delete quote
+const deleteQuote = async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM quotes WHERE id = ?', [req.params.id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Quote not found' });
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting quote:', error);
+        res.status(500).json({ error: 'Error deleting quote' });
+    }
+};
+
+module.exports = {
+    getAllQuotes,
+    getQuoteById,
+    createQuote,
+    updateQuote,
+    deleteQuote,
+    setReminderDate,
+    confirmQuote
+};
+
+============================================================
+FILE: controllers/siteController.js
+============================================================
+const pool = require('../database/pool');
+
+// Get site by ID
+const getSiteById = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM sites WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Site not found' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error fetching site:', error);
+        res.status(500).json({ error: 'Error fetching site' });
+    }
+};
+
+// Get sites by client ID
+const getSitesByClientId = async (req, res) => {
+    const client_id = req.query.clientId;
+
+    if (!client_id) {
+        return res.status(400).json({ error: 'Client ID is required' });
+    }
+
+    try {
+        // First check if the client exists
+        const [clientRows] = await pool.query('SELECT * FROM clients WHERE id = ?', [client_id]);
+
+        if (clientRows.length === 0) {
+            return res.status(404).json({ error: 'Client not found with ID: ' + client_id });
+        }
+
+        const [rows] = await pool.query('SELECT * FROM sites WHERE client_id = ?', [client_id]);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching sites by client:', error);
+        res.status(500).json({ error: 'Error fetching sites by client' });
+    }
+};
+
+// Create new site
+const createSite = async (req, res) => {
+    const { name, client_id } = req.body;
+    if (!name || !client_id) {
+        return res.status(400).json({ error: 'Name and client_id are required' });
+    }
+
+    try {
+        // Perform the insertion
+        const [result] = await pool.query(
+            'INSERT INTO sites (id, name, client_id) VALUES (UUID(), ?, ?)',
+            [name, client_id]
+        );
+
+        // Retrieve the newly created site using the known name and client_id
+        // Order by created_at descending and limit 1 to get the most recent one
+        const [rows] = await pool.query(
+            'SELECT * FROM sites WHERE name = ? AND client_id = ? ORDER BY created_at DESC LIMIT 1',
+            [name, client_id]
+        );
+
+        if (rows.length === 0) {
+            // This should theoretically not happen if the INSERT succeeded
+            throw new Error('Failed to retrieve newly created site immediately after insertion.');
+        }
+
+        // Return the complete site object
+        res.status(201).json(rows[0]);
+
+    } catch (error) {
+        console.error('Error creating site:', error);
+        res.status(500).json({
+            error: 'Error creating site',
+            details: error.message
+        });
+    }
+};
+
+// Update site
+const updateSite = async (req, res) => {
+    const { name } = req.body;
+    if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+    }
+
+    try {
+        const [result] = await pool.query(
+            'UPDATE sites SET name = ? WHERE id = ?',
+            [name, req.params.id]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Site not found' });
+        }
+        const [updatedSite] = await pool.query('SELECT * FROM sites WHERE id = ?', [req.params.id]);
+        res.json(updatedSite[0]);
+    } catch (error) {
+        console.error('Error updating site:', error);
+        res.status(500).json({ error: 'Error updating site' });
+    }
+};
+
+// Delete site
+const deleteSite = async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM sites WHERE id = ?', [req.params.id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Site not found' });
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting site:', error);
+        res.status(500).json({ error: 'Error deleting site' });
+    }
+};
+
+module.exports = {
+    getSiteById,
+    getSitesByClientId,
+    createSite,
+    updateSite,
+    deleteSite
+};
+
+============================================================
+FILE: controllers/splitController.js
+============================================================
+const pool = require('../database/pool');
+const Split = require('../models/splitModel');
+
+// Get all splits
+const getAllSplits = async (req, res) => {
+    try {
+        const splits = await Split.findAll();
+        res.json(splits);
+    } catch (error) {
+        console.error('Error fetching splits:', error);
+        res.status(500).json({ error: 'Error fetching splits' });
+    }
+};
+
+// Get split by code
+const getSplitById = async (req, res) => {
+    try {
+        const split = await Split.findById(req.params.code);
+        if (!split) {
+            return res.status(404).json({ error: 'Split not found' });
+        }
+        res.json(split);
+    } catch (error) {
+        console.error('Error fetching split:', error);
+        res.status(500).json({ error: 'Error fetching split' });
+    }
+};
+
+// Create new split
+const createSplit = async (req, res) => {
+    const { code, name, description, puissance, site_id } = req.body;
+    if (!code || !name || !site_id) {
+        return res.status(400).json({ error: 'Code, name, and site_id are required' });
+    }
+    try {
+        const split = await Split.create({ code, name, description, puissance, site_id });
+        res.status(201).json(split);
+    } catch (error) {
+        console.error('Error creating split:', error);
+        res.status(500).json({ error: 'Error creating split' });
+    }
+};
+
+// Update split
+const updateSplit = async (req, res) => {
+    const { name, description, puissance, site_id } = req.body;
+    try {
+        const split = await Split.update(req.params.code, { name, description, puissance, site_id });
+        if (!split) {
+            return res.status(404).json({ error: 'Split not found' });
+        }
+        res.json(split);
+    } catch (error) {
+        console.error('Error updating split:', error);
+        res.status(500).json({ error: 'Error updating split' });
+    }
+};
+
+// Delete split
+const deleteSplit = async (req, res) => {
+    try {
+        await Split.delete(req.params.code);
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting split:', error);
+        res.status(500).json({ error: 'Error deleting split' });
+    }
+};
+
+// Get site for split
+const findBySiteId = async (req, res) => {
+    try {
+        const splits = await Split.findBySiteId(req.params.site_id);
+        if (!splits) {
+            return res.status(404).json({ error: 'splits not found for this site' });
+        }
+        res.json(splits);
+    } catch (error) {
+        console.error('Error fetching splits for site:', error);
+        res.status(500).json({ error: 'Error fetching splits for site' });
+    }
+};
+
+module.exports = {
+    getAllSplits,
+    getSplitById,
+    createSplit,
+    updateSplit,
+    deleteSplit,
+    findBySiteId
+};
+
+============================================================
+FILE: controllers/supplyItemController.js
+============================================================
+const pool = require('../database/pool');
+
+// Get all supply items for a quote
+const getSupplyItemsByQuoteId = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM supply_items WHERE quote_id = ?', [req.params.quoteId]);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching supply items:', error);
+        res.status(500).json({ error: 'Error fetching supply items' });
+    }
+};
+
+// Get supply item by ID
+const getSupplyItemById = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM supply_items WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Supply item not found' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error fetching supply item:', error);
+        res.status(500).json({ error: 'Error fetching supply item' });
+    }
+};
+
+// Create new supply item
+const createSupplyItem = async (req, res) => {
+    const {
+        description,
+        quantity,
+        priceEuro,
+        priceDollar,
+        unitPriceDollar,
+        totalPriceDollar
+    } = req.body;
+
+    // Get quote_id from the URL parameter
+    const quote_id = req.params.quoteId;
+
+    if (!quote_id || !description || !quantity || !priceEuro) {
+        return res.status(400).json({
+            error: 'Missing required fields',
+            required: ['quote_id', 'description', 'quantity', 'priceEuro']
+        });
+    }
+
+    try {
+        const [result] = await pool.query(
+            `INSERT INTO supply_items (
+                id, quote_id, description, quantity, price_euro,
+                price_dollar, unit_price_dollar, total_price_dollar
+            ) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?)`,
+            [quote_id, description, quantity, priceEuro, priceDollar, unitPriceDollar, totalPriceDollar]
+        );
+
+        // Get the newly created item using description and quote_id
+        const [rows] = await pool.query(
+            'SELECT * FROM supply_items WHERE quote_id = ? AND description = ? ORDER BY created_at DESC LIMIT 1',
+            [quote_id, description]
+        );
+
+        if (rows.length === 0) {
+            throw new Error('Failed to retrieve newly created supply item');
+        }
+
+        // Convert backend property names to frontend property names
+        const newItem = {
+            id: rows[0].id,
+            description: rows[0].description,
+            quantity: rows[0].quantity,
+            priceEuro: rows[0].price_euro,
+            priceDollar: rows[0].price_dollar,
+            unitPriceDollar: rows[0].unit_price_dollar,
+            totalPriceDollar: rows[0].total_price_dollar,
+            created_at: rows[0].created_at,
+            updated_at: rows[0].updated_at
+        };
+
+        res.status(201).json(newItem);
+    } catch (error) {
+        console.error('Error creating supply item:', error);
+        res.status(500).json({ error: 'Error creating supply item' });
+    }
+};
+
+// Update supply item
+const updateSupplyItem = async (req, res) => {
+    const {
+        description,
+        quantity,
+        price_euro,
+        price_dollar,
+        unit_price_dollar,
+        total_price_dollar
+    } = req.body;
+
+    if (!description || !quantity || !price_euro) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const [result] = await pool.query(
+            `UPDATE supply_items SET
+                description = ?, quantity = ?, price_euro = ?,
+                price_dollar = ?, unit_price_dollar = ?, total_price_dollar = ?
+            WHERE id = ?`,
+            [description, quantity, price_euro, price_dollar, unit_price_dollar, total_price_dollar, req.params.id]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Supply item not found' });
+        }
+        const [updatedItem] = await pool.query('SELECT * FROM supply_items WHERE id = ?', [req.params.id]);
+        res.json(updatedItem[0]);
+    } catch (error) {
+        console.error('Error updating supply item:', error);
+        res.status(500).json({ error: 'Error updating supply item' });
+    }
+};
+
+// Delete supply item
+const deleteSupplyItem = async (req, res) => {
+    try {
+        const [result] = await pool.query('DELETE FROM supply_items WHERE id = ?', [req.params.id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Supply item not found' });
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting supply item:', error);
+        res.status(500).json({ error: 'Error deleting supply item' });
+    }
+};
+
+module.exports = {
+    getSupplyItemsByQuoteId,
+    getSupplyItemById,
+    createSupplyItem,
+    updateSupplyItem,
+    deleteSupplyItem
+};
+
+============================================================
+FILE: database/database.js
+============================================================
+const { Sequelize } = require('sequelize');
+require('dotenv').config();
+console.log('DB_NAME:', process.env.DB_NAME);
+const sequelize = new Sequelize(
+    process.env.DB_NAME ,
+    process.env.DB_USER ,
+    process.env.DB_PASSWORD ,
+    {
+        host: process.env.DB_HOST ,
+        dialect: 'mysql',
+        port: process.env.DB_PORT || 3306,
+        logging: false, // Set to console.log to see SQL queries
+        pool: {
+            max: 5,
+            min: 0,
+            acquire: 30000,
+            idle: 10000
+        }
+    }
+);
+
+// Test the connection
+sequelize.authenticate()
+    .then(() => {
+        console.log('✅ Database connection has been established successfully.');
+    })
+    .catch(err => {
+        console.error('❌ Unable to connect to the database:', err);
+    });
+
+module.exports = sequelize;
+
+============================================================
+FILE: database/init-db.js
+============================================================
+const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+
+async function initializeDatabase() {
+    // Read database configuration
+    const config = {
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        port: process.env.DB_PORT || 3306,
+        multipleStatements: true // Allow multiple statements
+    };
+
+    try {
+        console.log('Attempting to connect to MySQL...');
+        console.log('Using configuration:', {
+            host: config.host,
+            user: config.user,
+            port: config.port
+        });
+
+        // Create connection without database
+        const connection = await mysql.createConnection(config);
+        console.log('Successfully connected to MySQL server');
+
+        // Read and execute schema file
+        const schemaPath = path.join(__dirname, 'schema.sql');
+        const schema = fs.readFileSync(schemaPath, 'utf8');
+
+        // Split the schema into individual statements
+        const statements = schema.split(';').filter(statement => statement.trim());
+
+        console.log('Executing schema...');
+        // Execute each statement
+        for (const statement of statements) {
+            if (statement.trim()) {
+                try {
+                    await connection.query(statement);
+                    console.log('✓ Successfully executed:', statement.split('\n')[0].trim());
+                } catch (error) {
+                    console.error('✗ Error executing statement:', error.message);
+                    console.error('Statement:', statement.split('\n')[0].trim());
+                    throw error;
+                }
+            }
+        }
+
+        console.log('\n✅ Database initialized successfully!');
+        await connection.end();
+    } catch (error) {
+        console.error('\n❌ Error initializing database:', error.message);
+
+        if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+            console.error('\nAuthentication failed. Please check your database credentials:');
+            console.error('1. Make sure MySQL server is running');
+            console.error('2. Verify your username and password in .env file');
+            console.error('3. Ensure the user has proper permissions');
+            console.error('\nCurrent configuration:');
+            console.error(`Host: ${config.host}`);
+            console.error(`User: ${config.user}`);
+            console.error(`Port: ${config.port}`);
+        }
+
+        process.exit(1);
+    }
+}
+
+// Run the initialization
+initializeDatabase();
+
+============================================================
+FILE: database/pool.js
+============================================================
+const mysql = require('mysql2/promise');
+require('dotenv').config();
+
+const pool = mysql.createPool({
+    host: process.env.DB_HOST ,
+    user: process.env.DB_USER ,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME ,
+    port: process.env.DB_PORT ,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
+
+// Test the connection
+pool.getConnection((err, connection) => {
+    if (err) {
+        console.error('Error connecting to the database:', err);
+        return;
+    }
+    console.log('Successfully connected to the database');
+    connection.release();
+});
+
+module.exports = pool;
+
+
+============================================================
+FILE: database/run-migration.js
+============================================================
+const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+
+async function runMigration() {
+    // Read database configuration
+    const config = {
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        port: process.env.DB_PORT || 3306,
+        database: process.env.DB_NAME || 'Chanitec',
+        multipleStatements: true
+    };
+
+    try {
+        console.log('Attempting to connect to MySQL...');
+        const connection = await mysql.createConnection(config);
+        console.log('Successfully connected to MySQL server');
+
+        // Read and execute migration file
+        const migrationPath = path.join(__dirname, 'migrations', '001_create_items_table.sql');
+        const migration = fs.readFileSync(migrationPath, 'utf8');
+
+        console.log('Running migration...');
+        await connection.query(migration);
+        console.log('Migration completed successfully!');
+
+        await connection.end();
+    } catch (error) {
+        console.error('Error running migration:', error);
+        process.exit(1);
+    }
+}
+
+// Run the migration
+runMigration();
+
+============================================================
+FILE: middleware/auth.js
+============================================================
+const jwt = require('jsonwebtoken');
+
+const authenticate = (req, res, next) => {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+        return res.status(401).json({
+            error: 'Authentication Required',
+            message: 'No token provided'
+        });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({
+            error: 'Authentication Failed',
+            message: 'Invalid token'
+        });
+    }
+};
+
+module.exports = {
+    authenticate
+};
+
+============================================================
+FILE: middleware/errorHandler.js
+============================================================
+const errorHandler = (err, req, res, next) => {
+    console.error(err.stack);
+
+    // Handle specific error types
+    if (err.name === 'ValidationError') {
+        return res.status(400).json({
+            error: 'Validation Error',
+            details: err.message
+        });
+    }
+
+    if (err.name === 'NotFoundError') {
+        return res.status(404).json({
+            error: 'Resource Not Found',
+            details: err.message
+        });
+    }
+
+    // Default error response
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    });
+};
+
+module.exports = errorHandler;
+
+============================================================
+FILE: middleware/validation.js
+============================================================
+const validateRequest = (schema) => {
+    return (req, res, next) => {
+        const { error } = schema.validate(req.body);
+        if (error) {
+            const errorMessage = error.details.map(detail => detail.message).join(', ');
+            return res.status(400).json({
+                error: 'Validation Error',
+                details: errorMessage
+            });
+        }
+        next();
+    };
+};
+
+module.exports = {
+    validateRequest
+};
+
+============================================================
+FILE: models/clientModel.js
+============================================================
+const pool = require('../database/pool');
+
+class Client {
+    static async create({ name, email, phone, address }) {
+        const [result] = await pool.query(
+            'INSERT INTO clients (id, name, email, phone, address) VALUES (UUID(), ?, ?, ?, ?)',
+            [name, email, phone, address]
+        );
+        return this.findById(result.insertId);
+    }
+
+    static async findById(id) {
+        const [rows] = await pool.query('SELECT * FROM clients WHERE id = ?', [id]);
+        return rows[0];
+    }
+
+    static async findAll() {
+        const [rows] = await pool.query('SELECT * FROM clients');
+        return rows;
+    }
+
+    static async update(id, { name, email, phone, address }) {
+        await pool.query(
+            'UPDATE clients SET name = ?, email = ?, phone = ?, address = ? WHERE id = ?',
+            [name, email, phone, address, id]
+        );
+        return this.findById(id);
+    }
+
+    static async delete(id) {
+        await pool.query('DELETE FROM clients WHERE id = ?', [id]);
+    }
+
+    static async getSites(clientId) {
+        const [rows] = await pool.query('SELECT * FROM sites WHERE client_id = ?', [clientId]);
+        return rows;
+    }
+}
+
+module.exports = Client;
+
+============================================================
+FILE: models/Department.js
+============================================================
+const { DataTypes } = require('sequelize');
+const sequelize = require('../database/database');
+
+const Department = sequelize.define('Department', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    }
+}, {
+    timestamps: false,
+    tableName: 'department'
+});
+
+module.exports = Department;
+
+============================================================
+FILE: models/Employee.js
+============================================================
+const pool = require('../database/pool');
+
+class Employee {
+    static async create({ full_name, civil_status, birth_date, entry_date, seniority, contract_type, job_title, fonction, sub_type_id, type_description }) {
+        const [result] = await pool.query(
+            'INSERT INTO employee (full_name, civil_status, birth_date, entry_date, seniority, contract_type, job_title, fonction, sub_type_id, type_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [full_name, civil_status, birth_date, entry_date, seniority, contract_type, job_title, fonction, sub_type_id, type_description]
+        );
+        return this.findById(result.insertId);
+    }
+
+    static async findById(id) {
+        const [rows] = await pool.query('SELECT * FROM employee WHERE id = ?', [id]);
+        return rows[0];
+    }
+
+    static async findAll() {
+        const [rows] = await pool.query('SELECT * FROM employee');
+        return rows;
+    }
+
+    static async update(id, { full_name, civil_status, birth_date, entry_date, seniority, contract_type, job_title, fonction, sub_type_id, type_description }) {
+        await pool.query(
+            'UPDATE employee SET full_name = ?, civil_status = ?, birth_date = ?, entry_date = ?, seniority = ?, contract_type = ?, job_title = ?, fonction = ?, sub_type_id = ?, type_description = ? WHERE id = ?',
+            [full_name, civil_status, birth_date, entry_date, seniority, contract_type, job_title, fonction, sub_type_id, type_description, id]
+        );
+        return this.findById(id);
+    }
+
+    static async delete(id) {
+        await pool.query('DELETE FROM employee WHERE id = ?', [id]);
+    }
+}
+
+module.exports = Employee;
+
+============================================================
+FILE: models/laborItemModel.js
+============================================================
+const pool = require('../database/pool');
+
+class LaborItem {
+    static async create({
+        quote_id,
+        description,
+        nb_technicians,
+        nb_hours,
+        weekend_multiplier,
+        price_euro,
+        price_dollar,
+        unit_price_dollar,
+        total_price_dollar
+    }) {
+        const [result] = await pool.query(
+            `INSERT INTO labor_items (
+                id, quote_id, description, nb_technicians, nb_hours,
+                weekend_multiplier, price_euro, price_dollar,
+                unit_price_dollar, total_price_dollar
+            ) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                quote_id, description, nb_technicians, nb_hours,
+                weekend_multiplier, price_euro, price_dollar,
+                unit_price_dollar, total_price_dollar
+            ]
+        );
+        return this.findById(result.insertId);
+    }
+
+    static async findById(id) {
+        const [rows] = await pool.query('SELECT * FROM labor_items WHERE id = ?', [id]);
+        return rows[0];
+    }
+
+    static async findByQuoteId(quoteId) {
+        const [rows] = await pool.query('SELECT * FROM labor_items WHERE quote_id = ?', [quoteId]);
+        return rows;
+    }
+
+    static async update(id, {
+        description,
+        nb_technicians,
+        nb_hours,
+        weekend_multiplier,
+        price_euro,
+        price_dollar,
+        unit_price_dollar,
+        total_price_dollar
+    }) {
+        await pool.query(
+            `UPDATE labor_items SET
+                description = ?, nb_technicians = ?, nb_hours = ?,
+                weekend_multiplier = ?, price_euro = ?, price_dollar = ?,
+                unit_price_dollar = ?, total_price_dollar = ?
+            WHERE id = ?`,
+            [
+                description, nb_technicians, nb_hours,
+                weekend_multiplier, price_euro, price_dollar,
+                unit_price_dollar, total_price_dollar, id
+            ]
+        );
+        return this.findById(id);
+    }
+
+    static async delete(id) {
+        await pool.query('DELETE FROM labor_items WHERE id = ?', [id]);
+    }
+
+    static async getQuote(laborItemId) {
+        const [rows] = await pool.query(
+            'SELECT q.* FROM quotes q JOIN labor_items l ON q.id = l.quote_id WHERE l.id = ?',
+            [laborItemId]
+        );
+        return rows[0];
+    }
+}
+
+module.exports = LaborItem;
+
+============================================================
+FILE: models/quoteModel.js
+============================================================
+const pool = require('../database/pool');
+
+class Quote {
+    static async create({
+        client_name,
+        site_name,
+        object,
+        date,
+        supply_description,
+        labor_description,
+        supply_exchange_rate,
+        supply_margin_rate,
+        labor_exchange_rate,
+        labor_margin_rate,
+        total_supplies_ht,
+        confirmed,
+        reminderDate,
+        total_labor_ht,
+        total_ht,
+        tva,
+        total_ttc,
+        parentId,
+        split_id
+    }) {
+        const [result] = await pool.query(
+            `INSERT INTO quotes (
+                id, client_name, site_name, object, date, supply_description,
+                labor_description, supply_exchange_rate, supply_margin_rate,
+                labor_exchange_rate, labor_margin_rate, total_supplies_ht,
+                total_labor_ht, total_ht, tva, total_ttc, confirmed, reminderDate, parentId
+            ) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                client_name, site_name, object, date, supply_description,
+                labor_description, supply_exchange_rate, supply_margin_rate,
+                labor_exchange_rate, labor_margin_rate, total_supplies_ht,
+                total_labor_ht, total_ht, tva, total_ttc, confirmed, reminderDate, parentId,split_id
+            ]
+        );
+        return this.findById(result.insertId);
+    }
+
+    static async findById(id) {
+        const [rows] = await pool.query('SELECT * FROM quotes WHERE id = ?', [id]);
+        return rows[0];
+    }
+
+    static async findAll() {
+        const [rows] = await pool.query('SELECT * FROM quotes');
+        return rows;
+    }
+
+    static async update(id, {
+        client_name,
+        site_name,
+        object,
+        date,
+        supply_description,
+        labor_description,
+        supply_exchange_rate,
+        supply_margin_rate,
+        labor_exchange_rate,
+        labor_margin_rate,
+        total_supplies_ht,
+        total_labor_ht,
+        total_ht,
+        confirmed,
+        reminderDate,
+        tva,
+        total_ttc,
+        parentId,
+        split_id
+    }) {
+        await pool.query(
+            `UPDATE quotes SET
+                client_name = ?, site_name = ?, object = ?, date = ?,
+                supply_description = ?, labor_description = ?,
+                supply_exchange_rate = ?, supply_margin_rate = ?,
+                labor_exchange_rate = ?, labor_margin_rate = ?,
+                total_supplies_ht = ?, total_labor_ht = ?, total_ht = ?,
+                tva = ?, total_ttc = ?, confirmed = ?, reminderDate = ?, parentId = ? , split_id
+            WHERE id = ?`,
+            [
+                client_name, site_name, object, date, supply_description,
+                labor_description, supply_exchange_rate, supply_margin_rate,
+                labor_exchange_rate, labor_margin_rate, total_supplies_ht,
+                total_labor_ht, total_ht, tva, total_ttc, confirmed, reminderDate, parentId,split_id,id
+            ]
+        );
+        return this.findById(id);
+    }
+
+    static async delete(id) {
+        await pool.query('DELETE FROM quotes WHERE id = ?', [id]);
+    }
+
+    static async getSupplyItems(quoteId) {
+        const [rows] = await pool.query('SELECT * FROM supply_items WHERE quote_id = ?', [quoteId]);
+        return rows;
+    }
+
+    static async getLaborItems(quoteId) {
+        const [rows] = await pool.query('SELECT * FROM labor_items WHERE quote_id = ?', [quoteId]);
+        return rows;
+    }
+}
+
+module.exports = Quote;
+
+============================================================
+FILE: models/siteModel.js
+============================================================
+const pool = require('../database/pool');
+
+class Site {
+    static async create({ name, address, client_id }) {
+        const [result] = await pool.query(
+            'INSERT INTO sites (id, name, client_id) VALUES (UUID(), ?, ?)',
+            [name,  client_id]
+        );
+        return this.findById(result.insertId);
+    }
+
+    static async findById(id) {
+        const [rows] = await pool.query('SELECT * FROM sites WHERE id = ?', [id]);
+        return rows[0];
+    }
+
+    static async findAll() {
+        const [rows] = await pool.query('SELECT * FROM sites');
+        return rows;
+    }
+
+    static async findByClientId(clientId) {
+        const [rows] = await pool.query('SELECT * FROM sites WHERE client_id = ?', [clientId]);
+        return rows;
+    }
+
+    static async update(id, { name, address, client_id }) {
+        await pool.query(
+            'UPDATE sites SET name = ?, address = ?, client_id = ? WHERE id = ?',
+            [name, address, client_id, id]
+        );
+        return this.findById(id);
+    }
+
+    static async delete(id) {
+        await pool.query('DELETE FROM sites WHERE id = ?', [id]);
+    }
+
+    static async getClient(siteId) {
+        const [rows] = await pool.query(
+            'SELECT c.* FROM clients c JOIN sites s ON c.id = s.client_id WHERE s.id = ?',
+            [siteId]
+        );
+        return rows[0];
+    }
+}
+
+module.exports = Site;
+
+============================================================
+FILE: models/splitModel.js
+============================================================
+const pool = require('../database/pool');
+
+class Split {
+    static async create({ code, name, description, puissance, site_id }) {
+        const [result] = await pool.query(
+            'INSERT INTO split (Code, name, description, puissance, site_id) VALUES (?, ?, ?, ?, ?)',
+            [code, name, description, puissance, site_id]
+        );
+        return this.findById(code);
+    }
+
+    static async findById(code) {
+        const [rows] = await pool.query('SELECT * FROM split WHERE Code = ?', [code]);
+        return rows[0];
+    }
+
+    static async findAll() {
+        const [rows] = await pool.query('SELECT * FROM split');
+        return rows;
+    }
+
+    static async findBySiteId(site_id) {
+        const [rows] = await pool.query('SELECT * FROM split WHERE site_id = ?', [site_id]);
+        return rows;
+    }
+
+    static async update(code, { name, description, puissance, site_id }) {
+        await pool.query(
+            'UPDATE split SET name = ?, description = ?, puissance = ?, site_id = ? WHERE Code = ?',
+            [name, description, puissance, site_id, code]
+        );
+        return this.findById(code);
+    }
+
+    static async delete(code) {
+        await pool.query('DELETE FROM split WHERE Code = ?', [code]);
+    }
+
+    static async getSite(spliteCode) {
+        const [rows] = await pool.query(
+            'SELECT c.* FROM sites c JOIN split s ON c.id = s.site_id WHERE s.Code = ?',
+            [spliteCode]
+        );
+        return rows[0];
+    }
+}
+
+module.exports = Split;
+
+============================================================
+FILE: models/supplyItemModel.js
+============================================================
+const pool = require('../database/pool');
+
+class SupplyItem {
+    static async create({
+        quote_id,
+        description,
+        quantity,
+        price_euro,
+        price_dollar,
+        unit_price_dollar,
+        total_price_dollar
+    }) {
+        const [result] = await pool.query(
+            `INSERT INTO supply_items (
+                id, quote_id, description, quantity, price_euro,
+                price_dollar, unit_price_dollar, total_price_dollar
+            ) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                quote_id, description, quantity, price_euro,
+                price_dollar, unit_price_dollar, total_price_dollar
+            ]
+        );
+        return this.findById(result.insertId);
+    }
+
+    static async findById(id) {
+        const [rows] = await pool.query('SELECT * FROM supply_items WHERE id = ?', [id]);
+        return rows[0];
+    }
+
+    static async findByQuoteId(quoteId) {
+        const [rows] = await pool.query('SELECT * FROM supply_items WHERE quote_id = ?', [quoteId]);
+        return rows;
+    }
+
+    static async update(id, {
+        description,
+        quantity,
+        price_euro,
+        price_dollar,
+        unit_price_dollar,
+        total_price_dollar
+    }) {
+        await pool.query(
+            `UPDATE supply_items SET
+                description = ?, quantity = ?, price_euro = ?,
+                price_dollar = ?, unit_price_dollar = ?, total_price_dollar = ?
+            WHERE id = ?`,
+            [
+                description, quantity, price_euro,
+                price_dollar, unit_price_dollar, total_price_dollar, id
+            ]
+        );
+        return this.findById(id);
+    }
+
+    static async delete(id) {
+        await pool.query('DELETE FROM supply_items WHERE id = ?', [id]);
+    }
+
+    static async getQuote(supplyItemId) {
+        const [rows] = await pool.query(
+            'SELECT q.* FROM quotes q JOIN supply_items s ON q.id = s.quote_id WHERE s.id = ?',
+            [supplyItemId]
+        );
+        return rows[0];
+    }
+}
+
+module.exports = SupplyItem;
+
+============================================================
+FILE: routes/clientRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const clientController = require('../controllers/clientController');
+
+// Client routes
+router.get('/', clientController.getAllClients);
+router.get('/:id', clientController.getClientById);
+router.post('/', clientController.createClient);
+router.put('/:id', clientController.updateClient);
+router.delete('/:id', clientController.deleteClient);
+
+module.exports = router;
+
+============================================================
+FILE: routes/debugRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const debugController = require('../controllers/debugController');
+
+// Debug routes
+router.get('/database-structure', debugController.getDatabaseStructure);
+router.get('/test-site-lookup/:clientId', debugController.testSiteLookup);
+
+module.exports = router;
+
+============================================================
+FILE: routes/departmentRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const departmentController = require('../controllers/departmentController');
+
+// Get all departments
+router.get('/', departmentController.getAllDepartments);
+
+// Get department by ID
+router.get('/:id', departmentController.getDepartmentById);
+
+// Create new department
+router.post('/', departmentController.createDepartment);
+
+// Update department
+router.put('/:id', departmentController.updateDepartment);
+
+// Delete department
+router.delete('/:id', departmentController.deleteDepartment);
+
+module.exports = router;
+
+============================================================
+FILE: routes/employeeRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const employeeController = require('../controllers/employeeController');
+
+// Get all employees
+router.get('/', employeeController.getAllEmployees);
+
+// Get employee by ID
+router.get('/:id', employeeController.getEmployeeById);
+
+// Create new employee
+router.post('/', employeeController.createEmployee);
+
+// Update employee
+router.put('/:id', employeeController.updateEmployee);
+
+// Delete employee
+router.delete('/:id', employeeController.deleteEmployee);
+
+module.exports = router;
+
+============================================================
+FILE: routes/index.js
+============================================================
+// This will fail if the file doesn't exist, but that's okay - we'll create a new one
+
+============================================================
+FILE: routes/itemRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const itemController = require('../controllers/itemController');
+
+   // Fixed routes first
+   router.get('/', itemController.getAllItems);
+   router.post('/', itemController.createItem);
+   router.post('/import', upload.single('file'), itemController.importItems);
+   router.delete('/clear', itemController.clearItems);  // Move this before /:id routes
+
+   // Parameterized routes last
+   router.get('/:id', itemController.getItemById);
+   router.put('/:id', itemController.updateItem);
+   router.delete('/:id', itemController.deleteItem);
+
+module.exports = router;
+
+============================================================
+FILE: routes/laborItemRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const laborItemController = require('../controllers/laborItemController');
+
+// Get all labor items for a quote
+router.get('/:quoteId', laborItemController.getLaborItemsByQuoteId);
+
+// Get labor item by ID
+router.get('/item/:id', laborItemController.getLaborItemById);
+
+// Create new labor item
+router.post('/:quoteId', laborItemController.createLaborItem);
+
+// Update labor item
+router.put('/:id', laborItemController.updateLaborItem);
+
+// Delete labor item
+router.delete('/:id', laborItemController.deleteLaborItem);
+
+module.exports = router;
+
+============================================================
+FILE: routes/quoteRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const quoteController = require('../controllers/quoteController');
+
+// Quote routes
+router.get('/', quoteController.getAllQuotes);
+router.get('/:id', quoteController.getQuoteById);
+router.post('/', quoteController.createQuote);
+router.put('/:id', quoteController.updateQuote);
+router.delete('/:id', quoteController.deleteQuote);
+router.patch('/:id/reminder', quoteController.setReminderDate);
+router.patch('/:id/confirm', quoteController.confirmQuote);
+
+module.exports = router;
+
+============================================================
+FILE: routes/siteRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const siteController = require('../controllers/siteController');
+
+// Site routes
+router.get('/by-client', siteController.getSitesByClientId);
+router.get('/:id', siteController.getSiteById);
+router.post('/', siteController.createSite);
+router.put('/:id', siteController.updateSite);
+router.delete('/:id', siteController.deleteSite);
+
+module.exports = router;
+
+============================================================
+FILE: routes/splitRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const splitController = require('../controllers/splitController');
+
+// Split routes
+router.get('/', splitController.getAllSplits);
+router.get('/:code', splitController.getSplitById);
+router.post('/', splitController.createSplit);
+router.put('/:code', splitController.updateSplit);
+router.delete('/:code', splitController.deleteSplit);
+router.get('/by-site/:site_id', splitController.findBySiteId);
+
+module.exports = router;
+
+============================================================
+FILE: routes/supplyItemRoutes.js
+============================================================
+const express = require('express');
+const router = express.Router();
+const supplyItemController = require('../controllers/supplyItemController');
+
+// Get all supply items for a quote
+router.get('/:quoteId', supplyItemController.getSupplyItemsByQuoteId);
+
+// Get supply item by ID
+router.get('/item/:id', supplyItemController.getSupplyItemById);
+
+// Create new supply item
+router.post('/:quoteId', supplyItemController.createSupplyItem);
+
+// Update supply item
+router.put('/:id', supplyItemController.updateSupplyItem);
+
+// Delete supply item
+router.delete('/:id', supplyItemController.deleteSupplyItem);
+
+module.exports = router;
+
+============================================================
+FILE: utils/excelProcessor.js
+============================================================
+const XLSX = require('xlsx');
+
+const processExcelFile = async (file) => {
+    try {
+        // Read the Excel file
+        const workbook = XLSX.readFile(file.path);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Convert to JSON
+        const data = XLSX.utils.sheet_to_json(worksheet);
+
+        // Process and validate each row
+        const processedItems = data.map((row, index) => {
+            try {
+                // Check if required fields exist
+                if (!row.description || !row.price) {
+                    return {
+                        valid: false,
+                        rowIndex: index + 2, // Excel rows start at 1, and we skip header
+                        error: 'Missing required fields (description or price)',
+                        rawData: row
+                    };
+                }
+
+                // Validate price format
+                const price = parseFloat(row.price);
+                if (isNaN(price)) {
+                    return {
+                        valid: false,
+                        rowIndex: index + 2,
+                        error: `Invalid price format: ${row.price}`,
+                        rawData: row
+                    };
+                }
+
+                // Return valid item
+                return {
+                    valid: true,
+                    rowIndex: index + 2,
+                    item: {
+                        description: row.description.trim(),
+                        price: price
+                    },
+                    rawData: row
+                };
+            } catch (error) {
+                return {
+                    valid: false,
+                    rowIndex: index + 2,
+                    error: `Row processing error: ${error.message}`,
+                    rawData: row
+                };
+            }
+        });
+
+        return {
+            totalRows: data.length,
+            processedItems: processedItems,
+            validItems: processedItems.filter(item => item.valid),
+            invalidItems: processedItems.filter(item => !item.valid)
+        };
+    } catch (error) {
+        throw new Error(`Error processing Excel file: ${error.message}`);
+    }
+};
+
+module.exports = {
+    processExcelFile
+};
+
+============================================================
+FILE: app.js
+============================================================
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// Import routes
+const departmentRoutes = require('./routes/departmentRoutes');
+const employeeRoutes = require('./routes/employeeRoutes');
+
+// Use routes
+app.use('/api/departments', departmentRoutes);
+app.use('/api/employees', employeeRoutes);
+
+module.exports = app;
+
+============================================================
+FILE: fly.toml
+============================================================
+# fly.toml app configuration file generated for Chanitec-backend on 2025-04-21T16:20:30Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'Chanitec-backend'
+primary_region = 'fra'
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024
+
+
+============================================================
+FILE: impl.txt
+============================================================
+# Quote Confirmation & Reminder Date API Implementation
+
+## 1. Set Quote Confirmation
+
+- **Endpoint:** `PATCH /quotes/:id/confirm`
+- **Description:** Set the confirmation status of a quote.
+- **Request Body:**
+  ```json
+  {
+    "confirmed": true // or false
+  }
+  ```
+- **Response (Success):**
+  ```json
+  {
+    "message": "Quote confirmation status updated successfully"
+  }
+  ```
+- **Response (Error):**
+  - `400 Bad Request` if `confirmed` is not a boolean.
+  - `404 Not Found` if the quote does not exist.
+  - `500 Internal Server Error` for other errors.
+
+---
+
+## 2. Set Quote Reminder Date
+
+- **Endpoint:** `PATCH /quotes/:id/reminder`
+- **Description:** Set or update the reminder date for a quote.
+- **Request Body:**
+  ```json
+  {
+    "reminderDate": "YYYY-MM-DD" // ISO date string
+  }
+  ```
+- **Response (Success):**
+  ```json
+  {
+    "id": "...",
+    "client_name": "...",
+    "site_name": "...",
+    "object": "...",
+    "date": "...",
+    "supply_description": "...",
+    "labor_description": "...",
+    "supply_exchange_rate": ...,
+    "supply_margin_rate": ...,
+    "labor_exchange_rate": ...,
+    "labor_margin_rate": ...,
+    "total_supplies_ht": ...,
+    "total_labor_ht": ...,
+    "total_ht": ...,
+    "tva": ...,
+    "total_ttc": ...,
+    "confirmed": ...,
+    "reminderDate": "YYYY-MM-DD",
+    "parentId": ...,
+    "created_at": "...",
+    "updated_at": "..."
+  }
+  ```
+- **Response (Error):**
+  - `400 Bad Request` if `reminderDate` is missing or invalid.
+  - `404 Not Found` if the quote does not exist.
+  - `500 Internal Server Error` for other errors.
+
+---
+
+## Notes for Frontend
+- Both endpoints require the quote `id` as a URL parameter.
+- Use the correct HTTP method (`PATCH`).
+- Set `Content-Type: application/json` in the request headers.
+- Handle error responses appropriately in the UI.
+
+============================================================
+FILE: package.json
+============================================================
+{
+    "name": "Chanitec-backend",
+    "version": "1.0.0",
+    "description": "Chanitec Backend API",
+    "main": "server.js",
+    "dependencies": {
+        "body-parser": "^2.2.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.5.0",
+        "express": "^5.1.0",
+        "multer": "^1.4.5-lts.2",
+        "mysql2": "^3.14.0",
+        "sequelize": "^6.37.7",
+        "xlsx": "^0.18.5"
+    },
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.0"
+    }
+}
+
+
+============================================================
+FILE: railway.json
+============================================================
+
+{
+    "build": {
+      "builder": "NIXPACKS",
+      "buildCommand": "npm install"
+    },
+    "deploy": {
+      "startCommand": "node server.js",
+      "healthcheckPath": "/api/health"
+    }
+  }
+
+============================================================
+FILE: server.js
+============================================================
+require('dotenv').config();
+console.log("🔥 DB HOST:", process.env.DB_HOST);
+
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const path = require('path');
+const pool = require('./database/pool');
+const sequelize = require('./database/database');
+const quoteRoutes = require('./routes/quoteRoutes');
+const departmentRoutes = require('./routes/departmentRoutes');
+const employeeRoutes = require('./routes/employeeRoutes');
+const splitRoutes = require('./routes/splitRoutes');
+
+const app = express();
+const port = process.env.PORT ;
+
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000'  // Add localhost for development
+]
+// Middleware
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Debug middleware
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
+// Routes
+app.use('/api/clients', require('./routes/clientRoutes'));
+app.use('/api/quotes', quoteRoutes);
+app.use('/api/sites', require('./routes/siteRoutes'));
+app.use('/api/supply-items', require('./routes/supplyItemRoutes'));
+app.use('/api/labor-items', require('./routes/laborItemRoutes'));
+app.use('/api/items', require('./routes/itemRoutes'));
+app.use('/api/debug', require('./routes/debugRoutes'));
+app.use('/api/departments', departmentRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/splits', splitRoutes);
+
+// Basic route
+app.get('/', (req, res) => {
+    res.json({ message: 'Welcome to Chanitec API' });
+});
+
+app.use((req, res, next) => {
+    console.log('Received request:', req.originalUrl);
+    next();
+  });
+
+// API info route
+app.get('/api', (req, res) => {
+    res.json({
+        message: 'Chanitec API',
+        endpoints: {
+            clients: '/api/clients',
+            sites: '/api/sites',
+            quotes: '/api/quotes',
+            supplyItems: '/api/supply-items',
+            laborItems: '/api/labor-items',
+            items: '/api/items',
+            debug: '/api/debug',
+            departments: '/api/departments',
+            employees: '/api/employees'
+        }
+    });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
+});
+app.get('/api/health', (req, res) => {
+    res.status(200).send('OK');
+  });
+
+// 404 handler
+app.use((req, res) => {
+    console.log(`404: ${req.method} ${req.url}`);
+    res.status(404).json({ error: 'Route not found' });
+});
+
+// Sync database and start server
+sequelize.sync({ alter: true })
+    .then(() => {
+        console.log('✅ Database synced successfully');
+        // Start server
+        app.listen(port, () => {
+            console.log(`Server is running on port ${port}`);
+            console.log(`API available at= ${process.env.DB_HOST}:${port}`);
+        });
+
+        app.listen(port, "0.0.0.0", () => {
+            console.log(`✅ Server running on port ${port}`);
+        });
+    })
+    .catch(err => {
+        console.error('❌ Unable to sync database:', err);
+    });
