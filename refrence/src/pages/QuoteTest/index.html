@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcul de Prix Offre Climatisation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="../../App.css">
+    <link rel="stylesheet" href="../../App.scss">
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 0mm 0mm;
+            background: white;
+            box-sizing: border-box;
+            font-size: 11px;
+            position: relative;
+            background-color: white;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background-image: url('logo.png');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: 80% auto;
+            opacity: 0;
+            margin: 10mm;
+            pointer-events: none;
+            display: none;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+        }
+        .header-logo {
+            width: 80px;
+            height: auto;
+            display: none;
+            margin-right: 10px;
+        }
+        .header-content {
+            flex-grow: 1;
+            text-align: center;
+        }
+        .info-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #333;
+            text-align: right;
+        }
+        .info-value {
+            width: 100%;
+        }
+        .info-value input,
+        .info-value select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .info-value input:focus,
+        .info-value select:focus {
+            border-color: #4CAF50;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .total-section {
+            text-align: right;
+            margin-top: 10px;
+        }
+        .rates-section {
+            margin: 10px 0;
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 15px;
+            justify-content: end;
+        }
+        .rate-item {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 10px;
+        }
+        .add-item-section, #custom-item-form {
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        input, select, button {
+            font-size: 11px;
+        }
+        h1 {
+            font-size: 16px;
+            margin: 10px 20px;
+        }
+        h2 {
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        h3 {
+            font-size: 12px;
+            margin: 8px 0;
+        }
+        p {
+            margin: 5px 0;
+            font-size: 11px;
+        }
+
+        #item-quantity::-webkit-inner-spin-button,
+        #item-quantity::-webkit-outer-spin-button {
+            height: 50px;
+            opacity: 1;
+            cursor: pointer;
+            transform: scale(2);
+        }
+        #item-select {
+            padding: 12px;
+            min-width: 300px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background-color: white;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px top 50%;
+            background-size: 12px auto;
+            transition: all 0.2s ease;
+        }
+
+        #item-select:hover {
+            border-color: #4CAF50;
+        }
+
+        #item-select:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+            outline: none;
+        }
+
+        #item-select option {
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        #item-select option[value="custom"] {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            padding: 12px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background-color: white;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:hover,
+        input[type="number"]:hover,
+        input[type="date"]:hover,
+        select:hover {
+            border-color: #4CAF50;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        select:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+            outline: none;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px top 50%;
+            background-size: 12px auto;
+            padding-right: 35px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 14px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Maintain the special styling for the item quantity spinner */
+        #item-quantity::-webkit-inner-spin-button,
+        #item-quantity::-webkit-outer-spin-button {
+            height: 50px;
+            opacity: 1;
+            cursor: pointer;
+            transform: scale(2);
+            margin-right: 10px;
+        }
+
+        #ready-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            font-size: 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        #ready-button:hover {
+            background-color: #1976D2;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .hidden-for-print {
+            display: none !important;
+        }
+
+        /* Modern spinner styles for all number inputs */
+        input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+            padding: 8px 35px 8px 12px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background-color: white;
+            transition: all 0.2s ease;
+            width: 100%;
+            min-width: 100px;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        /* Hide default spinners */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #f8f9fa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M7 14l5-5 5 5z' fill='%23555'/%3E%3C/svg%3E") no-repeat center;
+            width: 30px;
+            height: calc(50% - 1px);
+            position: absolute;
+            right: 2px;
+            cursor: pointer;
+            border-left: 1px solid #ddd;
+            opacity: 1;
+            margin: 0;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button {
+            top: 2px;
+            transform: rotate(180deg);
+        }
+
+        input[type="number"]::-webkit-outer-spin-button {
+            bottom: 2px;
+        }
+
+        /* Hover and focus states */
+        input[type="number"]:hover {
+            border-color: #4CAF50;
+        }
+
+        input[type="number"]:hover::-webkit-inner-spin-button,
+        input[type="number"]:hover::-webkit-outer-spin-button {
+            background-color: #e8f5e9;
+            border-left-color: #4CAF50;
+        }
+
+        input[type="number"]:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+            outline: none;
+        }
+
+        /* Special styling for the item quantity spinner */
+        #item-quantity {
+            font-size: 16px;
+            height: 40px;
+            width: 100px;
+            padding-right: 35px;
+        }
+
+        #item-quantity::-webkit-inner-spin-button,
+        #item-quantity::-webkit-outer-spin-button {
+            width: 35px;
+        }
+
+        /* Rates section number inputs */
+        .rates-section input[type="number"] {
+            width: 80px;
+            padding-right: 35px;
+            text-align: right;
+        }
+
+        /* Labor section number inputs */
+        #mo-nb-tech,
+        #mo-nb-hours,
+        #mo-pre {
+            width: 100px;
+        }
+
+        /* Remove all the old number input styles */
+        .number-input-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .number-input-container::after,
+        .number-input-container::before,
+        #item-quantity::-webkit-inner-spin-button,
+        #item-quantity::-webkit-outer-spin-button {
+            display: none;
+        }
+
+        /* Add these new styles */
+        .search-container {
+            position: relative;
+            width: 100%;
+
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 20;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none;
+            color: black;
+        }
+
+        .search-result-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            color: black;
+            border-bottom: 1px solid #eee;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .search-result-item.selected {
+            background-color: #e3f2fd;
+        }
+
+        /* Add these new styles */
+        .item-selector-button {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background-color: white;
+            cursor: pointer;
+            text-align: left;
+            color: black;
+            transition: all 0.2s ease;
+        }
+
+        .item-selector-button:hover {
+            border-color: #4CAF50;
+        }
+
+        /* Make all content appear above the background */
+        .info-section,
+        .info-grid,
+        table,
+        .total-section,
+        .rates-section,
+        .add-item-section,
+        #custom-item-form {
+            position: relative;
+            z-index: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Modern spinner button styles */
+        .number-input-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .spinner-up,
+        .spinner-down {
+            position: absolute;
+            right: 2px;
+            width: 30px;
+            height: calc(50% - 1px);
+            padding: 0;
+            border: none;
+            background: #f8f9fa;
+            border-left: 1px solid #ddd;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .spinner-up {
+            top: 2px;
+            border-radius: 0 4px 0 0;
+        }
+
+        .spinner-down {
+            bottom: 2px;
+            border-radius: 0 0 4px 0;
+        }
+
+        .spinner-up::before,
+        .spinner-down::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+        }
+
+        .spinner-up::before {
+            border-bottom: 5px solid #555;
+        }
+
+        .spinner-down::before {
+            border-top: 5px solid #555;
+        }
+
+        .spinner-up:hover,
+        .spinner-down:hover {
+            background-color: #e8f5e9;
+            border-left-color: #4CAF50;
+        }
+
+        .spinner-up:hover::before {
+            border-bottom-color: #4CAF50;
+        }
+
+        .spinner-down:hover::before {
+            border-top-color: #4CAF50;
+        }
+
+        .spinner-up:active,
+        .spinner-down:active {
+            background-color: #c8e6c9;
+        }
+
+        /* Adjust input padding to accommodate spinners */
+        input[type="number"] {
+            padding-right: 40px !important;
+        }
+
+        #fournitures-table input[type="number"] {
+            -moz-appearance: textfield;
+            -webkit-appearance: textfield;
+            appearance: textfield;
+        }
+
+        #fournitures-table input[type="number"]::-webkit-outer-spin-button,
+        #fournitures-table input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            appearance: none;
+            display: none;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .header-links {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .history-link {
+            background-color: #3498db;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .history-link:hover {
+            background-color: #2980b9;
+        }
+
+        .ready-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            font-size: 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        .ready-button:hover {
+            background-color: #1976D2;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        /* Add these new styles */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .input-group input {
+            flex: 1;
+        }
+        .input-group button {
+            white-space: nowrap;
+        }
+
+        /* Add styles for the update button */
+        .btn-update {
+            background-color: #2196F3;
+            color: white;
+            margin-right: 10px;
+        }
+        .btn-update:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-save {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .btn-print {
+            background-color: #008CBA;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-save:hover {
+            background-color: #45a049;
+        }
+
+        .btn-print:hover {
+            background-color: #007399;
+        }
+
+        .nav-links {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .nav-links a {
+            color: #0275d8;
+            text-decoration: none;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover {
+            background-color: #0275d8;
+            color: white;
+        }
+
+        .nav-links a.active {
+            background-color: #0275d8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="App">
+        <div class="page-header">
+            <h1 class="page-title">Calcul de Prix Offre Climatisation</h1>
+        </div>
+        <div class="main-content">
+            <div class="content-container">
+                <div class="header">
+                    <img src="../../logo.png" alt="Logo" class="header-logo">
+                    <div class="header-content">
+                        <h1>Devis Climatisation</h1>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-grid">
+                        <div class="info-label">Client:</div>
+                        <div class="info-value">
+                            <input type="text" id="client-name" placeholder="Nom du client" class="MuiInputBase-input">
+                        </div>
+                        <div class="info-label">Date:</div>
+                        <div class="info-value">
+                            <input type="date" id="quote-date" class="MuiInputBase-input">
+                        </div>
+                        <div class="info-label">Référence:</div>
+                        <div class="info-value">
+                            <input type="text" id="quote-reference" placeholder="Référence du devis" class="MuiInputBase-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quote-content">
+                    <table class="MuiTable-root">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>Qté</th>
+                                <th>PR €</th>
+                                <th>PR $</th>
+                                <th>PV/u $</th>
+                                <th>PV $ Total HT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-table">
+                            <!-- Items will be added here dynamically -->
+                        </tbody>
+                    </table>
+
+                    <div class="total-section">
+                        <div class="rates-section">
+                            <div class="rate-item">
+                                <label>Remise (%):</label>
+                                <input type="number" id="discount-rate" min="0" max="100" value="0" class="custom-number-input">
+                            </div>
+                            <div class="rate-item">
+                                <label>TVA (%):</label>
+                                <input type="number" id="tax-rate" min="0" max="100" value="20" class="custom-number-input">
+                            </div>
+                        </div>
+                        <div class="totals">
+                            <p>Total HT: <span id="subtotal">0.00</span> €</p>
+                            <p>Remise: <span id="discount-amount">0.00</span> €</p>
+                            <p>TVA: <span id="tax-amount">0.00</span> €</p>
+                            <p><strong>Total TTC: <span id="total">0.00</span> €</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="labor-section">
+                    <h2 class="section-title">Main d'œuvre</h2>
+                    <div class="labor-description">
+                        <input type="text" id="mo-description" value="en Arrêt de la machine, découpage de l'ancienne isolation, fourniture, et pose de la nouvelle isolation, séchage et remise en service" class="MuiInputBase-input">
+                    </div>
+
+                    <div class="rates-section">
+                        <div class="rate-item">
+                            <label>Tx de chg:</label>
+                            <input type="number" id="mo-tx-chg" value="1.2" step="0.01" class="custom-number-input">
+                        </div>
+                        <div class="rate-item">
+                            <label>Tx de marge:</label>
+                            <input type="number" id="mo-tx-marge" value="0.8" step="0.01" class="custom-number-input">
+                        </div>
+                    </div>
+
+                    <div class="add-labor-section">
+                        <div class="input-group">
+                            <div class="input-field">
+                                <label>Nb technicien:</label>
+                                <input type="number" id="mo-nb-tech" value="1" min="1" class="custom-number-input">
+                            </div>
+                            <div class="input-field">
+                                <label>Nb heures:</label>
+                                <input type="number" id="mo-nb-hours" value="1" min="1" class="custom-number-input">
+                            </div>
+                            <div class="input-field">
+                                <label>Majo Weekend:</label>
+                                <select id="mo-weekend" class="MuiInputBase-input">
+                                    <option value="1">1</option>
+                                    <option value="1.6">1.6</option>
+                                </select>
+                            </div>
+                            <div class="input-field">
+                                <label>PR €:</label>
+                                <input type="number" id="mo-pre" value="10.00" step="0.01" class="custom-number-input">
+                            </div>
+                            <button onclick="addLabor()" class="MuiButtonBase-root MuiButton-root MuiButton-contained">Ajouter</button>
+                        </div>
+                    </div>
+
+                    <table class="MuiTable-root" id="labor-table">
+                        <thead>
+                            <tr>
+                                <th>Nb technicien</th>
+                                <th>Nb heures</th>
+                                <th>Majo Weekend</th>
+                                <th>PR €</th>
+                                <th>PR $</th>
+                                <th>PV/u $</th>
+                                <th>PV $ Total HT</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Labor items will be added here dynamically -->
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="6" style="text-align: right;">TOTAL MO $ HT:</td>
+                                <td id="table-total-mo" style="text-align: right;">-</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="add-item-section">
+                    <button id="add-item-btn" class="MuiButtonBase-root MuiButton-root MuiButton-contained">Ajouter un article</button>
+                </div>
+
+                <div class="actions">
+                    <button id="print-btn" class="MuiButtonBase-root MuiButton-root MuiButton-contained">Imprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/common.js"></script>
+    <script src="scripts/index.js"></script>
+</body>
+</html>

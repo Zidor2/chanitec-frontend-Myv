@@ -1,0 +1,62 @@
+[
+  {
+    "description": "Compresseur C1",
+    "priceEuro": 1500.00
+  },
+  {
+    "description": "Ventilateur V2000",
+    "priceEuro": 350.75
+  },
+  {
+    "description": "Filtre à air F100",
+    "priceEuro": 45.50
+  },
+  {
+    "description": "Condensateur 20kW",
+    "priceEuro": 780.25
+  },
+  {
+    "description": "Tuyau flexible 2m",
+    "priceEuro": 25.99
+  },
+  {
+    "description": "Kit de montage mural",
+    "priceEuro": 120.00
+  },
+  {
+    "description": "Thermostat digital",
+    "priceEuro": 89.95
+  },
+  {
+    "description": "Pompe à chaleur 5kW",
+    "priceEuro": 1200.50
+  },
+  {
+    "description": "Fluide frigorigène R410A (kg)",
+    "priceEuro": 65.00
+  },
+  {
+    "description": "Joint étanchéité",
+    "priceEuro": 12.75
+  },
+  {
+    "description": "Isolation thermique 10m",
+    "priceEuro": 35.50
+  },
+  {
+    "description": "Unité extérieure complète",
+    "priceEuro": 2300.00
+  },
+  {
+    "description": "Évaporateur E300",
+    "priceEuro": 450.00
+  },
+  {
+    "description": "Câble électrique spécial climatisation (m)",
+    "priceEuro": 5.25
+  },
+  {
+    "description": "Support anti-vibration",
+    "priceEuro": 28.90
+  }
+]

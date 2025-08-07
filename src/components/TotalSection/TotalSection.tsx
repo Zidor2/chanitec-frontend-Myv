@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableRow, Typography } from '@mui/material';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableRow } from '@mui/material';
 import './TotalSection.scss';
 
 interface TotalSectionProps {
@@ -8,6 +8,7 @@ interface TotalSectionProps {
   totalHT: number;
   tva: number;
   totalTTC: number;
+  remise?: number;
 }
 
 const TotalSection: React.FC<TotalSectionProps> = ({
@@ -15,7 +16,8 @@ const TotalSection: React.FC<TotalSectionProps> = ({
   totalLaborHT,
   totalHT,
   tva,
-  totalTTC
+  totalTTC,
+  remise
 }) => {
   return (
     <Paper className="total-section" elevation={2}>
@@ -27,6 +29,14 @@ const TotalSection: React.FC<TotalSectionProps> = ({
               <TableCell className="total-label">TOTAL OFFRE USD HT:</TableCell>
               <TableCell align="right" className="total-value">{Number(totalHT ?? 0).toFixed(2)}</TableCell>
             </TableRow>
+            {remise && remise > 0 && (
+              <TableRow>
+                <TableCell className="total-label">Remise ({remise}%):</TableCell>
+                <TableCell align="right" className="total-value" style={{ color: '#4caf50' }}>
+                  -{((totalHT ?? 0) * (remise / 100)).toFixed(2)}
+                </TableCell>
+              </TableRow>
+            )}
             <TableRow>
               <TableCell className="total-label">TVA:</TableCell>
               <TableCell align="right" className="total-value">{Number(tva ?? 0).toFixed(2)}</TableCell>

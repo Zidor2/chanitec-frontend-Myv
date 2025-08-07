@@ -238,7 +238,7 @@ const AppContent = () => {
               path="/home"
               element={
                 <ProtectedRoute>
-                  <HomePage />
+                  <HomePage currentPath="/home" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -265,7 +265,7 @@ const AppContent = () => {
               path="/history"
               element={
                 <ProtectedRoute>
-                  <HistoryPage currentPath="/history" onNavigate={handleNavigate} />
+                  <HistoryPage currentPath="/history" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -274,7 +274,7 @@ const AppContent = () => {
               path="/clients"
               element={
                 <ProtectedRoute>
-                  <ClientsPage currentPath="/clients" onNavigate={handleNavigate} />
+                  <ClientsPage currentPath="/clients" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -283,7 +283,7 @@ const AppContent = () => {
               path="/items"
               element={
                 <ProtectedRoute>
-                  <ItemsPage currentPath="/items" onNavigate={handleNavigate} />
+                  <ItemsPage currentPath="/items" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -296,6 +296,7 @@ const AppContent = () => {
                     currentPath="/price-offer"
                     onNavigate={handleNavigate}
                     quoteId={priceOfferQuoteId}
+                    onLogout={handleLogout}
                   />
                 </ProtectedRoute>
               }
@@ -305,7 +306,7 @@ const AppContent = () => {
               path="/intervention"
               element={
                 <ProtectedRoute>
-                  <InterventionPage />
+                  <InterventionPage currentPath="/intervention" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -314,7 +315,7 @@ const AppContent = () => {
               path="/org-chart"
               element={
                 <ProtectedRoute>
-                  <OrgChartPage />
+                  <OrgChartPage currentPath="/org-chart" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -323,7 +324,7 @@ const AppContent = () => {
               path="/employees"
               element={
                 <ProtectedRoute>
-                  <EmployeesPage />
+                  <EmployeesPage currentPath="/employees" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />

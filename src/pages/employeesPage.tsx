@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  AppBar,
-  Toolbar,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -24,18 +21,28 @@ import {
   InputLabel,
   SelectChangeEvent,
   CircularProgress,
+  Button,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { employeeService, Employee, CreateEmployeeDTO } from '../services/employee-service';
+import Layout from '../components/Layout/Layout';
 import './employeesPage.scss';
 import dayjs from 'dayjs';
 
 const civilStatusOptions = ['C', 'M']; // Celibataire, Marié
 const contractTypeOptions = ['CDI', 'CDD', 'Interim'];
 
-const EmployeesPage = () => {
-  const navigate = useNavigate();
+interface EmployeesPageProps {
+  currentPath?: string;
+  onNavigate?: (path: string) => void;
+  onLogout?: () => void;
+}
+
+const EmployeesPage: React.FC<EmployeesPageProps> = ({ 
+  currentPath = '/employees', 
+  onNavigate, 
+  onLogout 
+}) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -124,18 +131,12 @@ const EmployeesPage = () => {
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async () => {
@@ -149,7 +150,6 @@ const EmployeesPage = () => {
       handleCloseDialog();
     } catch (err) {
       console.error('Error saving employee:', err);
-      setError('Failed to save employee');
     }
   };
 
@@ -160,19 +160,17 @@ const EmployeesPage = () => {
         await loadEmployees();
       } catch (err) {
         console.error('Error deleting employee:', err);
-        setError('Failed to delete employee');
       }
     }
   };
 
   const calculateSeniority = (entryDate: string) => {
     if (!entryDate) return '';
-    const start = dayjs(entryDate);
-    const end = dayjs();
-    const years = end.diff(start, 'year');
-    const months = end.diff(start.add(years, 'year'), 'month');
-    const days = end.diff(start.add(years, 'year').add(months, 'month'), 'day');
-    return `${years} years ${months} months ${days} days`;
+    const entry = dayjs(entryDate);
+    const now = dayjs();
+    const years = now.diff(entry, 'year');
+    const months = now.diff(entry, 'month') % 12;
+    return `${years}y ${months}m`;
   };
 
   const getTypeDescription = (subTypeId: number | undefined) => {
@@ -192,203 +190,165 @@ const EmployeesPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
+      <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress />
+        </Box>
+      </Layout>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3, color: 'error.main' }}>
-        Error: {error}
-      </Box>
+      <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
+        <Box sx={{ p: 3, color: 'error.main' }}>
+          Error: {error}
+        </Box>
+      </Layout>
     );
   }
 
   return (
-    <div className="employees-container">
-      <AppBar position="static" color="primary">
-        <Toolbar>
-          <Button color="inherit" onClick={() => navigate('/org-chart')}>
-            Back to Org Chart
-          </Button>
-          <Typography variant="h6" style={{ marginLeft: '20px' }}>
-            Employees Management
+    <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
+      <div className="employees-container">
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h4" gutterBottom>
+            Gestion des Employés
           </Typography>
-        </Toolbar>
-      </AppBar>
-
-      <Box sx={{ p: 3 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          sx={{ mb: 2 }}
-        >
-          Add Employee
-        </Button>
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Full Name</TableCell>
-                <TableCell>Civil Status</TableCell>
-                <TableCell>Job Title</TableCell>
-                <TableCell>Fonction</TableCell>
-                <TableCell>Contract Type</TableCell>
-                <TableCell>Seniority</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {employees.map((employee) => (
-                <TableRow key={employee.id}>
-                  <TableCell>{employee.full_name}</TableCell>
-                  <TableCell>{employee.civil_status}</TableCell>
-                  <TableCell>{employee.job_title}</TableCell>
-                  <TableCell>{employee.fonction}</TableCell>
-                  <TableCell>{employee.contract_type}</TableCell>
-                  <TableCell>{employee.seniority}</TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleOpenDialog(employee)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(employee.id)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
-
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingEmployee ? 'Edit Employee' : 'Add New Employee'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              name="full_name"
-              label="Full Name"
-              value={formData.full_name}
-              onChange={handleTextChange}
-              fullWidth
-              required
-            />
-            <FormControl fullWidth required>
-              <InputLabel>Civil Status</InputLabel>
-              <Select
-                name="civil_status"
-                value={formData.civil_status}
-                onChange={handleSelectChange}
-                label="Civil Status"
-              >
-                <MenuItem value="C">C</MenuItem>
-                <MenuItem value="M">M</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              name="birth_date"
-              label="Birth Date"
-              type="date"
-              value={formData.birth_date}
-              onChange={handleTextChange}
-              fullWidth
-              required
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              name="entry_date"
-              label="Entry Date"
-              type="date"
-              value={formData.entry_date}
-              onChange={handleTextChange}
-              fullWidth
-              required
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              name="seniority"
-              label="Seniority"
-              value={calculateSeniority(formData.entry_date)}
-              fullWidth
-              disabled
-            />
-            <FormControl fullWidth required>
-              <InputLabel>Contract Type</InputLabel>
-              <Select
-                name="contract_type"
-                value={formData.contract_type}
-                onChange={handleSelectChange}
-                label="Contract Type"
-              >
-                {contractTypeOptions.map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {type}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              name="job_title"
-              label="Job Title"
-              value={formData.job_title}
-              onChange={handleTextChange}
-              fullWidth
-              required
-            />
-            <TextField
-              name="fonction"
-              label="Fonction"
-              value={formData.fonction}
-              onChange={handleTextChange}
-              fullWidth
-              required
-            />
-            <FormControl fullWidth required>
-              <InputLabel>Sub Type</InputLabel>
-              <Select
-                name="sub_type_id"
-                value={formData.sub_type_id !== undefined ? String(formData.sub_type_id) : ''}
-                onChange={(e) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    sub_type_id: e.target.value === '' ? undefined : Number(e.target.value),
-                  }));
-                }}
-                label="Sub Type"
-              >
-                <MenuItem value="1">UTEX</MenuItem>
-                <MenuItem value="2">POLIVALONT</MenuItem>
-                <MenuItem value="3">PULLMAN</MenuItem>
-                <MenuItem value="4">SNEL</MenuItem>
-                <MenuItem value="5">BCDC</MenuItem>
-                <MenuItem value="6">AUCUN</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              name="type_description"
-              label="Type Description"
-              value={getTypeDescription(formData.sub_type_id)}
-              fullWidth
-              disabled
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
-            {editingEmployee ? 'Update' : 'Add'}
+          
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+            sx={{ mb: 2 }}
+          >
+            Ajouter un employé
           </Button>
-        </DialogActions>
-      </Dialog>
-    </div>
+
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Nom complet</TableCell>
+                  <TableCell>Statut civil</TableCell>
+                  <TableCell>Poste</TableCell>
+                  <TableCell>Fonction</TableCell>
+                  <TableCell>Type de contrat</TableCell>
+                  <TableCell>Ancienneté</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {employees.map((employee) => (
+                  <TableRow key={employee.id}>
+                    <TableCell>{employee.full_name}</TableCell>
+                    <TableCell>{employee.civil_status}</TableCell>
+                    <TableCell>{employee.job_title}</TableCell>
+                    <TableCell>{employee.fonction}</TableCell>
+                    <TableCell>{employee.contract_type}</TableCell>
+                    <TableCell>{calculateSeniority(employee.entry_date)}</TableCell>
+                    <TableCell>
+                      <IconButton onClick={() => handleOpenDialog(employee)}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleDelete(employee.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+
+        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+          <DialogTitle>
+            {editingEmployee ? 'Modifier l\'employé' : 'Ajouter un nouvel employé'}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                name="full_name"
+                label="Nom complet"
+                value={formData.full_name}
+                onChange={handleTextChange}
+                fullWidth
+              />
+              <FormControl fullWidth>
+                <InputLabel>Statut civil</InputLabel>
+                <Select
+                  name="civil_status"
+                  value={formData.civil_status}
+                  onChange={handleSelectChange}
+                  label="Statut civil"
+                >
+                  {civilStatusOptions.map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {status === 'C' ? 'Célibataire' : 'Marié'}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                name="birth_date"
+                label="Date de naissance"
+                type="date"
+                value={formData.birth_date}
+                onChange={handleTextChange}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                name="entry_date"
+                label="Date d'entrée"
+                type="date"
+                value={formData.entry_date}
+                onChange={handleTextChange}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                name="job_title"
+                label="Poste"
+                value={formData.job_title}
+                onChange={handleTextChange}
+                fullWidth
+              />
+              <TextField
+                name="fonction"
+                label="Fonction"
+                value={formData.fonction}
+                onChange={handleTextChange}
+                fullWidth
+              />
+              <FormControl fullWidth>
+                <InputLabel>Type de contrat</InputLabel>
+                <Select
+                  name="contract_type"
+                  value={formData.contract_type}
+                  onChange={handleSelectChange}
+                  label="Type de contrat"
+                >
+                  {contractTypeOptions.map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {type}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Annuler</Button>
+            <Button onClick={handleSubmit} variant="contained">
+              {editingEmployee ? 'Modifier' : 'Ajouter'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </div>
+    </Layout>
   );
 };
 

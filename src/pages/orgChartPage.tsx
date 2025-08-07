@@ -1,6 +1,6 @@
 import React from 'react';
-import { AppBar, Toolbar, Button, Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { Box } from '@mui/material';
+import Layout from '../components/Layout/Layout';
 import './orgChartPage.scss';
 
 interface Employee {
@@ -11,6 +11,12 @@ interface Employee {
   avatar: string;
   subType?: string;
   children?: Employee[];
+}
+
+interface OrgChartPageProps {
+  currentPath?: string;
+  onNavigate?: (path: string) => void;
+  onLogout?: () => void;
 }
 
 const employees: Employee[] = [
@@ -103,7 +109,7 @@ const employees: Employee[] = [
       },
       {
         id: 12,
-        name: 'MENANKUTIMA NSOMI Marc',
+        name: 'MAKANDA KABEYA Jean',
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
@@ -111,7 +117,7 @@ const employees: Employee[] = [
       },
       {
         id: 13,
-        name: 'MOBATUE MBEMBA Rigaen',
+        name: 'MAKANDA KABEYA Jean',
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
@@ -119,49 +125,49 @@ const employees: Employee[] = [
       },
       {
         id: 14,
-        name: 'DIANABO KALIMUNDA Marius',
-        title: 'Chef de service adj chargé du climatisation centralisé',
-        subType: 'PULLMAN',
+        name: 'MAKANDA KABEYA Jean',
+        title: 'Polyvalent',
+        subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
         avatar: 'https://randomuser.me/api/portraits/men/74.jpg',
       },
       {
         id: 15,
-        name: 'MALONGA KUAMA Isidore',
-        title: 'Chef de service adj chargé du climatisation centralisé',
-        subType: 'PULLMAN',
+        name: 'MAKANDA KABEYA Jean',
+        title: 'Polyvalent',
+        subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
         avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
       },
       {
         id: 16,
-        name: 'MBIYAVANGA MATALA Antoine',
-        title: 'Chef de service adj chargé du climatisation centralisé',
-        subType: 'PULLMAN',
+        name: 'MAKANDA KABEYA Jean',
+        title: 'Polyvalent',
+        subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
         avatar: 'https://randomuser.me/api/portraits/men/76.jpg',
       },
       {
         id: 17,
-        name: 'MUSOMONI KAFUTI Trésor-Benjamin',
-        title: 'Chef de service adj chargé du climatisation centralisé',
-        subType: 'BCDC',
+        name: 'MAKANDA KABEYA Jean',
+        title: 'Polyvalent',
+        subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
         avatar: 'https://randomuser.me/api/portraits/men/77.jpg',
       },
       {
         id: 18,
-        name: 'NDOMBASI NGOMBO Diego',
-        title: 'Chef de service adj chargé du climatisation centralisé',
-        subType: 'BCDC',
+        name: 'MAKANDA KABEYA Jean',
+        title: 'Polyvalent',
+        subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
         avatar: 'https://randomuser.me/api/portraits/men/78.jpg',
       },
       {
         id: 19,
-        name: 'NTOTO PHUATI Sylvain',
-        title: 'Chef de service adj chargé du climatisation centralisé',
-        subType: 'BCDC',
+        name: 'MAKANDA KABEYA Jean',
+        title: 'Polyvalent',
+        subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
         avatar: 'https://randomuser.me/api/portraits/men/79.jpg',
       },
@@ -177,9 +183,12 @@ const employees: Employee[] = [
   },
 ];
 
-const OrgChartPage = () => {
+const OrgChartPage: React.FC<OrgChartPageProps> = ({ 
+  currentPath = '/org-chart', 
+  onNavigate, 
+  onLogout 
+}) => {
   const leader = employees[0];
-  const navigate = useNavigate();
   const isAdmin = localStorage.getItem('role') === 'admin';
 
   // Group employees by title
@@ -209,58 +218,42 @@ const OrgChartPage = () => {
   };
 
   return (
-    <div className="orgchart-container">
-      <AppBar position="static" color="primary" className="orgchart-app-bar">
-        <Toolbar className="orgchart-toolbar">
-          <Button color="inherit" onClick={() => navigate('/home')} className="orgchart-nav-btn">
-            Back to Home
-          </Button>
-          <Button color="inherit" onClick={() => navigate('/employees')} className="orgchart-nav-btn">
-            Employees
-          </Button>
-          <Button color="inherit" disabled className="orgchart-nav-btn">
-            Profile
-          </Button>
-          {isAdmin && (
-            <Button color="inherit" disabled className="orgchart-nav-btn">
-              Edit Employee
-            </Button>
-          )}
-        </Toolbar>
-      </AppBar>
-      <div className="orgchart-leader">
-        <div className="orgchart-card leader">
-          <img src={leader.avatar} alt={leader.name} className="orgchart-avatar leader" />
-          <div className="orgchart-name leader">{leader.name}</div>
-          <div className="orgchart-title leader">{leader.title}</div>
-          <div className="orgchart-location leader">{leader.location}</div>
-        </div>
-      </div>
-      <div className="orgchart-line" />
-
-      <div className="orgchart-sections">
-        <div className="orgchart-section">
-          <h2 className="orgchart-section-title">Chef de service Chargé de clim-domestique</h2>
-          <div className="orgchart-advisors">
-            {renderEmployeeRows(climDomestiqueEmployees)}
+    <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
+      <div className="orgchart-container">
+        <div className="orgchart-leader">
+          <div className="orgchart-card leader">
+            <img src={leader.avatar} alt={leader.name} className="orgchart-avatar leader" />
+            <div className="orgchart-name leader">{leader.name}</div>
+            <div className="orgchart-title leader">{leader.title}</div>
+            <div className="orgchart-location leader">{leader.location}</div>
           </div>
         </div>
+        <div className="orgchart-line" />
 
-        <div className="orgchart-section">
-          <h2 className="orgchart-section-title">Polyvalent</h2>
-          <div className="orgchart-advisors">
-            {renderEmployeeRows(polyvalentEmployees)}
+        <div className="orgchart-sections">
+          <div className="orgchart-section">
+            <h2 className="orgchart-section-title">Chef de service Chargé de clim-domestique</h2>
+            <div className="orgchart-advisors">
+              {renderEmployeeRows(climDomestiqueEmployees)}
+            </div>
           </div>
-        </div>
 
-        <div className="orgchart-section">
-          <h2 className="orgchart-section-title">Chef de service adj chargé du climatisation centralisé</h2>
-          <div className="orgchart-advisors">
-            {renderEmployeeRows(climatisationCentraliseEmployees)}
+          <div className="orgchart-section">
+            <h2 className="orgchart-section-title">Polyvalent</h2>
+            <div className="orgchart-advisors">
+              {renderEmployeeRows(polyvalentEmployees)}
+            </div>
+          </div>
+
+          <div className="orgchart-section">
+            <h2 className="orgchart-section-title">Chef de service adj chargé du climatisation centralisé</h2>
+            <div className="orgchart-advisors">
+              {renderEmployeeRows(climatisationCentraliseEmployees)}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

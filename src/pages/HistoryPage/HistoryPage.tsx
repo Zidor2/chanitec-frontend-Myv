@@ -13,32 +13,142 @@ import {
   Card,
   IconButton,
   Divider,
-  Chip
+  FormControlLabel,
+  Switch,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import Layout from '../../components/Layout/Layout';
 import './HistoryPage.scss';
 import { ReceiptLongOutlined } from '@mui/icons-material';
+import logo from '../../logo.png';
 import AddAlarmIcon from '@mui/icons-material/AddAlarm';
+import WarningIcon from '@mui/icons-material/Warning';
 import { Client, Site, Quote } from '../../models/Quote';
 import { apiService } from '../../services/api-service';
-import { extractBaseId } from '../../utils/id-generator';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CustomNumberInput from '../../components/CustomNumberInput/CustomNumberInput';
-import PersonIcon from '@mui/icons-material/Person';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
 
 interface HistoryPageProps {
   currentPath: string;
   onNavigate: (path: string, quoteId?: string) => void;
+  onLogout?: () => void;
 }
 
-const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate }) => {
+// Quote Confirmation Modal Component
+interface QuoteConfirmationModalProps {
+  open: boolean;
+  quote: Quote | null;
+  onConfirm: (quoteId: string, confirmed: boolean, numberChanitec: string) => Promise<void>;
+  onClose: () => void;
+}
+
+const QuoteConfirmationModal: React.FC<QuoteConfirmationModalProps> = ({
+  open,
+  quote,
+  onConfirm,
+  onClose
+}) => {
+  const [numberChanitec, setNumberChanitec] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (open) {
+      setNumberChanitec('');
+      setError('');
+    }
+  }, [open]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quote) return;
+
+    if (!numberChanitec.trim()) {
+      setError('Le numéro de référence interne est requis.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await onConfirm(quote.id, true, numberChanitec.trim());
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la confirmation du devis');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Confirmer le devis</DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          {quote && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Client: {quote.clientName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Site: {quote.siteName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total TTC: {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(quote.totalTTC)}
+              </Typography>
+            </Box>
+          )}
+
+          <TextField
+            fullWidth
+            label="Numéro de référence interne"
+            value={numberChanitec}
+            onChange={(e) => setNumberChanitec(e.target.value)}
+            placeholder="ex: CH-2024-001"
+            required
+            sx={{ mb: 2 }}
+          />
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} disabled={loading}>
+            Annuler
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={loading}
+          >
+            {loading ? 'Confirmation...' : 'Confirmer le devis'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate, onLogout }) => {
   // Filter state
   const [filters, setFilters] = useState({
     id: '',
@@ -47,6 +157,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate }) =>
     period: 'all',
     startDate: '',
     endDate: '',
+    showAlertedOnly: false,
   });
   const [clients, setClients] = useState<Client[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
@@ -74,6 +185,15 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate }) =>
   // Local state for reminder days per quote
   const [reminderDays, setReminderDays] = useState<{ [quoteId: string]: number }>({});
 
+  // Add state for confirmation modal
+  const [confirmationModal, setConfirmationModal] = useState<{
+    open: boolean;
+    quote: Quote | null;
+  }>({
+    open: false,
+    quote: null
+  });
+
   // Fetch clients, sites, and quotes on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -90,6 +210,28 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate }) =>
       );
       setClients(clientsWithSites);
       setQuotes(allQuotes || []);
+
+      // Check for passed reminder dates
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const passedReminders = (allQuotes || []).filter(quote => {
+        if (!quote.reminderDate || quote.confirmed) return false;
+        const reminderDate = new Date(quote.reminderDate);
+        reminderDate.setHours(0, 0, 0, 0);
+        return reminderDate < today;
+      });
+
+      if (passedReminders.length > 0) {
+        const quoteDetails = passedReminders.map(q => {
+          const creationDate = new Date(q.createdAt).toLocaleDateString('fr-FR');
+          return `• ID: ${q.id} | Client: ${q.clientName} | Site: ${q.siteName} | Objet: ${q.object} | Créé le: ${creationDate}`;
+        }).join('\n');
+
+        alert(`Attention: Les rappels pour les devis suivants sont passés:
+
+${quoteDetails}`);
+      }
     };
     fetchData();
   }, []);
@@ -119,6 +261,16 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate }) =>
     return new Date(dateStr);
   };
 
+  // Helper to check if quote has passed reminder date and is not confirmed
+  const hasPassedReminderDate = (quote: Quote): boolean => {
+    if (!quote.reminderDate || quote.confirmed) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const reminderDate = new Date(quote.reminderDate);
+    reminderDate.setHours(0, 0, 0, 0);
+    return reminderDate < today;
+  };
+
   // Apply filters to quotes
   useEffect(() => {
     let result = [...quotes];
@@ -130,6 +282,10 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate }) =>
     }
     if (filters.site) {
       result = result.filter(q => q.siteName === (sites.find(s => s.id === filters.site)?.name));
+    }
+    // Filter for alerted quotes (passed reminder date and not confirmed)
+    if (filters.showAlertedOnly) {
+      result = result.filter(q => hasPassedReminderDate(q));
     }
     // Date filtering logic for period
     if (filters.period !== 'all') {
@@ -175,33 +331,58 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate }) =>
   }, [filters, quotes, clients, sites]);
 
   // Handlers
-  const handleFilterChange = (field: string, value: string) => {
+  const handleFilterChange = (field: string, value: string | boolean) => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
   const handleClearFilters = () => {
-    setFilters({ id: '', client: '', site: '', period: 'all', startDate: '', endDate: '' });
+    setFilters({ id: '', client: '', site: '', period: 'all', startDate: '', endDate: '', showAlertedOnly: false });
   };
 
   // Handlers for quote card actions
   const handleLoadQuote = (quoteId: string) => {
     const quote = quotes.find(q => q.id === quoteId);
     if (quote) {
-      if (quote.reminderDate) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const reminder = new Date(quote.reminderDate);
-        reminder.setHours(0, 0, 0, 0);
-        if (reminder < today) {
-          alert("Attention : la date de rappel de ce devis est dépassée !");
-        }
-      }
-      if (quote.confirmed) {
-        onNavigate(`/quote?id=${quoteId}`);
-      } else {
-        onNavigate(`/quote?id=${quoteId}&showConfirm=true`);
-      }
+      onNavigate(`/quote?id=${quoteId}&showConfirm=true`);
     }
   };
+
+  // Update the handleConfirmQuote function
+  const handleConfirmQuote = (quote: Quote) => {
+    setConfirmationModal({
+      open: true,
+      quote: quote
+    });
+  };
+
+  // New function to handle the actual confirmation
+  const handleConfirmQuoteSubmit = async (quoteId: string, confirmed: boolean, numberChanitec: string) => {
+    try {
+      await apiService.confirmQuote(quoteId, confirmed, numberChanitec);
+
+      // Update the local state
+      setQuotes(prev => prev.map(q =>
+        q.id === quoteId ? {
+          ...q,
+          confirmed: confirmed,
+          number_chanitec: confirmed ? numberChanitec : q.number_chanitec,
+          reminderDate: confirmed ? undefined : q.reminderDate
+        } : q
+      ));
+
+      alert('Devis confirmé avec succès');
+    } catch (error: any) {
+      console.error('Error confirming quote:', error);
+      throw new Error('Erreur lors de la confirmation du devis. Veuillez réessayer.');
+    }
+  };
+
+  const handleCloseConfirmationModal = () => {
+    setConfirmationModal({
+      open: false,
+      quote: null
+    });
+  };
+
   const handleDeleteQuote = async (quoteId: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce devis ?')) {
       // Call backend to delete by id only
@@ -221,382 +402,286 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate }) =>
     const currentDate = new Date();
     const reminderDate = new Date(currentDate.setDate(currentDate.getDate() + days));
     const formattedDate = reminderDate.toISOString().split('T')[0];
-    // Use fetch directly since fetchApi is private
-    await fetch(`${process.env.REACT_APP_API_URL}/quotes/${quoteId}/reminder`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reminderDate: formattedDate }),
-    });
-    setQuotes(prev => prev.map(q => q.id === quoteId ? { ...q, reminderDate: formattedDate } : q));
-    alert('Rappel configuré avec succès');
-  };
 
-  // Helper function to format date
-  const formatDate = (date: string | Date) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('fr-FR');
+    try {
+      const updatedQuote = await apiService.setReminderDate(quoteId, formattedDate);
+      setQuotes(prev => prev.map(q => q.id === quoteId ? { ...q, reminderDate: formattedDate } : q));
+      alert('Rappel configuré avec succès');
+    } catch (error: any) {
+      console.error('Error setting reminder date:', error);
+      alert('Erreur lors de la configuration du rappel. Veuillez réessayer.');
+    }
   };
 
   return (
-    <Layout currentPath={currentPath} onNavigate={onNavigate}>
-      <Box className="history-page">
-        {/* Header Section */}
-        <Box className="page-header">
-          <Box className="header-content">
-            <Typography variant="h4" className="page-title">
-              Historique
+    <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
+      <Container maxWidth="lg" className="history-page">
+
+        <Paper elevation={3} className="filters-section">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              Filtres
             </Typography>
             <Button
               variant="contained"
               color="primary"
-              startIcon={<AddIcon />}
+              size="large"
               onClick={() => onNavigate('/quote')}
-              className="create-quote-btn"
+              sx={{
+                backgroundColor: '#1976d2',
+                '&:hover': {
+                  backgroundColor: '#1565c0'
+                }
+              }}
             >
-              Créer une feuille de calcul
+              Créer une nouvelle feuille de calcul
             </Button>
           </Box>
-        </Box>
 
-        <Box className="main-content">
-          {/* Filter Section */}
-          <Card className="filter-card">
-            <Box className="filter-content">
-              <Typography variant="h6" className="filter-title">
-                Filtres
-              </Typography>
-              <Box className="filters-grid">
+          <Box className="filters-grid">
+            <TextField
+              fullWidth
+              label="ID"
+              variant="outlined"
+              size="small"
+              value={filters.id}
+              onChange={e => handleFilterChange('id', e.target.value)}
+            />
+
+            <FormControl fullWidth size="small">
+              <InputLabel>Client</InputLabel>
+              <Select
+                label="Client"
+                value={filters.client}
+                onChange={e => handleFilterChange('client', e.target.value as string)}
+              >
+                <MenuItem value="">Tous les clients</MenuItem>
+                {(clients || []).map(client => (
+                  <MenuItem key={client.id} value={client.id}>{client.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth size="small">
+              <InputLabel>Site</InputLabel>
+              <Select
+                label="Site"
+                value={filters.site}
+                onChange={e => handleFilterChange('site', e.target.value as string)}
+                disabled={!filters.client}
+              >
+                <MenuItem value="">Tous les sites</MenuItem>
+                {(sites || []).map(site => (
+                  <MenuItem key={site.id} value={site.id}>{site.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth size="small">
+              <InputLabel>Période</InputLabel>
+              <Select
+                label="Période"
+                value={filters.period}
+                onChange={e => handleFilterChange('period', e.target.value as string)}
+              >
+                <MenuItem value="all">Toutes les dates</MenuItem>
+                <MenuItem value="today">Aujourd'hui</MenuItem>
+                <MenuItem value="week">Cette semaine</MenuItem>
+                <MenuItem value="month">Ce mois</MenuItem>
+                <MenuItem value="year">Cette année</MenuItem>
+                <MenuItem value="custom">Période personnalisée</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* Show date pickers if custom period is selected */}
+            {filters.period === 'custom' && (
+              <>
                 <TextField
-                  fullWidth
-                  label="ID"
-                  variant="outlined"
+                  label="Date de début"
+                  type="date"
                   size="small"
-                  value={filters.id}
-                  onChange={e => handleFilterChange('id', e.target.value)}
+                  value={filters.startDate}
+                  onChange={e => handleFilterChange('startDate', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ minWidth: 180, marginRight: 2, marginTop: 1 }}
                 />
+                <TextField
+                  label="Date de fin"
+                  type="date"
+                  size="small"
+                  value={filters.endDate}
+                  onChange={e => handleFilterChange('endDate', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ minWidth: 180, marginTop: 1 }}
+                />
+              </>
+            )}
+          </Box>
 
-                <FormControl fullWidth size="small">
-                  <InputLabel>Client</InputLabel>
-                  <Select
-                    label="Client"
-                    value={filters.client}
-                    onChange={e => handleFilterChange('client', e.target.value as string)}
-                  >
-                    <MenuItem value="">Tous les clients</MenuItem>
-                    {(clients || []).map(client => (
-                      <MenuItem key={client.id} value={client.id}>{client.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={filters.showAlertedOnly}
+                  onChange={(e) => handleFilterChange('showAlertedOnly', e.target.checked)}
+                  color="warning"
+                />
+              }
+              label="Afficher uniquement les devis avec rappel dépassé"
+            />
+            <Button variant="outlined" size="small" onClick={handleClearFilters}>
+              Effacer les filtres
+            </Button>
+          </Box>
+        </Paper>
 
-                <FormControl fullWidth size="small">
-                  <InputLabel>Site</InputLabel>
-                  <Select
-                    label="Site"
-                    value={filters.site}
-                    onChange={e => handleFilterChange('site', e.target.value as string)}
-                    disabled={!filters.client}
-                  >
-                    <MenuItem value="">Tous les sites</MenuItem>
-                    {(sites || []).map(site => (
-                      <MenuItem key={site.id} value={site.id}>{site.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <FormControl fullWidth size="small">
-                  <InputLabel>Période</InputLabel>
-                  <Select
-                    label="Période"
-                    value={filters.period}
-                    onChange={e => handleFilterChange('period', e.target.value as string)}
-                  >
-                    <MenuItem value="all">Toutes les dates</MenuItem>
-                    <MenuItem value="today">Aujourd'hui</MenuItem>
-                    <MenuItem value="week">Cette semaine</MenuItem>
-                    <MenuItem value="month">Ce mois</MenuItem>
-                    <MenuItem value="year">Cette année</MenuItem>
-                    <MenuItem value="custom">Période personnalisée</MenuItem>
-                  </Select>
-                </FormControl>
-
-                {/* Show date pickers if custom period is selected */}
-                {filters.period === 'custom' && (
-                  <>
-                    <TextField
-                      label="Date de début"
-                      type="date"
-                      size="small"
-                      value={filters.startDate}
-                      onChange={e => handleFilterChange('startDate', e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                    <TextField
-                      label="Date de fin"
-                      type="date"
-                      size="small"
-                      value={filters.endDate}
-                      onChange={e => handleFilterChange('endDate', e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </>
-                )}
-              </Box>
-
-              <Box className="filter-actions">
-                <Button variant="outlined" size="small" onClick={handleClearFilters}>
-                  Effacer les filtres
-                </Button>
-              </Box>
-            </Box>
-          </Card>
-
-                    {/* Quotes List */}
-          <Box className="quotes-list">
-            {Object.entries(groupedQuotes).map(([baseId, versions]) => {
-              const originalQuote = versions[0]; // First quote is always the original
-              const childQuotes = versions.slice(1); // All other quotes are children
-
-              return (
-                <Box key={baseId} className="quote-deck">
-                  {/* Parent/Original Quote Card */}
-                  <Card className="quote-card parent-card">
-                    {/* Blue Header */}
-                    <Box className="quote-header">
-                      <Typography variant="h6" className="quote-group-title">
-                        Quote group: {baseId}
+        <Box sx={{ mt: 3 }}>
+          {/* Render grouped quotes by base ID */}
+          {Object.entries(groupedQuotes).map(([baseId, versions]) => (
+            <Box key={baseId} sx={{ mb: 4, border: '2px solid #1976d2', borderRadius: 2, p: 2 }}>
+              <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
+                Groupe de devis: {baseId}
+              </Typography>
+              {versions.map((quote, idx) => {
+                const isOriginal = idx === 0;
+                const isLatest = idx === versions.length - 1;
+                return (
+                  <Card className="quote-card" key={quote.id} sx={{ mb: 2, background: isLatest ? '#e3f2fd' : undefined }}>
+                    <Box className="card-header">
+                      <Box className="quote-id">
+                        <Typography component="span" className="id-number">
+                          {quote.id}
+                        </Typography>
+                        {/* Check icon for confirmed status */}
+                        {quote.confirmed ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                            <CheckCircleIcon sx={{ color: '#4caf50' }} titleAccess="Confirmé" />
+                            {quote.number_chanitec && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  ml: 0.5,
+                                  color: '#4caf50',
+                                  fontWeight: 'bold',
+                                  backgroundColor: '#e8f5e8',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px'
+                                }}
+                              >
+                                {quote.number_chanitec}
+                              </Typography>
+                            )}
+                          </Box>
+                        ) : (
+                          <CheckCircleOutlineIcon sx={{ color: '#bdbdbd', ml: 1 }} titleAccess="Non confirmé" />
+                        )}
+                        {/* Alert icon for passed reminder date */}
+                        {hasPassedReminderDate(quote) && (
+                          <WarningIcon sx={{ color: '#ff9800', ml: 1 }} titleAccess="Rappel dépassé" />
+                        )}
+                        <Typography component="span" className={`version-label ${isOriginal ? 'original' : 'update'}`}
+                          sx={{ ml: 1 }}>
+                          {isOriginal ? 'Version originale' : `Version ${idx}`}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(quote.createdAt).toLocaleDateString('fr-FR')}
                       </Typography>
                     </Box>
-
-                    {/* White Content Area */}
-                    <Box className="quote-content">
-                      {/* Left Side - Quote Details */}
-                      <Box className="quote-details">
-                        <Box className="quote-id-section">
-                          <Typography variant="h6" className="quote-id">
-                            {originalQuote.id}
-                          </Typography>
-                          <Chip
-                            icon={<CheckCircleIcon />}
-                            label="Original version"
-                            className="version-chip"
-                            color="success"
-                            size="small"
-                          />
+                    <Divider />
+                    <Box className="card-content">
+                      <Box className="info-grid">
+                        <Box className="info-item">
+                          <Typography className="label">Client</Typography>
+                          <Typography className="value">{quote.clientName || 'Non spécifié'}</Typography>
                         </Box>
-
-                        <Box className="quote-info">
-                          <Box className="info-row">
-                            <PersonIcon className="info-icon" />
-                            <Typography className="info-text">
-                              Client: {originalQuote.clientName || 'test client'}
-                            </Typography>
-                          </Box>
-                          <Box className="info-row">
-                            <LocationOnIcon className="info-icon" />
-                            <Typography className="info-text">
-                              Site: {originalQuote.siteName || 'tunis site 1'}
-                            </Typography>
-                          </Box>
+                        <Box className="info-item">
+                          <Typography className="label">Site</Typography>
+                          <Typography className="value">{quote.siteName || 'Non spécifié'}</Typography>
                         </Box>
-                      </Box>
-
-                      {/* Right Side - Date and Price */}
-                      <Box className="quote-summary">
-                        <Box className="date-section">
-                          <CalendarTodayIcon className="date-icon" />
-                          <Typography className="date-text">
-                            Date: {formatDate(originalQuote.date)}
-                          </Typography>
+                        <Box className="info-item">
+                          <Typography className="label">Objet</Typography>
+                          <Typography className="value">{quote.object || 'Non spécifié'}</Typography>
                         </Box>
-                        <Box className="price-section">
-                          <Typography className="price-label">Total TTC:</Typography>
-                          <Typography className="price-value">
-                            {new Intl.NumberFormat('fr-FR', {
-                              style: 'currency',
-                              currency: 'USD',
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            }).format(originalQuote.totalTTC)}
+                        <Box className="info-item">
+                          <Typography className="label">Date</Typography>
+                          <Typography className="value">{new Date(quote.date).toLocaleDateString('fr-FR')}</Typography>
+                        </Box>
+                        <Box className="info-item">
+                          <Typography className="label">Total TTC</Typography>
+                          <Typography className="value total">
+                            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(quote.totalTTC)}
+                            {quote.remise && quote.remise > 0 && (
+                              <Typography
+                                component="span"
+                                sx={{
+                                  ml: 1,
+                                  color: '#4caf50',
+                                  fontSize: '0.85em',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                (-{quote.remise}%)
+                              </Typography>
+                            )}
                           </Typography>
                         </Box>
                       </Box>
-                    </Box>
-
-                    {/* Footer with Reminder and Actions */}
-                    <Divider className="content-divider" />
-                    <Box className="quote-footer">
-                      {/* Left Side - Reminder Days */}
-                      <Box className="reminder-section">
-                        <Typography className="reminder-label">Reminder days:</Typography>
-                        <Box className="reminder-input">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleReminderChange(originalQuote.id, Math.max(0, (reminderDays[originalQuote.id] || 0) - 1))}
-                          >
-                            <RemoveIcon />
-                          </IconButton>
-                          <TextField
-                            value={reminderDays[originalQuote.id] || 0}
-                            onChange={(e) => handleReminderChange(originalQuote.id, parseInt(e.target.value) || 0)}
-                            size="small"
-                            className="reminder-days-input"
-                            inputProps={{
-                              style: { textAlign: 'center', width: '40px' },
-                              min: 0
-                            }}
+                      {isLatest && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, borderTop: '1px solid rgba(0, 0, 0, 0.12)', paddingTop: 2 }}>
+                          <CustomNumberInput
+                            label="Jours de rappel"
+                            value={reminderDays[quote.id] || 0}
+                            onChange={value => handleReminderChange(quote.id, value)}
+                            min={0}
+                            fullWidth={false}
+                            displayAsInteger={true}
                           />
-                          <IconButton
-                            size="small"
-                            onClick={() => handleReminderChange(originalQuote.id, (reminderDays[originalQuote.id] || 0) + 1)}
-                          >
-                            <AddIcon />
-                          </IconButton>
-                          <IconButton
-                            color="primary"
-                            size="small"
-                            onClick={() => handleSetReminder(originalQuote.id)}
-                            className="add-reminder-btn"
-                          >
+                          <IconButton color="primary" sx={{ ml: 1 }} onClick={() => handleSetReminder(quote.id)}>
                             <AddAlarmIcon />
                           </IconButton>
                         </Box>
-                      </Box>
-
-                      {/* Right Side - Action Buttons */}
-                      <Box className="action-buttons">
+                      )}
+                    </Box>
+                    <Box className="card-actions">
+                      <Button className="action-button view" size="small" startIcon={<VisibilityIcon />} onClick={() => handleLoadQuote(quote.id)}>
+                        Voir
+                      </Button>
+                      {!quote.confirmed && isLatest && (
                         <Button
-                          variant="outlined"
+                          className="action-button"
                           size="small"
-                          startIcon={<VisibilityIcon />}
-                          onClick={() => handleLoadQuote(originalQuote.id)}
-                          className="view-btn"
+                          color="success"
+                          startIcon={<CheckCircleOutlineIcon />}
+                          onClick={() => handleConfirmQuote(quote)}
                         >
-                          View
+                          Confirmer
                         </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<ReceiptLongOutlined />}
-                          onClick={() => handleViewPriceOffer(originalQuote.id)}
-                          className="view-offer-btn"
-                        >
-                          View offer
-                        </Button>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          size="small"
-                          startIcon={<DeleteIcon />}
-                          onClick={() => handleDeleteQuote(originalQuote.id)}
-                          className="delete-btn"
-                        >
-                          Delete
-                        </Button>
-                      </Box>
+                      )}
+                      {isLatest && (
+                        <>
+                          <Button className="action-button" size="small" color="primary" startIcon={<ReceiptLongOutlined />} onClick={() => handleViewPriceOffer(quote.id)}>
+                            Voir l'offre de prix
+                          </Button>
+                          <Button className="action-button delete" size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteQuote(quote.id)}>
+                            Supprimer
+                          </Button>
+                        </>
+                      )}
                     </Box>
                   </Card>
-
-                  {/* Child Quote Cards - Stacked Underneath */}
-                  {childQuotes.map((childQuote, index) => (
-                    <Card key={childQuote.id} className="quote-card child-card">
-                      {/* White Content Area */}
-                      <Box className="quote-content">
-                        {/* Left Side - Quote Details */}
-                        <Box className="quote-details">
-                          <Box className="quote-id-section">
-                            <Typography variant="h6" className="quote-id">
-                              {childQuote.id}
-                            </Typography>
-                            <Chip
-                              icon={<CheckCircleIcon />}
-                              label={`Version ${index + 2}`}
-                              className="version-chip child"
-                              color="warning"
-                              size="small"
-                            />
-                          </Box>
-
-                          <Box className="quote-info">
-                            <Box className="info-row">
-                              <PersonIcon className="info-icon" />
-                              <Typography className="info-text">
-                                Client: {childQuote.clientName || 'test client'}
-                              </Typography>
-                            </Box>
-                            <Box className="info-row">
-                              <LocationOnIcon className="info-icon" />
-                              <Typography className="info-text">
-                                Site: {childQuote.siteName || 'tunis site 1'}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </Box>
-
-                        {/* Right Side - Date and Price */}
-                        <Box className="quote-summary">
-                          <Box className="date-section">
-                            <CalendarTodayIcon className="date-icon" />
-                            <Typography className="date-text">
-                              Date: {formatDate(childQuote.date)}
-                            </Typography>
-                          </Box>
-                          <Box className="price-section">
-                            <Typography className="price-label">Total TTC:</Typography>
-                            <Typography className="price-value">
-                              {new Intl.NumberFormat('fr-FR', {
-                                style: 'currency',
-                                currency: 'USD',
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              }).format(childQuote.totalTTC)}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-
-                      {/* Footer with Actions Only (No Reminder for Children) */}
-                      <Divider className="content-divider" />
-                      <Box className="quote-footer">
-                        <Box className="action-buttons">
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<VisibilityIcon />}
-                            onClick={() => handleLoadQuote(childQuote.id)}
-                            className="view-btn"
-                          >
-                            View
-                          </Button>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<ReceiptLongOutlined />}
-                            onClick={() => handleViewPriceOffer(childQuote.id)}
-                            className="view-offer-btn"
-                          >
-                            View offer
-                          </Button>
-                          <Button
-                            variant="contained"
-                            color="error"
-                            size="small"
-                            startIcon={<DeleteIcon />}
-                            onClick={() => handleDeleteQuote(childQuote.id)}
-                            className="delete-btn"
-                          >
-                            Delete
-                          </Button>
-                        </Box>
-                      </Box>
-                    </Card>
-                  ))}
-                </Box>
-              );
-            })}
-          </Box>
+                );
+              })}
+            </Box>
+          ))}
         </Box>
-      </Box>
+        <QuoteConfirmationModal
+          open={confirmationModal.open}
+          quote={confirmationModal.quote}
+          onConfirm={handleConfirmQuoteSubmit}
+          onClose={handleCloseConfirmationModal}
+        />
+      </Container>
     </Layout>
   );
 };

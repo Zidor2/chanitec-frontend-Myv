@@ -1,0 +1,129 @@
+.labor-section {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media print {
+    padding: 0;
+    margin: 0;
+  }
+
+  .section-title {
+    font-weight: 700;
+    color: #1976d2;
+    padding-bottom: 0rem;
+
+    @media print {
+      margin: 0;
+      padding: 0;
+      border-bottom: none;
+      background-color: none;
+    }
+  }
+
+  .description-field {
+    height: 3rem;
+    margin-bottom: 2rem;
+
+    @media print {
+      margin: 0;
+    }
+  }
+
+  .rates-container {
+    margin-bottom: 1.5rem;
+
+    @media print {
+      margin: 0;
+    }
+  }
+
+  .add-labor-form {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    background-color: #f9f9f9;
+
+    @media print {
+      display: none;
+    }
+
+    .add-button-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 1rem;
+
+      .add-labor-button {
+        background-color: #4caf50;
+
+        &:hover {
+          background-color: #388e3c;
+        }
+      }
+    }
+  }
+
+  .items-table-container {
+    margin-bottom: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+
+    @media print {
+      margin: 0;
+      max-height: none;
+      overflow-y: visible;
+    }
+
+    table {
+      th {
+        font-weight: 700;
+        background-color: #f5f5f5;
+
+        @media print {
+          &:last-child {
+            display: none;
+          }
+        }
+      }
+
+      td {
+        @media print {
+          &:last-child {
+            display: none;
+          }
+        }
+      }
+    }
+  }
+
+  .rates-container-item {
+    width: 40px !important;
+  }
+
+  .total-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+
+    @media print {
+      margin: 0;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .total-label {
+      font-weight: 700;
+      margin-right: 0.5rem;
+
+      @media print {
+        margin: 0;
+      }
+    }
+
+    .total-value {
+      font-weight: 700;
+      color: #1976d2;
+    }
+  }
+}

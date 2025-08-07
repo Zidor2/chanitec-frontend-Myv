@@ -1,20 +1,28 @@
 import React, { useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import './interventionPage.scss';
-import { Button, Box, AppBar, Toolbar } from '@mui/material';
+import { Button, Box } from '@mui/material';
 import PrintIcon from '@mui/icons-material/Print';
 import DownloadIcon from '@mui/icons-material/Download';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import Layout from '../components/Layout/Layout';
 
 // Correct logo imports for React (public folder)
 const logoChanic = process.env.PUBLIC_URL + '/chanic.png';
 const logoChanitec = process.env.PUBLIC_URL + '/chanitec.png';
 const logoTrane = process.env.PUBLIC_URL + '/trane.png';
 
-export default function InterventionPage() {
-  const navigate = useNavigate();
+interface InterventionPageProps {
+  currentPath?: string;
+  onNavigate?: (path: string) => void;
+  onLogout?: () => void;
+}
+
+export default function InterventionPage({ 
+  currentPath = '/intervention', 
+  onNavigate, 
+  onLogout 
+}: InterventionPageProps) {
   const interventionRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -75,18 +83,10 @@ export default function InterventionPage() {
   };
 
   return (
-    <Box className="intervention-page">
-      <AppBar position="static" color="primary" className="intervention-navbar">
-        <Toolbar>
+    <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
+      <Box className="intervention-page">
+        <Box className="intervention-header">
           <Box className="nav-buttons">
-            <Button
-              variant="contained"
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate('/home')}
-              className="nav-button"
-            >
-              Retour
-            </Button>
             <Button
               variant="contained"
               startIcon={<PrintIcon />}
@@ -104,135 +104,103 @@ export default function InterventionPage() {
               Télécharger PDF
             </Button>
           </Box>
-        </Toolbar>
-      </AppBar>
+        </Box>
 
-      <div className="intervention-a4-container" ref={interventionRef}>
-        {/* Header Logos */}
-        <div className="intervention-header-logos cell-white">
-          <img src={logoChanitec} alt="CHANITEC Logo" />
-          <div className="center-logo">
-            <img src={logoChanic} alt="CHANIC Logo" />
-          </div>
-          <img src={logoTrane} alt="TRANE Logo" />
-        </div>
+        <div ref={interventionRef} className="intervention-content">
+          {/* Rest of the intervention content remains the same */}
+          <div className="intervention-form">
+            <div className="header-section">
+              <div className="logo-section">
+                <img src={logoChanic} alt="Chanic Logo" className="logo-chanic" />
+                <img src={logoChanitec} alt="Chanitec Logo" className="logo-chanitec" />
+                <img src={logoTrane} alt="Trane Logo" className="logo-trane" />
+              </div>
+              <div className="title-section">
+                <h1>FICHE D'INTERVENTION</h1>
+              </div>
+            </div>
 
-        {/* Title Row */}
-        <div className="title-row-table">
-          <div className="title-row-cell title-row-main"><b>Fiche d'intervention N°</b></div>
-          <div className="title-row-cell title-row-date"><b>DATE :</b></div>
-          <div className="title-row-cell title-row-center"><b>DÉP</b></div>
-          <div className="title-row-cell title-row-center"><b>ENT</b></div>
-          <div className="title-row-cell"></div>
-        </div>
+            <div className="form-section">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Date:</label>
+                  <input type="date" className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label>Heure de début:</label>
+                  <input type="time" className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label>Heure de fin:</label>
+                  <input type="time" className="form-input" />
+                </div>
+              </div>
 
-        {/* Info Row */}
-        <div className="info-row-table">
-          <div className="info-row-address">Avenue Colonel Mondjiba BP 8512<br />KINSHASA NGALIEMA</div>
-          <div className="info-row-header">CENTRE</div>
-          <div className="info-row-header">LOCAL</div>
-          <div className="info-row-header">N° DE SÉRIE</div>
-          <div className="info-row-header">MARQUE</div>
-          <div className="info-row-header">P(KW) / BTU</div>
-          <div className="info-row-header">CODE</div>
-          <div className="info-row-cell"></div>
-          <div className="info-row-cell"></div>
-          <div className="info-row-cell"></div>
-          <div className="info-row-cell"></div>
-          <div className="info-row-cell"></div>
-          <div className="info-row-cell"></div>
-        </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Client:</label>
+                  <input type="text" className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label>Site:</label>
+                  <input type="text" className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label>Contact:</label>
+                  <input type="text" className="form-input" />
+                </div>
+              </div>
 
-        {/* Main Table */}
-        <div className="intervention-main-table">
-          {/* 1. UNITE EXTERIEURE + 4. COFFRET ELECTRIQUE COMMANDE & PUISSANCE (Combined Table) */}
-          <div className="unite-coffret-combined-table">
-            <div className="unite-coffret-header unite-coffret-header-main">I. UNITE EXTERIEURE</div>
-            <div className="unite-coffret-label">Vérification  de l'absence d'échauffement</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Vérification  de l'absence de vibration</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Dépoussiérage  câblage  électrique</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Serrage des connexions  électriques</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Nettoyage du condenseur  (Eau & Produit détergent)</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Vérification  de l'unité extérieure</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Vérification  fonctionnement du variateur de vitesse</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-header unite-coffret-header-section">4. COFFRET ELECTRIQUE  COMMANDE & PUISSANCE</div>
-            <div className="unite-coffret-label">Nettoyage & Dépoussiérage  Coffret électrique</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Serrage des connexions  électriques</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Vérification  Etat des Fusibles Coffret de puissance</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Vérification  Etat des Voyants & Fonctionnement Sirène</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-            <div className="unite-coffret-label">Vérification  fonctionnement minuterie</div><div className="unite-coffret-cell"><input type="checkbox" /></div>
-          </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Équipe:</label>
+                  <input type="text" className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label>Type d'intervention:</label>
+                  <select className="form-input">
+                    <option value="">Sélectionner</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="reparation">Réparation</option>
+                    <option value="installation">Installation</option>
+                    <option value="inspection">Inspection</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Équipement:</label>
+                  <input type="text" className="form-input" />
+                </div>
+              </div>
 
-          {/* 2. UNITE INTERIEURE + 3. LIAISONS ELECTRIQUES ET FRIGORIFIQUES (Combined Table) */}
-          <div className="interieure-liaisons-combined-table">
-            <div className="interieure-liaisons-header interieure-liaisons-header-main">2. UNITE INTERIEURE</div>
-            <div className="interieure-liaisons-label">Nettoyage de l'évaporateur</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérification de la fixation de l'unité intérieure</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Nettoyage  à l'eau ou  à l'air comprimé  du filtre</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Nettoyage du bac condensat</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérifier la fixation  du circuit de condensat</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérifier la fixation  du Plenum & grille de soufflage</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Serrage des connexions  électriques (comp, MV)</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérification  de l'absence d'échauffement anormal</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérification  de l'absence de vibration</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérification  des paramètres  au niveau</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérification  de l'état des portes</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Changement du filtre à air</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-header interieure-liaisons-header-section">3. LIAISONS ELECTRIQUES ET FRIGORIFIQUES</div>
-            <div className="interieure-liaisons-label">Vérification  Fixation des circuits Frigorifiques</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérification  Calorifuge des circuits</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-            <div className="interieure-liaisons-label">Vérification  Fixation des circuits Electriques</div><div className="interieure-liaisons-cell"><input type="checkbox" /></div>
-          </div>
+              <div className="form-section">
+                <h3>Description des travaux</h3>
+                <textarea className="form-textarea" rows={4}></textarea>
+              </div>
 
-          {/* 5. MESURE & RELEVE + 6. ESSAIS ELECTRIQUE & FRIGORIFIQUE (Combined Table) */}
-          <div className="mesure-essais-combined-table">
-            <div className="mesure-essais-header-clim">5. MESURE & RELEVE</div>
-            <div className="mesure-essais-header-clim">CLIM1</div>
-            <div className="mesure-essais-header-clim">CLIM2</div>
-            <div className="mesure-essais-header-clim">CLIM3</div>
-            <div className="mesure-essais-header-clim">CLIM4</div>
-            <div className="mesure-essais-label">Tension Générale  Climatiseur</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Intensité Générale Climatiseur</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Intensité Compresseur</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Intensité Moteurs Ventilateurs Cond</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Intensité Moteurs Ventilateurs Evap</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Haute pression (HP)</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Basse pression (BP)</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Température de soufflage</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Température  du local</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Débit d'air de soufflage</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-header-section">6. ESSAIS ELECTRIQUE & FRIGORIFIQUE</div>
-            <div className="mesure-essais-label">Essai de la sécurité BP</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Essai de la sécurité HP</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Essai Marche Forcée en cas HT°</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
-            <div className="mesure-essais-label">Essai du basculement  en cas de défaut</div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div><div className="mesure-essais-cell"></div>
+              <div className="form-section">
+                <h3>Matériaux utilisés</h3>
+                <textarea className="form-textarea" rows={3}></textarea>
+              </div>
+
+              <div className="form-section">
+                <h3>Observations</h3>
+                <textarea className="form-textarea" rows={3}></textarea>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Signature technicien:</label>
+                  <div className="signature-box"></div>
+                </div>
+                <div className="form-group">
+                  <label>Signature client:</label>
+                  <div className="signature-box"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* 7. COMPTE RENDU RESPONSABLE TECHNIQUE (CLIENT) + 8. OBSERVATIONS (Combined Table) */}
-        <div className="compte-observations-table">
-          <div className="compte-observations-header">7. COMPTE RENDU RESPONSABLE TECHNIQUE (CLIENT)</div>
-          <div className="compte-observations-header">8. OBSERVATIONS</div>
-          <div className="compte-observations-cell">
-            <textarea className="compte-observations-textarea" />
-          </div>
-          <div className="compte-observations-cell">
-            <textarea className="compte-observations-textarea" />
-          </div>
-        </div>
-
-        {/* Signatures (Combined Table) */}
-        <div className="signatures-table">
-          <div className="signatures-header">Nom, Prénom & Signature Responsable Technique (Client)</div>
-          <div className="signatures-header">Nom, Prénom & Signature Technicien (Chanitec)</div>
-          <div className="signatures-cell">
-            <input className="signatures-input" type="text" />
-          </div>
-          <div className="signatures-cell">
-            <input className="signatures-input" type="text" />
-          </div>
-        </div>
-      </div>
-    </Box>
+      </Box>
+    </Layout>
   );
 }

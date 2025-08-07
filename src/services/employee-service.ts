@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-const API_URL = `${process.env.REACT_APP_API_URL}/employees`;
-
 export interface Employee {
   id: number;
   full_name: string;

@@ -1,14 +1,24 @@
 import React from 'react';
-import { Box, Button, Paper, Snackbar, Alert } from '@mui/material';
+import {
+  Box,
+  Button,
+  Paper,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControlLabel,
+  Checkbox,
+  TextField,
+  Typography
+} from '@mui/material';
 import {
   SaveOutlined,
-  PrintOutlined,
   GetApp as DownloadIcon,
   Update as UpdateIcon
 } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { usePDF } from 'react-to-pdf';
-import { apiService } from '../../services/api-service';
 import { useQuote } from '../../contexts/QuoteContext';
 import './QuoteActions.scss';
 
@@ -37,24 +47,17 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   onPrint,
   onDownloadPDF
 }) => {
-  const { state, saveQuote, updateQuote, setQuoteField, clearQuote, createNewQuote } = useQuote();
+  const { state, setQuoteField, clearQuote, createNewQuote } = useQuote();
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
   const [snackbarSeverity, setSnackbarSeverity] = React.useState<'success' | 'error'>('success');
 
-  // Setup PDF generation
-  const { toPDF, targetRef } = usePDF({
-    filename: generatePdfFilename(),
-    page: {
-      format: 'A4',
-      margin: 0
-    },
-    method: 'open',
-    canvas: {
-      mimeType: 'image/png',
-      qualityRatio: 1
-    }
-  });
+  // Remise dialog state
+  const [remiseDialogOpen, setRemiseDialogOpen] = React.useState(false);
+  const [remiseEnabled, setRemiseEnabled] = React.useState(false);
+  const [remiseValue, setRemiseValue] = React.useState(0);
+
+
 
   // Handle save action
   const handleSave = async () => {
@@ -67,29 +70,56 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
       return;
     }
 
+    // Initialize remise dialog with current values
+    const currentRemise = state.currentQuote?.remise || 0;
+    setRemiseEnabled(currentRemise > 0);
+    setRemiseValue(currentRemise);
+
+    // Open remise dialog
+    setRemiseDialogOpen(true);
+  };
+
+  // Handle actual save with remise
+  const handleSaveWithRemise = async () => {
     try {
+      // Set the remise value in the quote if enabled
+      if (remiseEnabled) {
+        setQuoteField('remise', remiseValue);
+      } else {
+        setQuoteField('remise', 0);
+      }
+
+      // Use onSave for both new quotes and updates since they do the same thing
       const success = await onSave();
 
       if (success) {
-        setSnackbarMessage('Devis enregistré avec succès! Prêt pour un nouveau devis.');
+        const message = isExistingQuote
+          ? 'Devis mis à jour avec succès! Prêt pour un nouveau devis.'
+          : 'Devis enregistré avec succès! Prêt pour un nouveau devis.';
+        setSnackbarMessage(message);
         setSnackbarSeverity('success');
-
-        alert('Devis enregistré avec succès! Prêt pour un nouveau devis.');
+        alert(message);
       } else {
-        setSnackbarMessage('Erreur lors de l\'enregistrement du devis.');
+        const errorMessage = isExistingQuote
+          ? 'Erreur lors de la mise à jour du devis.'
+          : 'Erreur lors de l\'enregistrement du devis.';
+        setSnackbarMessage(errorMessage);
         setSnackbarSeverity('error');
       }
 
       setSnackbarOpen(true);
+      setRemiseDialogOpen(false);
+      clearQuote();
+      createNewQuote();
+      window.location.href = '/quote';
     } catch (error) {
-      setSnackbarMessage('Erreur lors de l\'enregistrement du devis.');
+      const errorMessage = isExistingQuote
+        ? 'Erreur lors de la mise à jour du devis.'
+        : 'Erreur lors de l\'enregistrement du devis.';
+      setSnackbarMessage(errorMessage);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
-    clearQuote();
-    createNewQuote();
-    window.location.href = '/quote';
-
   };
 
   // Handle save and print action
@@ -127,124 +157,34 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
     }
   };
 
-  // Handle update action
-  const handleUpdate = async () => {
-    try {
-      const currentQuoteInfo = {
-        id: state.currentQuote?.id || '',
-        clientName: state.currentQuote?.clientName || '',
-        siteName: state.currentQuote?.siteName || '',
-        object: state.currentQuote?.object || '',
-        date: state.currentQuote?.date || '',
-        supplyDescription: state.currentQuote?.supplyDescription || '',
-        laborDescription: state.currentQuote?.laborDescription || '',
-        supplyExchangeRate: state.currentQuote?.supplyExchangeRate || 0,
-        supplyMarginRate: state.currentQuote?.supplyMarginRate || 0,
-        laborExchangeRate: state.currentQuote?.laborExchangeRate || 0,
-        laborMarginRate: state.currentQuote?.laborMarginRate || 0,
-        supplyItems: state.currentQuote?.supplyItems || [],
-        laborItems: state.currentQuote?.laborItems || [],
-        totalSuppliesHT: state.currentQuote?.totalSuppliesHT || 0,
-        totalLaborHT: state.currentQuote?.totalLaborHT || 0,
-        totalHT: state.currentQuote?.totalHT || 0,
-        tva: state.currentQuote?.tva || 0,
-        totalTTC: state.currentQuote?.totalTTC || 0,
-        createdAt: state.currentQuote?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        confirmed: false,
-        reminderDate: null
-      };
 
-      const originalQuote = await apiService.getQuoteById(currentQuoteInfo.id);
-      const hasChanges = JSON.stringify(currentQuoteInfo) !== JSON.stringify(originalQuote);
 
-      if (hasChanges) {
-        const currentId = currentQuoteInfo.id;
-        const parts = currentId.split('-');
-        const version = parseInt(parts[2]) + 1;
-        const newId = `${parts[0]}-${parts[1]}-${version}`;
 
-        const updatedQuote = {
-          ...currentQuoteInfo,
-          id: newId,
-          updatedAt: new Date().toISOString()
-        };
-
-        alert(`About to send the following payload to the database:\n\n${JSON.stringify(updatedQuote, null, 2)}`);
-
-        const success = await updateQuote();
-
-        if (success) {
-          setSnackbarMessage('Devis mis à jour avec succès! Prêt pour un nouveau devis.');
-          setSnackbarSeverity('success');
-          clearQuote();
-          createNewQuote();
-          alert('Devis mis à jour avec succès! Prêt pour un nouveau devis.');
-        } else {
-          throw new Error('Failed to update quote');
-        }
-      } else {
-        alert('No changes detected in the quote');
-      }
-
-      setSnackbarOpen(true);
-    } catch (error) {
-      setSnackbarMessage('Erreur lors de la mise à jour du devis.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    }
-  };
-
-  // Generate PDF filename
-  function generatePdfFilename() {
-    const formattedDate = date ? format(new Date(date), 'dd-MM-yyyy') : format(new Date(), 'dd-MM-yyyy');
-    const cleanClientName = (clientName || 'Client').replace(/[^a-zA-Z0-9]/g, '-');
-    const cleanSiteName = (siteName || 'Site').replace(/[^a-zA-Z0-9]/g, '-');
-
-    return `${cleanClientName}-${cleanSiteName}-${formattedDate}.pdf`;
-  }
-
-  // Handle PDF download
-  const handleDownloadPDF = () => {
-    if (contentRef.current) {
-      // Add pdf-print-mode class to apply print styling
-      contentRef.current.classList.add('pdf-print-mode');
-
-      // Force a reflow to ensure styles are applied
-      const reflow = contentRef.current.offsetHeight;
-      void reflow;
-
-      // Use the ref from props instead of the one from usePDF
-      targetRef.current = contentRef.current;
-
-      // Generate PDF after a small delay to ensure styles are applied
-      setTimeout(() => {
-        toPDF();
-
-        // Remove the class after PDF generation
-        setTimeout(() => {
-          contentRef.current?.classList.remove('pdf-print-mode');
-        }, 1000);
-      }, 100);
-
-      setSnackbarMessage('PDF téléchargé avec succès!');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-    }
-  };
-
-  // Handle print action using browser print functionality
-  const handlePrint = () => {
-    if (contentRef.current) {
-      // Instead of opening a new window, trigger the browser's native print dialog
-      // This way, all print media queries will be applied
-      window.print();
-    }
-  };
 
   // Close snackbar
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
+  };
+
+  // Handle remise checkbox change
+  const handleRemiseCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRemiseEnabled(event.target.checked);
+    if (!event.target.checked) {
+      setRemiseValue(0);
+    }
+  };
+
+  // Handle remise value change
+  const handleRemiseValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(event.target.value) || 0;
+    setRemiseValue(value);
+  };
+
+  // Close remise dialog
+  const handleCloseRemiseDialog = () => {
+    setRemiseDialogOpen(false);
+    setRemiseEnabled(false);
+    setRemiseValue(0);
   };
 
   return (
@@ -297,6 +237,47 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* Remise Dialog */}
+      <Dialog open={remiseDialogOpen} onClose={handleCloseRemiseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {isExistingQuote ? 'Configuration de la Remise - Mise à jour' : 'Configuration de la Remise - Nouveau devis'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={remiseEnabled}
+                  onChange={handleRemiseCheckboxChange}
+                />
+              }
+              label="Remise"
+            />
+            {remiseEnabled && (
+              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TextField
+                  type="number"
+                  label="Pourcentage de remise"
+                  value={remiseValue}
+                  onChange={handleRemiseValueChange}
+                  inputProps={{ min: 0, max: 100 }}
+                  sx={{ width: 150 }}
+                />
+                <Typography variant="body1">%</Typography>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRemiseDialog} color="secondary">
+            Annuler
+          </Button>
+          <Button onClick={handleSaveWithRemise} color="primary" variant="contained">
+            {isExistingQuote ? 'Mettre à jour' : 'Enregistrer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 };

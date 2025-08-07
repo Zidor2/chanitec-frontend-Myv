@@ -121,3 +121,21 @@ export const calculateTotalTTC = (totalHT: number): number => {
   const validTotalHT = Number(totalHT) || 0;
   return validTotalHT + calculateVAT(validTotalHT);
 };
+
+/**
+ * Calculates the total with remise applied
+ */
+export const calculateTotalWithRemise = (totalHT: number, remise: number = 0): number => {
+  const validTotalHT = Number(totalHT) || 0;
+  const validRemise = Number(remise) || 0;
+  const remiseAmount = validTotalHT * (validRemise / 100);
+  return validTotalHT - remiseAmount;
+};
+
+/**
+ * Calculates the total TTC with remise applied
+ */
+export const calculateTotalTTCWithRemise = (totalHT: number, remise: number = 0): number => {
+  const totalWithRemise = calculateTotalWithRemise(totalHT, remise);
+  return totalWithRemise + calculateVAT(totalWithRemise);
+};

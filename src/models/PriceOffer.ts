@@ -11,6 +11,7 @@ export interface PriceOffer {
   totalHT: number;
   tva: number;
   totalTTC: number;
+  remise?: number;
   createdAt: string;
   updatedAt: string;
 }

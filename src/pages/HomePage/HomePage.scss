@@ -1,85 +1,241 @@
-.home-container {
-  min-height: 100vh;
+.dashboard-container {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  min-height: 100vh;
   background-color: #f5f5f5;
-  padding: 2rem;
-  position: relative;
+  flex-direction: column;
 }
 
-.home-header {
+// Hero Section
+.hero-section {
+  width: 100%;
+  padding: 2rem 0;
+
+  .hero-logo {
+    height: 120px;
+    width: auto;
+    margin-bottom: 2rem;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  }
+}
+
+// Welcome Section (kept for backward compatibility)
+.welcome-section {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 4rem;
-}
-
-.home-logo {
-  height: 120px;
-  width: auto;
-  margin-bottom: 2rem;
-}
-
-.home-title {
-  color: #1976d2;
-  font-weight: 600;
-  text-align: center;
-}
-
-.home-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
   justify-content: center;
-  margin-top: 2rem;
+  min-height: 50vh;
+
+  .welcome-logo {
+    height: 150px;
+    width: auto;
+    margin-bottom: 2rem;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  }
+
+  .welcome-title {
+    color: #1976d2;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-size: 2.5rem;
+  }
+
+  .welcome-subtitle {
+    color: #666;
+    font-weight: 400;
+    line-height: 1.6;
+  }
 }
 
-.button-container {
-  flex: 1;
-  min-width: 300px;
-  max-width: 400px;
+// Page Wrapper
+.page-wrapper {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+
+  // Ensure all child elements respect the container width
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  // Ensure tables and wide content fit within container
+  table, .MuiTable-root, .MuiTableContainer-root {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  // Ensure cards and containers fit properly
+  .MuiCard-root, .MuiPaper-root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  // Ensure grid layouts are responsive
+  .MuiGrid-root {
+    max-width: 100%;
+  }
 }
-.logout-button-container {
-  position: absolute;
-  top: 25px;
-  right: 0px;
+
+// Menu Grid
+.menu-grid {
+  padding: 2rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
-.logout-button {
-  font-weight: 500;
-  text-transform: none;
-  color: #1976d2;
-  border: 1px solid rgba(25, 118, 210, 0.3);
-  border-radius: 4px;
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+// Menu Cards
+.menu-card {
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 
   &:hover {
-    background-color: #1976d2;
-    color: white;
+    transform: translateY(-8px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
   }
 
-  svg {
-    font-size: 1.5rem;
-    margin-right: 8px;
+  .menu-card-content {
+    padding: 2rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .menu-icon-container {
+    margin-bottom: 1.5rem;
+
+    svg {
+      font-size: 2.2rem;
+    }
+  }
+
+  .menu-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-size: 1.1rem;
+  }
+
+  .menu-description {
+    color: #666;
+    line-height: 1.4;
+    font-size: 0.9rem;
   }
 }
 
-.home-button {
-  height: 120px;
-  font-size: 2rem !important;
-  font-weight: 600;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+// Statistics Cards
+.stat-card {
+  height: 100%;
+  border-radius: 16px;
+  transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 1rem 0;
+
+    .hero-logo {
+      height: 100px;
+    }
   }
 
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+  .welcome-section {
+    .welcome-title {
+      font-size: 2rem;
+    }
+
+    .welcome-logo {
+      height: 120px;
+    }
+  }
+
+  .menu-card {
+    height: 200px;
+
+    .menu-card-content {
+      padding: 1.5rem;
+    }
+  }
+
+  .menu-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-section {
+    .hero-logo {
+      height: 80px;
+    }
+  }
+
+  .welcome-section {
+    min-height: 40vh;
+    padding: 1rem;
+
+    .welcome-title {
+      font-size: 1.8rem;
+    }
+
+    .welcome-logo {
+      height: 100px;
+    }
+  }
+
+  .menu-grid {
+    padding: 1rem 0;
+    grid-template-columns: 1fr;
+  }
+
+  .menu-card {
+    height: 180px;
+
+    .menu-card-content {
+      padding: 1rem;
+    }
+
+    .menu-icon-container svg {
+      font-size: 1.8rem;
+    }
+  }
+}
+
+// Additional responsive improvements
+@media (max-width: 480px) {
+  .menu-card {
+    height: 160px;
+
+    .menu-title {
+      font-size: 1rem;
+    }
+
+    .menu-description {
+      font-size: 0.8rem;
+    }
   }
 }

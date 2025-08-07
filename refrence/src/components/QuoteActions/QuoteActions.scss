@@ -1,0 +1,75 @@
+.quote-actions {
+  padding: 1.5rem;
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  .actions-container {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .action-button {
+      min-width: 150px;
+      padding: 10px 20px;
+      font-weight: 500;
+
+      @media (max-width: 600px) {
+        margin-bottom: 0.5rem;
+      }
+
+      &.save-button {
+        background-color: #4caf50;
+
+        &:hover {
+          background-color: #388e3c;
+        }
+      }
+
+      &.update-button {
+        background-color: #ff9800;
+
+        &:hover {
+          background-color: #f57c00;
+        }
+      }
+
+      &.print-button {
+        background-color: #2196f3;
+
+        &:hover {
+          background-color: #1976d2;
+        }
+      }
+
+      &.download-button {
+        background-color: #3f51b5;
+
+        &:hover {
+          background-color: #303f9f;
+        }
+      }
+    }
+  }
+}
+
+// PDF specific styles
+.pdf-container {
+  .MuiPaper-root {
+    box-shadow: none;
+  }
+}
+
+// Print styles
+@media print {
+  .quote-actions {
+    display: none;
+  }
+}

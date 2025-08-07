@@ -106,7 +106,7 @@ const QuoteHeader: React.FC<QuoteHeaderProps> = ({
 
         setSelectedClientId(selectedClient.id);
 
-        const API_BASE_URL = process.env.REACT_APP_API_URL;
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
         const sitesUrl = `${API_BASE_URL}/sites/by-client?clientId=${selectedClient.id}`;
         console.log('Sending request to:', sitesUrl);
 

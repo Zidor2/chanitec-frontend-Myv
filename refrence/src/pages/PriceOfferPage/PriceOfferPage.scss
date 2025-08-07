@@ -1,0 +1,265 @@
+.price-offer-page {
+  padding: 2rem 0;
+
+  .actions-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  .price-offer-content {
+    padding: 2rem;
+    background-color: white;
+    min-height: 29.7cm;
+    width: 21cm;
+    margin: 0 auto;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      padding-bottom: 0;
+
+      .logo {
+        width: 120px;
+        height: auto;
+        object-fit: contain;
+      }
+
+      .chanitec-logo {
+        width: 350px;
+        height: auto;
+        object-fit: contain;
+        margin-top: -20px;
+      }
+    }
+
+    .quote-info-grid {
+      width: 60%;
+      margin-bottom: 2rem;
+      border-collapse: collapse;
+      display: table;
+      margin-left: 40%;
+
+      .info-box {
+        display: table-cell;
+        padding: 0.5rem;
+        border: 1px solid #000;
+
+        &:first-child {
+          width: 120px;
+          background-color: white;
+        }
+
+        .MuiTypography-subtitle2 {
+          color: #000;
+          font-weight: 500;
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 0.3rem 0;
+          text-transform: uppercase;
+        }
+
+        .MuiTypography-body1 {
+          color: #000;
+          font-size: 0.9rem;
+          padding: 0.3rem 0;
+        }
+      }
+    }
+
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 0;
+      th, td {
+        padding: 4px;
+        text-align: left;
+        border: 1px solid #000;
+        font-size: 0.7rem;
+      }
+
+      th {
+        background-color: white;
+        font-weight: bold;
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      td {
+        vertical-align: middle;
+        text-align: center;
+        height: 20px;
+      }
+
+      th:nth-child(6),th:nth-child(4),th:nth-child(5) {
+        text-align: right;
+      }
+      td:nth-child(6),td:nth-child(4),td:nth-child(5) {
+        text-align: right;
+      }
+      th:nth-child(6){
+        width: 120px;
+      }
+      th:nth-child(5){
+        width: 80px;
+      }
+      th:nth-child(4){
+        width: 60px;
+      }
+    }
+
+    .totals {
+      display: table;
+      width: 100%;
+      margin-top: 0;
+      border-collapse: collapse;
+
+      .total-line , .total-row {
+        width: 17%;
+        display: table-cell;
+
+        color: #000; border: 1px solid #000;
+        font-size: 0.9rem;
+        padding: .4rem;
+        .MuiTypography-subtitle1 {
+
+          font-weight: 500;
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 0.3rem 0;
+          text-transform: uppercase;
+
+        }
+
+        .MuiTypography-body1 {
+          color: #000;
+          font-size: 0.9rem;
+          padding: 0.3rem 0;
+          font-weight: 700;
+        }
+      }
+      .total-line {
+        width: 85%;
+      }
+    }
+
+    .conditions {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+
+      h6 {
+        color: #000;
+        font-size: 0.9rem;
+
+        margin-bottom: 0.5rem;
+      }
+
+      .condition-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+
+        .MuiTypography-subtitle2 {
+          color: #000;
+          font-size: 0.9rem;
+        font-weight: 700;
+        }
+
+        .MuiTypography-body2 {
+          color: #000;
+          font-size: 0.9rem;
+
+        }
+      }
+    }
+
+    .bank-details {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+
+      .MuiTypography-subtitle2 {
+        color: #000;
+        font-weight: normal;
+        margin-bottom: 0.5rem;
+      }
+
+      .MuiTypography-body2 {
+        color: #000;
+        line-height: 1.4;
+        margin-bottom: 0.3rem;
+      }
+    }
+
+    .signatures-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 4rem;
+      margin-bottom: 2rem;
+      width: 100%;
+
+      .signature {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 10%;
+      }
+      .signature-right {
+        align-items: flex-start;
+        text-align: left;
+        margin-left: 20%;
+      }
+      .signature-line {
+        margin-top: 1.5rem;
+        border-bottom: 1.5px solid #000;
+        width: 100%;
+        height: 2px;
+      }
+    }
+    .signatures-row.updated-signatures {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      gap: 3rem;
+      .signature {
+        width: 45%;
+      }
+      .signature-placeholder {
+        min-height: 60px;
+        width: 100%;
+        margin-top: 16px;
+        margin-bottom: 8px;
+      }
+    }
+    .price-offer-note {
+      text-align: center;
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+      color: #222;
+    }
+    .price-offer-footer {
+      border-top: 1px solid #000;
+      padding-top: 0.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #222;
+      div {
+        margin-bottom: 2px;
+      }
+    }
+  }
+}
+
+@media print {
+  .actions-bar {
+    display: none !important;
+
+  }
+
+  .price-offer-content {
+    padding: 1cm !important;
+    box-shadow: none !important;
+  }
+}

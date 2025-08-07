@@ -1,0 +1,113 @@
+.quote-header {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media print {
+    padding: 0;
+    margin: 0;
+  }
+
+  .quote-id-display {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+
+    @media print {
+      margin: 0;
+      font-size: 1.5rem;
+      padding-top: 0;
+    }
+
+    .id-label {
+      margin-right: 0.5rem;
+      font-weight: 500;
+
+      @media print {
+        margin: 0;
+      }
+    }
+
+    .id-value {
+      font-weight: 700;
+      color: #1976d2;
+
+      @media print {
+        font-size: 0.8rem;
+      }
+
+      &.is-revision {
+        color: #ff9800;
+      }
+
+      .version-number {
+        font-weight: 800;
+        background-color: #ff9800;
+        color: white;
+        padding: 2px 4px;
+        border-radius: 4px;
+        margin-left: 2px;
+
+        @media print {
+          padding: 1px 2px;
+          font-size: 0.7rem;
+        }
+      }
+    }
+  }
+
+  .info-grid {
+    .header-field {
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+
+      @media print {
+        margin: 0;
+        padding: 0;
+      }
+
+      // Ensure consistent height for all input fields
+      .MuiInputBase-root {
+        height: 56px; // Standard Material-UI input height
+        display: flex;
+        align-items: center;
+      }
+
+      .MuiFormLabel-root {
+        font-weight: 600;
+        font-size: 0.875rem;
+
+        @media print {
+          font-size: 0.7rem;
+          margin-bottom: 0;
+        }
+      }
+
+      .MuiInputBase-input {
+        font-size: 0.9rem;
+        height: 1.1876em; // Standard Material-UI input height
+        padding: 16.5px 14px; // Standard Material-UI input padding
+
+        @media print {
+          font-size: 0.7rem;
+          padding: 2px 4px;
+          margin-top: 0;
+        }
+      }
+
+      // Specific styling for date input to match other fields
+      input[type="date"] {
+        height: 1.1876em;
+        padding: 16.5px 14px;
+        font-size: 0.9rem;
+      }
+
+      // Ensure consistent styling for select fields
+      .MuiSelect-select {
+        height: 1.1876em;
+        padding: 16.5px 14px;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}

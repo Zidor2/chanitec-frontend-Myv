@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Items API calls
 export const itemsApi = {
@@ -43,6 +43,32 @@ export const itemsApi = {
             return await response.json();
         } catch (error) {
             console.error('Error creating item:', error);
+            throw error;
+        }
+    },
+
+    createItemWithCustomId: async (itemData) => {
+        try {
+            // Try to create item with custom ID
+            const response = await fetch(`${API_BASE_URL}/items`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: itemData.id, // Include custom ID
+                    description: itemData.description,
+                    price: itemData.price,
+                    quantity: itemData.quantity === undefined || itemData.quantity === null ? 0 : itemData.quantity
+                }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create item with custom ID');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error creating item with custom ID:', error);
             throw error;
         }
     },
@@ -107,6 +133,7 @@ export const itemsApi = {
         }
     }
 };
+
 
 // Quotes API calls
 export const quotesApi = {

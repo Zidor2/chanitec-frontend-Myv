@@ -24,8 +24,11 @@ import {
   Select,
   MenuItem,
   Slider,
-  InputLabel
+  InputLabel,
+  InputAdornment
 } from '@mui/material';
+import Layout from '../../components/Layout/Layout';
+import logo from '../../logo.png';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -37,18 +40,18 @@ import {
   KeyboardArrowDown as KeyboardArrowDownIcon
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
-import Layout from '../../components/Layout/Layout';
+
 import { SupplyItem } from '../../models/Quote';
 import { itemsApi } from '../../services/api';
 import './ItemsPage.scss';
 import { v4 as uuidv4 } from 'uuid';
 import CustomNumberInput from '../../components/CustomNumberInput/CustomNumberInput';
-const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 
 interface ItemsPageProps {
   currentPath: string;
   onNavigate: (path: string) => void;
+  onLogout?: () => void;
 }
 
 interface ExcelItem {
@@ -90,6 +93,7 @@ interface ImportResults {
 }
 
 interface ProcessedExcelItem {
+  id: string;
   description: string;
   priceEuro: number;
   quantity: number;
@@ -97,6 +101,7 @@ interface ProcessedExcelItem {
   isValid: boolean;
   validationError?: string;
   originalRow: {
+    id: any;
     description: any;
     quantity: any;
     price: any;
@@ -115,7 +120,7 @@ interface CellAddress {
   c: number;
 }
 
-const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
+const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) => {
   // State for items data
   const [items, setItems] = useState<SupplyItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<SupplyItem[]>([]);
@@ -145,6 +150,10 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
 
   // State for loading
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleHomeClick = () => {
+    onNavigate('/');
+  };
 
   // Load items when component mounts
   useEffect(() => {
@@ -187,7 +196,8 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
     // Search filter
     if (searchTerm.trim()) {
       filtered = filtered.filter(item =>
-        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+        item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.id.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -411,8 +421,12 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
             const row = jsonData[i] as any[];
             if (!row || row.length < 4) continue;
 
+            // Extract ID from column A
+            const id = String(row[0] || '').trim();
+            if (!id) continue; // Skip rows without ID
+
             const description = String(row[1] || '').trim(); // Column B
-            if (!description) continue;
+            if (!description) continue; // Skip rows without description
 
             let quantity = 0;
             const quantityValue = row[2]; // Column C
@@ -434,12 +448,14 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
             }
 
             const processedItem: ProcessedExcelItem = {
+              id: id, // Add ID to the processed item
               description,
               priceEuro: price,
               quantity: quantity,
               rowIndex: i + 1,
               isValid: true,
               originalRow: {
+                id: row[0],
                 description: row[1],
                 quantity: row[2],
                 price: row[3]
@@ -454,28 +470,21 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
             let successCount = 0;
             let errorCount = 0;
 
-            for (const item of processedItems) {
+                        for (const item of processedItems) {
               try {
-                // Create a new item using the API
-                const response = await fetch(`${API_BASE_URL}/items`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    description: item.description,
-                    price: item.priceEuro,
-                    quantity: item.quantity
-                  })
-                });
+                // Create item with custom ID from Excel
+                const itemData = {
+                  id: item.id, // Include the Excel ID
+                  description: item.description,
+                  price: item.priceEuro,
+                  quantity: item.quantity
+                };
 
-                if (!response.ok) {
-                  throw new Error(`Failed to save item: ${response.statusText}`);
-                }
-
-                await response.json();
+                // Use the createItemWithCustomId method
+                await itemsApi.createItemWithCustomId(itemData);
                 successCount++;
               } catch (error) {
+                console.error(`Error importing item ${item.id}:`, error);
                 errorCount++;
               }
             }
@@ -513,7 +522,8 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
   };
 
   return (
-    <Layout currentPath={currentPath} onNavigate={onNavigate}>
+    <Layout currentPath={currentPath} onNavigate={onNavigate} onHomeClick={handleHomeClick} onLogout={onLogout}>
+
       <Box className="items-page">
         {/* Header Section */}
         <Box className="page-header">
@@ -524,15 +534,21 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
                   ({filteredItems.length} articles)
                 </Typography>
                 <Box className="search-container">
-                  <SearchIcon className="search-icon" />
-                  <TextField
-                    placeholder="Rechercher un article"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    variant="outlined"
-                    size="small"
-                    className="search-input"
-                  />
+                                     <TextField
+                     placeholder="Rechercher par ID ou description"
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     variant="outlined"
+                     size="small"
+                     className="search-input"
+                     InputProps={{
+                       startAdornment: (
+                         <InputAdornment position="start">
+                           <SearchIcon />
+                         </InputAdornment>
+                       ),
+                     }}
+                   />
                 </Box>
               </Box>
               <Box className="header-actions">
@@ -616,69 +632,73 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate }) => {
 
             <TableContainer className="items-table-container">
               <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell className="table-header">DESCRIPTION</TableCell>
-                    <TableCell className="table-header" align="right">PRIX (€)</TableCell>
-                    <TableCell className="table-header" align="right">QUANTITÉ</TableCell>
-                    <TableCell className="table-header" align="center">ACTIONS</TableCell>
-                  </TableRow>
-                </TableHead>
+                                 <TableHead>
+                   <TableRow>
+                     <TableCell className="table-header">ID</TableCell>
+                     <TableCell className="table-header">DESCRIPTION</TableCell>
+                     <TableCell className="table-header" align="right">PRIX (€)</TableCell>
+                     <TableCell className="table-header" align="right">QUANTITÉ</TableCell>
+                     <TableCell className="table-header" align="center">ACTIONS</TableCell>
+                   </TableRow>
+                 </TableHead>
                 <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center" className="loading-cell">
-                        Chargement...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center" className="empty-cell">
-                        Aucun article trouvé
-                      </TableCell>
-                    </TableRow>
+                                     {loading ? (
+                     <TableRow>
+                       <TableCell colSpan={5} align="center" className="loading-cell">
+                         Chargement...
+                       </TableCell>
+                     </TableRow>
+                   ) : filteredItems.length === 0 ? (
+                     <TableRow>
+                       <TableCell colSpan={5} align="center" className="empty-cell">
+                         Aucun article trouvé
+                       </TableCell>
+                     </TableRow>
                   ) : (
-                    filteredItems.map((item) => (
-                      <TableRow key={item.id} className="table-row">
-                        <TableCell className="description-cell">
-                          {item.description}
-                          {item.quantity === 0 && (
-                            <Tooltip title="Quantité nulle : veuillez réapprovisionner" placement="right">
-                              <WarningAmberIcon className="warning-icon" fontSize="small" />
-                            </Tooltip>
-                          )}
-                        </TableCell>
-                        <TableCell align="right" className="price-cell">
-                          {item.priceEuro ? Number(item.priceEuro).toFixed(2) : '0.00'}
-                        </TableCell>
-                        <TableCell align="right" className="quantity-cell">
-                          {item.quantity !== undefined && item.quantity !== null ? item.quantity : 0}
-                        </TableCell>
-                        <TableCell align="center" className="actions-cell">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => {
-                              setCurrentItem(item);
-                              setIsEditing(true);
-                              setDialogOpen(true);
-                            }}
-                            className="edit-btn"
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDeleteItem(item.id)}
-                            disabled={deletingId === item.id}
-                            className="delete-btn"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                                         filteredItems.map((item) => (
+                       <TableRow key={item.id} className="table-row">
+                         <TableCell className="id-cell">
+                           {item.id}
+                         </TableCell>
+                         <TableCell className="description-cell">
+                           {item.description}
+                           {item.quantity === 0 && (
+                             <Tooltip title="Quantité nulle : veuillez réapprovisionner" placement="right">
+                               <WarningAmberIcon className="warning-icon" fontSize="small" />
+                             </Tooltip>
+                           )}
+                         </TableCell>
+                         <TableCell align="right" className="price-cell">
+                           {item.priceEuro ? Number(item.priceEuro).toFixed(2) : '0.00'}
+                         </TableCell>
+                         <TableCell align="right" className="quantity-cell">
+                           {item.quantity !== undefined && item.quantity !== null ? item.quantity : 0}
+                         </TableCell>
+                         <TableCell align="center" className="actions-cell">
+                           <IconButton
+                             size="small"
+                             color="primary"
+                             onClick={() => {
+                               setCurrentItem(item);
+                               setIsEditing(true);
+                               setDialogOpen(true);
+                             }}
+                             className="edit-btn"
+                           >
+                             <EditIcon fontSize="small" />
+                           </IconButton>
+                           <IconButton
+                             size="small"
+                             color="error"
+                             onClick={() => handleDeleteItem(item.id)}
+                             disabled={deletingId === item.id}
+                             className="delete-btn"
+                           >
+                             <DeleteIcon fontSize="small" />
+                           </IconButton>
+                         </TableCell>
+                       </TableRow>
+                     ))
                   )}
                 </TableBody>
               </Table>

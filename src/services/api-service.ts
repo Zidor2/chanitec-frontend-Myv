@@ -1,7 +1,7 @@
 import { Client, Quote, Site, SupplyItem, LaborItem } from '../models/Quote';
 import { PriceOffer } from '../models/PriceOffer';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
@@ -219,6 +219,20 @@ class ApiService {
         return this.fetchApi<{ message: string }>(`/quotes/${id}/confirm`, {
             method: 'PATCH',
             body: JSON.stringify({ confirmed, number_chanitec }),
+        });
+    }
+
+    // Set reminder date for a quote
+    /**
+     * Set or update a reminder date for quote follow-up.
+     * @param id Quote ID
+     * @param reminderDate String in "YYYY-MM-DD" format
+     * @returns Quote object with updated reminder date
+     */
+    async setReminderDate(id: string, reminderDate: string): Promise<Quote> {
+        return this.fetchApi<Quote>(`/quotes/${id}/reminder`, {
+            method: 'PATCH',
+            body: JSON.stringify({ reminderDate }),
         });
     }
 

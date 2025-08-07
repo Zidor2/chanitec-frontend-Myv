@@ -10,15 +10,15 @@ import {
   calculateSupplyItemTotal,
   calculateTotalLabor,
   calculateTotalSupplies,
-  calculateTotalTTC,
+  calculateTotalTTCWithRemise,
+  calculateTotalWithRemise,
   calculateVAT
 } from '../utils/calculations';
-import { generateId, generateQuoteId, extractBaseId, extractVersion, getNextVersion } from '../utils/id-generator';
+import { generateId, generateQuoteId } from '../utils/id-generator';
 
 // Default values
 const DEFAULT_EXCHANGE_RATE = 1.2;
 const DEFAULT_MARGIN_RATE = 0.8;
-const DEFAULT_LABOR_EXCHANGE_RATE = 1.2;
 const DEFAULT_LABOR_MARGIN_RATE = 0.8;
 const DEFAULT_DESCRIPTION = "";
 
@@ -140,8 +140,12 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
       const updatedItems = [...state.currentQuote.supplyItems, calculatedItem];
       const totalSuppliesHT = calculateTotalSupplies(updatedItems);
       const totalHT = Number(totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
-      const tva = calculateVAT(totalHT);
-      const totalTTC = totalHT + tva;
+
+      // Apply remise if present
+      const remise = state.currentQuote.remise || 0;
+      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
+      const tva = calculateVAT(totalHTWithRemise);
+      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
 
       return {
         ...state,
@@ -171,8 +175,12 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const totalSuppliesHT = calculateTotalSupplies(updatedItems);
       const totalHT = Number(totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
-      const tva = calculateVAT(totalHT);
-      const totalTTC = totalHT + tva;
+
+      // Apply remise if present
+      const remise = state.currentQuote.remise || 0;
+      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
+      const tva = calculateVAT(totalHTWithRemise);
+      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
 
       return {
         ...state,
@@ -196,8 +204,12 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const totalSuppliesHT = calculateTotalSupplies(updatedItems);
       const totalHT = Number(totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
-      const tva = calculateVAT(totalHT);
-      const totalTTC = totalHT + tva;
+
+      // Apply remise if present
+      const remise = state.currentQuote.remise || 0;
+      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
+      const tva = calculateVAT(totalHTWithRemise);
+      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
 
       return {
         ...state,
@@ -230,8 +242,12 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
       const updatedItems = [...state.currentQuote.laborItems, calculatedItem];
       const totalLaborHT = calculateTotalLabor(updatedItems);
       const totalHT = Number(totalLaborHT) + Number(state.currentQuote.totalSuppliesHT);
-      const tva = calculateVAT(totalHT);
-      const totalTTC = totalHT + tva;
+
+      // Apply remise if present
+      const remise = state.currentQuote.remise || 0;
+      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
+      const tva = calculateVAT(totalHTWithRemise);
+      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
 
       return {
         ...state,
@@ -261,8 +277,12 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const totalLaborHT = calculateTotalLabor(updatedItems);
       const totalHT = Number(totalLaborHT) + Number(state.currentQuote.totalSuppliesHT);
-      const tva = calculateVAT(totalHT);
-      const totalTTC = totalHT + tva;
+
+      // Apply remise if present
+      const remise = state.currentQuote.remise || 0;
+      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
+      const tva = calculateVAT(totalHTWithRemise);
+      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
 
       return {
         ...state,
@@ -286,8 +306,12 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const totalLaborHT = calculateTotalLabor(updatedItems);
       const totalHT = Number(totalLaborHT) + Number(state.currentQuote.totalSuppliesHT);
-      const tva = calculateVAT(totalHT);
-      const totalTTC = totalHT + tva;
+
+      // Apply remise if present
+      const remise = state.currentQuote.remise || 0;
+      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
+      const tva = calculateVAT(totalHTWithRemise);
+      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
 
       return {
         ...state,
@@ -325,8 +349,12 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
       const totalSuppliesHT = calculateTotalSupplies(recalculatedSupplyItems);
       const totalLaborHT = calculateTotalLabor(recalculatedLaborItems);
       const totalHT = Number(totalSuppliesHT) + Number(totalLaborHT);
-      const tva = calculateVAT(totalHT);
-      const totalTTC = totalHT + tva;
+
+      // Apply remise if present
+      const remise = state.currentQuote.remise || 0;
+      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
+      const tva = calculateVAT(totalHTWithRemise);
+      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
 
       return {
         ...state,
@@ -413,6 +441,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       totalHT: 0,
       tva: 0,
       totalTTC: 0,
+      remise: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       version: 0,
@@ -457,7 +486,6 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
 
       let quoteToSave = { ...state.currentQuote };
       let newId = state.currentQuote.id;
-      let isUpdate = false;
       let parentId: string | undefined = undefined;
 
       // Only refresh exchange rate if it hasn't been manually modified by the user
@@ -485,7 +513,6 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
         return true;
       } else {
         // For updating an existing quote: create a new quote with a new ID and parent reference
-        isUpdate = true;
         // If the current quote has a parentId, use it (unless it's 0 or '0'); otherwise, use the current quote's id
         let rawParentId = state.currentQuote.parentId;
         if (rawParentId === '0') {
@@ -511,7 +538,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       }
 
       // Save the new quote (as a new entry)
-      const savedQuote = await apiService.saveQuote(quoteToSave);
+      await apiService.saveQuote(quoteToSave);
 
       // Create new supply items
       if (state.currentQuote.supplyItems.length > 0) {
@@ -568,12 +595,13 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       payload: { field, value }
     });
 
-    // Recalculate totals if rates are changed
+    // Recalculate totals if rates or remise are changed
     if (
       field === 'supplyExchangeRate' ||
       field === 'supplyMarginRate' ||
       field === 'laborExchangeRate' ||
-      field === 'laborMarginRate'
+      field === 'laborMarginRate' ||
+      field === 'remise'
     ) {
       dispatch({ type: 'RECALCULATE_TOTALS' });
     }

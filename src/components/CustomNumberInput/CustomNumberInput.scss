@@ -1,9 +1,4 @@
 .custom-number-input {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: 100%;
-
   .custom-number-label {
     font-size: 0.875rem;
     font-weight: 500;
@@ -14,8 +9,7 @@
   .custom-number-container {
     display: flex;
     align-items: center;
-    width: 100%;
-    max-width: 12rem;
+    width: 12rem;
     border: 1px solid rgba(0, 0, 0, 0.23);
     border-radius: 4px;
     background-color: #fff;

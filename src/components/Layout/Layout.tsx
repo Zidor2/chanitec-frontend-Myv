@@ -1,19 +1,5 @@
-import React, { ReactNode, useState } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  CssBaseline,
-  Button,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
-  Divider
-} from '@mui/material';
+import React, { ReactNode } from 'react';
+import { AppBar, Box, Container, Toolbar, Typography, CssBaseline, Button, Drawer, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
 import {
   HomeOutlined,
   HistoryOutlined,
@@ -21,10 +7,11 @@ import {
   InventoryOutlined,
   Menu,
   Logout,
-  ChevronLeft
+  AssignmentOutlined,
+  BusinessOutlined,
+  GroupOutlined
 } from '@mui/icons-material';
-import logo512 from '../../assets/logo512.png';
-
+import logo from '../../assets/logo512.png';
 import './Layout.scss';
 
 interface LayoutProps {
@@ -42,14 +29,15 @@ const Layout: React.FC<LayoutProps> = ({
   onHomeClick,
   onLogout
 }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   // Navigation items
   const navItems = [
-    { path: '/quote', label: 'Accueil', icon: <HomeOutlined /> },
+    { path: '/home', label: 'Accueil', icon: <HomeOutlined /> },
     { path: '/history', label: 'Historique', icon: <HistoryOutlined /> },
     { path: '/clients', label: 'Clients', icon: <PeopleOutlineOutlined /> },
-    { path: '/items', label: 'Gérer les articles', icon: <InventoryOutlined /> }
+    { path: '/items', label: 'Gérer les articles', icon: <InventoryOutlined /> },
+    { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined /> },
+    { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined /> },
+    { path: '/employees', label: 'Employés', icon: <GroupOutlined /> }
   ];
 
   const handleNavigate = (path: string) => {
@@ -59,190 +47,73 @@ const Layout: React.FC<LayoutProps> = ({
     if (onNavigate) {
       onNavigate(path);
     }
-    // Close sidebar on mobile after navigation
-    setSidebarOpen(false);
   };
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const sidebarWidth = 240;
 
   return (
     <Box className="layout-root">
       <CssBaseline />
 
-      {/* Mobile menu button */}
-      <Box className="mobile-menu-button">
-        <IconButton
-          color="primary"
-          aria-label="open drawer"
-          edge="start"
-          onClick={toggleSidebar}
-          sx={{ display: { sm: 'none' } }}
-        >
-          <Menu />
-        </IconButton>
-      </Box>
-
       {/* Sidebar */}
       <Drawer
-        variant="temporary"
-        open={sidebarOpen}
-        onClose={toggleSidebar}
-        ModalProps={{
-          keepMounted: true, // Better open performance on mobile.
-        }}
-        sx={{
-          display: { xs: 'block', sm: 'none' },
-          '& .MuiDrawer-paper': {
-            boxSizing: 'border-box',
-            width: sidebarWidth,
-            backgroundColor: '#1976d2',
-            color: 'white'
-          },
-        }}
-      >
-        <Box className="sidebar-content">
-          <Box className="sidebar-header">
-            <Box className="logo-container" onClick={() => handleNavigate('/home')}>
-              <img src={logo512} alt="Chanitec Logo" className="sidebar-logo" />
-            </Box>
-            <IconButton onClick={toggleSidebar} sx={{ color: 'white' }}>
-              <ChevronLeft />
-            </IconButton>
-          </Box>
-          <Typography variant="subtitle2" className="sidebar-subtitle">
-            Calcul de Prix
-          </Typography>
-          <List className="sidebar-nav">
-            {navItems.map((item) => (
-              <ListItem key={item.path} disablePadding>
-                <ListItemButton
-                  className={`sidebar-nav-item ${currentPath === item.path ? 'active' : ''}`}
-                  onClick={() => handleNavigate(item.path)}
-                >
-                  <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.label} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-          {onLogout && (
-            <>
-              <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', margin: '1rem 0' }} />
-              <List>
-                <ListItem disablePadding>
-                  <ListItemButton
-                    className="sidebar-nav-item logout-item"
-                    onClick={onLogout}
-                  >
-                    <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-                      <Logout />
-                    </ListItemIcon>
-                    <ListItemText primary="Déconnexion" />
-                  </ListItemButton>
-                </ListItem>
-              </List>
-            </>
-          )}
-        </Box>
-      </Drawer>
-
-      {/* Permanent sidebar for desktop */}
-      <Drawer
         variant="permanent"
-        sx={{
-          display: { xs: 'none', sm: 'block' },
-          '& .MuiDrawer-paper': {
-            boxSizing: 'border-box',
-            width: sidebarWidth,
-            backgroundColor: '#1976d2',
-            color: 'white'
-          },
+        className="dashboard-sidebar"
+        classes={{
+          paper: 'sidebar-paper'
         }}
-        open
+        sx={{
+          '& .MuiDrawer-paper': {
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100vh'
+          }
+        }}
       >
+        <Box className="sidebar-header">
+          <img src={logo} alt="Chanitec Logo" className="sidebar-logo" />
+        </Box>
+
         <Box className="sidebar-content">
-          <Box className="sidebar-header">
-            <Box className="logo-container" onClick={() => handleNavigate('/home')}>
-              <img src={logo512} alt="Chanitec Logo" className="sidebar-logo" />
-            </Box>
-          </Box>
-          <Typography variant="subtitle2" className="sidebar-subtitle">
-            Calcul de Prix
-          </Typography>
-          <List className="sidebar-nav">
+          <List className="sidebar-menu">
             {navItems.map((item) => (
-              <ListItem key={item.path} disablePadding>
-                <ListItemButton
-                  className={`sidebar-nav-item ${currentPath === item.path ? 'active' : ''}`}
-                  onClick={() => handleNavigate(item.path)}
-                >
-                  <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.label} />
-                </ListItemButton>
+              <ListItem
+                key={item.path}
+                className={`sidebar-menu-item ${currentPath === item.path ? 'active' : ''}`}
+                onClick={() => handleNavigate(item.path)}
+              >
+                <ListItemIcon className="menu-item-icon">
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  className="menu-item-text"
+                />
               </ListItem>
             ))}
           </List>
-          {onLogout && (
-            <>
-              <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', margin: '1rem 0' }} />
-              <List>
-                <ListItem disablePadding>
-                  <ListItemButton
-                    className="sidebar-nav-item logout-item"
-                    onClick={onLogout}
-                  >
-                    <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-                      <Logout />
-                    </ListItemIcon>
-                    <ListItemText primary="Déconnexion" />
-                  </ListItemButton>
-                </ListItem>
-              </List>
-            </>
-          )}
+        </Box>
+
+        <Box className="sidebar-footer">
+          <Divider className="sidebar-divider" />
+          <ListItem
+            className="sidebar-menu-item logout-item"
+            onClick={onLogout}
+            sx={{ cursor: 'pointer' }}
+          >
+            <ListItemIcon className="menu-item-icon">
+              <Logout />
+            </ListItemIcon>
+            <ListItemText
+              primary="Déconnexion"
+              className="menu-item-text"
+            />
+          </ListItem>
         </Box>
       </Drawer>
 
-      {/* Main content */}
-      <Box
-        component="main"
-        className="main-content"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${sidebarWidth}px)` },
-          ml: { sm: `${sidebarWidth}px` },
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}
-      >
-        <Box className="content-container">
+      {/* Main Content */}
+      <Box className="dashboard-main">
+        <Box className="dashboard-content">
           {children}
-        </Box>
-      </Box>
-
-      <Box component="footer" className="footer">
-        <Box className="footer-content">
-          <Typography variant="body2" color="textSecondary" align="center" className="footer-text">
-            © {new Date().getFullYear()} Chanitec
-          </Typography>
-          <Typography variant="caption" color="textSecondary" align="center" className="footer-version">
-            Version 1.65
-          </Typography>
-          <Box className="footer-watermark">
-            <Typography variant="h6" className="watermark-text">
-              CHANITEC
-            </Typography>
-          </Box>
         </Box>
       </Box>
     </Box>

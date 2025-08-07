@@ -12,6 +12,22 @@
   padding-bottom: 2rem;
   position: relative;
 
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('../../../public/logo512.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 400px;
+    opacity: 0.15;
+    z-index: -1;
+    pointer-events: none;
+  }
+
   &.pdf-print-mode {
     @page {
       size: A4;

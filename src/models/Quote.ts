@@ -86,6 +86,9 @@ export interface Quote {
   tva: number;
   totalTTC: number;
 
+  // Discount
+  remise?: number; // Discount percentage
+
   // Metadata
   createdAt: string;
   updatedAt: string;

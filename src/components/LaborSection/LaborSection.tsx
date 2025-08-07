@@ -59,6 +59,21 @@ const LaborSection: React.FC<LaborSectionProps> = ({
     { value: 1.6, label: '1.6 (Weekend)' }
   ];
 
+  // Function to format description text with "En weekend" in bold red
+  const formatDescriptionText = (text: string) => {
+    if (text.includes('En weekend')) {
+      const parts = text.split('En weekend');
+      return (
+        <span>
+          {parts[0]}
+          <span style={{ fontWeight: 'bold', color: 'red' }}>En weekend</span>
+          {parts[1]}
+        </span>
+      );
+    }
+    return text;
+  };
+
   // Calculate dollar prices for all items when rates change
   useEffect(() => {
     const itemsWithDollarPrices = items.map(item =>
@@ -111,12 +126,21 @@ const LaborSection: React.FC<LaborSectionProps> = ({
         variant="outlined"
         margin="normal"
         className="description-field"
+        SelectProps={{
+          renderValue: (value) => formatDescriptionText(value as string)
+        }}
       >
         <MenuItem value="Fixation, mise au point, raccordement, mise en vide et mise en service En weekend">
-          Fixation, mise au point, raccordement, mise en vide et mise en service En weekend
+          {formatDescriptionText("Fixation, mise au point, raccordement, mise en vide et mise en service En weekend")}
         </MenuItem>
         <MenuItem value="Fixation, mise au point, raccordement, mise en vide et mise en service ">
           Fixation, mise au point, raccordement, mise en vide et mise en service
+        </MenuItem>
+        <MenuItem value="Mise au point, raccordement, mise en vide, mise en service, contrôle du rendement En weekend">
+          {formatDescriptionText("Mise au point, raccordement, mise en vide, mise en service, contrôle du rendement En weekend")}
+        </MenuItem>
+        <MenuItem value="Mise au point, raccordement, mise en vide, mise en service, contrôle du rendement">
+          Mise au point, raccordement, mise en vide, mise en service, contrôle du rendement
         </MenuItem>
       </TextField>
 
@@ -156,6 +180,7 @@ const LaborSection: React.FC<LaborSectionProps> = ({
               min={1}
               step={1}
               fullWidth
+              displayAsInteger={true}
             />
           </Box>
 
@@ -167,6 +192,7 @@ const LaborSection: React.FC<LaborSectionProps> = ({
               min={1}
               step={1}
               fullWidth
+              displayAsInteger={true}
             />
           </Box>
 

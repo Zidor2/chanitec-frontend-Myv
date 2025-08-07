@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, Container, Paper, Typography, AppBar, Toolbar, Button } from '@mui/material';
+import { Box, Container, Typography, Button } from '@mui/material';
 import Layout from '../../components/Layout/Layout';
 import QuoteHeader from '../../components/QuoteHeader/QuoteHeader';
 import SuppliesSection from '../../components/SuppliesSection/SuppliesSection';
@@ -35,20 +35,18 @@ const QuotePage: React.FC<QuotePageProps> = ({ currentPath, onNavigate, onLogout
     removeSupplyItem,
     addLaborItem,
     removeLaborItem,
-    recalculateTotals,
     clearQuote,
     loadQuote,
     updateSupplyItem
   } = useQuote();
 
-  const { currentQuote, isLoading, isExistingQuote, originalQuoteId } = state;
+  const { currentQuote, isLoading, isExistingQuote } = state;
   const contentRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const location = useLocation();
   const quoteId = new URLSearchParams(location.search).get('id');
 
   const [isFromHistory, setIsFromHistory] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
-  const [isReadOnly, setIsReadOnly] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [numberChanitec, setNumberChanitec] = useState(currentQuote?.number_chanitec || '');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -61,7 +59,7 @@ const QuotePage: React.FC<QuotePageProps> = ({ currentPath, onNavigate, onLogout
       // Fetch createdAt for the quoteId
       const fetchAndLoad = async () => {
         try {
-          const allQuotes = await fetch(`${process.env.REACT_APP_API_URL}/quotes`).then(res => res.json());
+          const allQuotes = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/quotes`).then(res => res.json());
           const found = allQuotes.find((q: any) => q.id === quoteId);
           if (found) {
             loadQuote(quoteId, found.createdAt, fromHistory);
@@ -92,10 +90,9 @@ const QuotePage: React.FC<QuotePageProps> = ({ currentPath, onNavigate, onLogout
     setShowConfirm(showConfirmParam);
   }, []);
 
-  // Update isReadOnly when currentQuote changes
+  // Update isConfirmed when currentQuote changes
   useEffect(() => {
     if (currentQuote) {
-      setIsReadOnly(currentQuote.confirmed || false);
       setIsConfirmed(currentQuote.confirmed || false);
       setNumberChanitec(currentQuote.number_chanitec || '');
     }
@@ -126,7 +123,6 @@ const QuotePage: React.FC<QuotePageProps> = ({ currentPath, onNavigate, onLogout
     try {
       const response = await apiService.confirmQuote(currentQuote.id, true, numberChanitec);
       setIsConfirmed(true);
-      setIsReadOnly(true);
       setConfirmDialogOpen(false);
       alert(response.message || 'Devis confirmé avec succès');
     } catch (error: any) {
@@ -207,6 +203,7 @@ const QuotePage: React.FC<QuotePageProps> = ({ currentPath, onNavigate, onLogout
           totalHT={currentQuote.totalHT}
           tva={currentQuote.tva}
           totalTTC={currentQuote.totalTTC}
+          remise={currentQuote.remise}
         />
       </Container>
 
