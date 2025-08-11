@@ -33,7 +33,7 @@ interface QuoteState {
 }
 
 // Action types
-type QuoteAction =
+export type QuoteAction =
   | { type: 'SET_QUOTE'; payload: Quote }
   | { type: 'SET_EXISTING_QUOTE'; payload: boolean }
   | { type: 'CLEAR_QUOTE' }
@@ -49,7 +49,8 @@ type QuoteAction =
   | { type: 'UPDATE_LABOR_ITEM'; payload: LaborItem }
   | { type: 'REMOVE_LABOR_ITEM'; payload: string }
   | { type: 'RECALCULATE_TOTALS' }
-  | { type: 'SET_ORIGINAL_QUOTE_ID'; payload: string | null };
+  | { type: 'SET_ORIGINAL_QUOTE_ID'; payload: string | null }
+  | { type: 'UPDATE_REMISE'; payload: number };
 
 // Initial state
 const initialState: QuoteState = {
@@ -378,6 +379,27 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
       };
     }
 
+    case 'UPDATE_REMISE': {
+      if (!state.currentQuote) return state;
+
+      const newRemise = action.payload;
+      const totalHT = Number(state.currentQuote.totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
+      const totalHTWithRemise = calculateTotalWithRemise(totalHT, newRemise);
+      const tva = calculateVAT(totalHTWithRemise);
+      const totalTTC = calculateTotalTTCWithRemise(totalHT, newRemise);
+
+      return {
+        ...state,
+        currentQuote: {
+          ...state.currentQuote,
+          remise: newRemise,
+          totalHT,
+          tva,
+          totalTTC,
+        },
+      };
+    }
+
     default:
       return state;
   }
@@ -388,8 +410,8 @@ interface QuoteContextProps {
   state: QuoteState;
   createNewQuote: () => void;
   loadQuote: (id: string, createdAt: string, fromHistory?: boolean) => void;
-  saveQuote: () => Promise<boolean>;
-  updateQuote: () => Promise<boolean>;
+  saveQuote: (remiseValue?: number) => Promise<boolean>;
+  updateQuote: (remiseValue?: number) => Promise<boolean>;
   setQuoteField: <K extends keyof Quote>(field: K, value: Quote[K]) => void;
   addSupplyItem: (item: Omit<SupplyItem, 'id'>) => void;
   updateSupplyItem: (item: SupplyItem) => void;
@@ -398,6 +420,7 @@ interface QuoteContextProps {
   updateLaborItem: (item: LaborItem) => void;
   removeLaborItem: (id: string) => void;
   recalculateTotals: () => void;
+  updateRemise: (remise: number) => void;
   clearQuote: () => void;
 }
 
@@ -413,6 +436,9 @@ interface QuoteProviderProps {
 export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(quoteReducer, initialState);
 
+  // Use a ref to preserve the remise value across quote operations
+  const preservedRemiseRef = React.useRef<number>(0);
+
   // Create a new quote
   const createNewQuote = async () => {
     let exchangeRate = DEFAULT_EXCHANGE_RATE;
@@ -422,6 +448,10 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
     } catch (e) {
       console.warn('Failed to fetch real-time exchange rate, using default:', e);
     }
+
+    // Use the preserved remise value from the ref
+    const currentRemise = preservedRemiseRef.current;
+
     const newQuote: Quote = {
       id: generateQuoteId(), // This will create ID with version 000
       clientName: '',
@@ -441,7 +471,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       totalHT: 0,
       tva: 0,
       totalTTC: 0,
-      remise: 0,
+      remise: currentRemise, // Use the preserved remise value
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       version: 0,
@@ -466,8 +496,15 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       if (!quote) {
         throw new Error('Quote not found');
       }
+
+      // Ensure remise is preserved and totals are calculated with remise for display
+      const quoteWithRemise = {
+        ...quote,
+        remise: quote.remise || 0
+      };
+
       dispatch({ type: 'SET_ORIGINAL_QUOTE_ID', payload: id });
-      dispatch({ type: 'SET_QUOTE', payload: quote });
+      dispatch({ type: 'SET_QUOTE', payload: quoteWithRemise });
       dispatch({ type: 'SET_EXISTING_QUOTE', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
     } catch (error) {
@@ -479,7 +516,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
   };
 
   // Save or update quote
-  const saveQuote = async (): Promise<boolean> => {
+  const saveQuote = async (remiseValue?: number): Promise<boolean> => {
     if (!state.currentQuote) return false;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -501,13 +538,35 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
 
       // If it's a new quote (no ID or version 0), create it
       if (!state.currentQuote.id || state.currentQuote.version === 0) {
+        // Calculate totals without remise for backend storage
+        const totalSuppliesHT = calculateTotalSupplies(state.currentQuote.supplyItems);
+        const totalLaborHT = calculateTotalLabor(state.currentQuote.laborItems);
+        const totalHT = Number(totalSuppliesHT) + Number(totalLaborHT);
+        const tva = calculateVAT(totalHT);
+        const totalTTC = totalHT + tva;
+
         // Create new quote
         quoteToSave = {
           ...quoteToSave,
           parentId: "",
+          // Save original totals without remise to backend
+          totalSuppliesHT,
+          totalLaborHT,
+          totalHT,
+          tva,
+          totalTTC,
+          // Use the passed remise value if provided, otherwise use the current state
+          remise: remiseValue !== undefined ? remiseValue : (state.currentQuote.remise || 0),
         };
         const savedQuote = await apiService.saveQuote(quoteToSave);
-        dispatch({ type: 'SET_QUOTE', payload: savedQuote });
+
+        // After saving, recalculate totals with remise for display
+        const finalSavedQuote = {
+          ...savedQuote,
+          remise: remiseValue !== undefined ? remiseValue : (state.currentQuote.remise || 0)
+        };
+
+        dispatch({ type: 'SET_QUOTE', payload: finalSavedQuote });
         dispatch({ type: 'SET_EXISTING_QUOTE', payload: true });
         dispatch({ type: 'SET_ORIGINAL_QUOTE_ID', payload: savedQuote.id });
         return true;
@@ -520,6 +579,14 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
         }
         parentId = rawParentId ? rawParentId : state.currentQuote.id;
         newId = generateQuoteId();
+
+        // Calculate totals without remise for backend storage
+        const totalSuppliesHT = calculateTotalSupplies(state.currentQuote.supplyItems);
+        const totalLaborHT = calculateTotalLabor(state.currentQuote.laborItems);
+        const totalHT = Number(totalSuppliesHT) + Number(totalLaborHT);
+        const tva = calculateVAT(totalHT);
+        const totalTTC = totalHT + tva;
+
         quoteToSave = {
           ...state.currentQuote,
           id: newId,
@@ -529,6 +596,14 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
           updatedAt: new Date().toISOString(),
           supplyExchangeRate: quoteToSave.supplyExchangeRate,
           laborExchangeRate: quoteToSave.laborExchangeRate,
+          // Save original totals without remise to backend
+          totalSuppliesHT,
+          totalLaborHT,
+          totalHT,
+          tva,
+          totalTTC,
+          // Use the passed remise value if provided, otherwise use the current state
+          remise: remiseValue !== undefined ? remiseValue : (state.currentQuote.remise || 0),
           metadata: {
             ...state.currentQuote.metadata,
             version: 1,
@@ -571,7 +646,14 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       if (!completeQuoteResponse) {
         throw new Error('Failed to fetch updated quote');
       }
-      dispatch({ type: 'SET_QUOTE', payload: completeQuoteResponse });
+
+      // After fetching from backend, recalculate totals with remise for display
+      const finalQuote = {
+        ...completeQuoteResponse,
+        remise: remiseValue !== undefined ? remiseValue : (state.currentQuote.remise || 0)
+      };
+
+      dispatch({ type: 'SET_QUOTE', payload: finalQuote });
       dispatch({ type: 'SET_EXISTING_QUOTE', payload: true });
       dispatch({ type: 'SET_ORIGINAL_QUOTE_ID', payload: newId });
       return true;
@@ -584,8 +666,8 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
   };
 
   // Remove the updateQuote function since it's now consolidated with saveQuote
-  const updateQuote = async (): Promise<boolean> => {
-    return saveQuote();
+  const updateQuote = async (remiseValue?: number): Promise<boolean> => {
+    return saveQuote(remiseValue);
   };
 
   // Update a field in the quote
@@ -642,7 +724,15 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
     dispatch({ type: 'RECALCULATE_TOTALS' });
   };
 
+  // Update remise and recalculate totals
+  const updateRemise = (remise: number) => {
+    dispatch({ type: 'UPDATE_REMISE', payload: remise });
+  };
+
   const clearQuote = () => {
+    // Preserve the remise value before clearing
+    preservedRemiseRef.current = state.currentQuote?.remise || 0;
+
     dispatch({ type: 'CLEAR_QUOTE' });
   };
 
@@ -660,6 +750,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
     updateLaborItem,
     removeLaborItem,
     recalculateTotals,
+    updateRemise,
     clearQuote
   };
 

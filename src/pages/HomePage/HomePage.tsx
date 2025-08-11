@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,8 @@ import {
   Paper,
   Chip,
   Avatar,
-  Divider
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -26,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import Layout from '../../components/Layout/Layout';
 import logo from '../../assets/logo512.png';
+import { useDashboardStats } from '../../hooks/useDashboardStats';
 import './HomePage.scss';
 
 interface HomePageProps {
@@ -39,23 +41,7 @@ const HomePage: React.FC<HomePageProps> = ({
   onNavigate,
   onLogout
 }) => {
-  const [stats, setStats] = useState({
-    totalQuotes: 0,
-    pendingQuotes: 0,
-    totalClients: 0,
-    totalSplits: 0
-  });
-
-  // Simulate fetching stats (in a real app, this would come from API)
-  useEffect(() => {
-    // Mock data - replace with actual API calls
-    setStats({
-      totalQuotes: 156,
-      pendingQuotes: 23,
-      totalClients: 45,
-      totalSplits: 89
-    });
-  }, []);
+  const { stats, loading, error, refetch } = useDashboardStats();
 
   const menuItems = [
     {
@@ -224,48 +210,81 @@ const HomePage: React.FC<HomePageProps> = ({
 
         {/* Statistics Section */}
         <Container maxWidth="lg" sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{
-            fontWeight: 700,
-            mb: 3,
-            textAlign: 'center',
-            color: '#1976d2'
-          }}>
-            Aperçu de votre activité
-          </Typography>
           <Box sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-            gap: 3
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 3
           }}>
-            <StatCard
-              title="Devis Total"
-              value={stats.totalQuotes}
-              icon={<TrendingUpIcon />}
-              color="#1976d2"
-              subtitle="Tous les devis créés"
-            />
-            <StatCard
-              title="En Attente"
-              value={stats.pendingQuotes}
-              icon={<ScheduleIcon />}
-              color="#ff9800"
-              subtitle="Devis à traiter"
-            />
-            <StatCard
-              title="Clients"
-              value={stats.totalClients}
-              icon={<PeopleIcon />}
-              color="#4caf50"
-              subtitle="Clients actifs"
-            />
-            <StatCard
-              title="Équipement Frigorifique"
-              value={stats.totalSplits}
-              icon={<InventoryIcon />}
-              color="#9c27b0"
-              subtitle="Équipement disponibles"
-            />
+            <Typography variant="h4" sx={{
+              fontWeight: 700,
+              color: '#1976d2'
+            }}>
+              Aperçu de votre activité
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={refetch}
+              disabled={loading}
+              startIcon={<TrendingUpIcon />}
+              sx={{ minWidth: 120 }}
+            >
+              {loading ? 'Chargement...' : 'Actualiser'}
+            </Button>
           </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              Erreur lors du chargement des statistiques: {error}
+            </Alert>
+          )}
+
+          {loading ? (
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 200
+            }}>
+              <CircularProgress size={60} />
+            </Box>
+          ) : (
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+              gap: 3
+            }}>
+              <StatCard
+                title="Devis Total"
+                value={stats.totalQuotes}
+                icon={<TrendingUpIcon />}
+                color="#1976d2"
+                subtitle="Tous les devis créés"
+              />
+              <StatCard
+                title="En Attente"
+                value={stats.pendingQuotes}
+                icon={<ScheduleIcon />}
+                color="#ff9800"
+                subtitle="Devis à traiter"
+              />
+              <StatCard
+                title="Clients"
+                value={stats.totalClients}
+                icon={<PeopleIcon />}
+                color="#4caf50"
+                subtitle="Clients actifs"
+              />
+              <StatCard
+                title="Équipement Frigorifique"
+                value={stats.totalSplits}
+                icon={<InventoryIcon />}
+                color="#9c27b0"
+                subtitle="Équipement disponibles"
+              />
+            </Box>
+          )}
         </Container>
 
         {/* Quick Actions Section */}

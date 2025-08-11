@@ -11,7 +11,6 @@ import {
   DialogActions,
   FormControlLabel,
   Checkbox,
-  TextField,
   Typography
 } from '@mui/material';
 import {
@@ -20,6 +19,7 @@ import {
   Update as UpdateIcon
 } from '@mui/icons-material';
 import { useQuote } from '../../contexts/QuoteContext';
+import CustomNumberInput from '../CustomNumberInput/CustomNumberInput';
 import './QuoteActions.scss';
 
 interface QuoteActionsProps {
@@ -27,8 +27,8 @@ interface QuoteActionsProps {
   siteName: string;
   date: string;
   isExistingQuote: boolean;
-  onSave: () => Promise<boolean>;
-  onUpdate?: () => Promise<boolean>;
+  onSave: (remiseValue?: number) => Promise<boolean>;
+  onUpdate?: (remiseValue?: number) => Promise<boolean>;
   onViewHistory: () => void;
   contentRef: React.RefObject<HTMLDivElement>;
   onPrint: () => void;
@@ -47,7 +47,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   onPrint,
   onDownloadPDF
 }) => {
-  const { state, setQuoteField, clearQuote, createNewQuote } = useQuote();
+  const { state, setQuoteField, clearQuote, createNewQuote, updateRemise } = useQuote();
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
   const [snackbarSeverity, setSnackbarSeverity] = React.useState<'success' | 'error'>('success');
@@ -70,7 +70,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
       return;
     }
 
-    // Initialize remise dialog with current values
+    // Initialize remise dialog with current values from the quote state
     const currentRemise = state.currentQuote?.remise || 0;
     setRemiseEnabled(currentRemise > 0);
     setRemiseValue(currentRemise);
@@ -84,13 +84,14 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
     try {
       // Set the remise value in the quote if enabled
       if (remiseEnabled) {
-        setQuoteField('remise', remiseValue);
+        updateRemise(remiseValue);
       } else {
-        setQuoteField('remise', 0);
+        updateRemise(0);
       }
 
       // Use onSave for both new quotes and updates since they do the same thing
-      const success = await onSave();
+      // Pass the remise value directly to avoid race condition
+      const success = await onSave(remiseEnabled ? remiseValue : 0);
 
       if (success) {
         const message = isExistingQuote
@@ -98,20 +99,25 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
           : 'Devis enregistré avec succès! Prêt pour un nouveau devis.';
         setSnackbarMessage(message);
         setSnackbarSeverity('success');
-        alert(message);
+        setSnackbarOpen(true);
+
+        // Close the remise dialog first
+        setRemiseDialogOpen(false);
+
+        // Wait a bit for the state to update before clearing
+        setTimeout(() => {
+          clearQuote();
+          createNewQuote();
+          window.location.href = '/quote';
+        }, 100);
       } else {
         const errorMessage = isExistingQuote
           ? 'Erreur lors de la mise à jour du devis.'
           : 'Erreur lors de l\'enregistrement du devis.';
         setSnackbarMessage(errorMessage);
         setSnackbarSeverity('error');
+        setSnackbarOpen(true);
       }
-
-      setSnackbarOpen(true);
-      setRemiseDialogOpen(false);
-      clearQuote();
-      createNewQuote();
-      window.location.href = '/quote';
     } catch (error) {
       const errorMessage = isExistingQuote
         ? 'Erreur lors de la mise à jour du devis.'
@@ -175,8 +181,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   };
 
   // Handle remise value change
-  const handleRemiseValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(event.target.value) || 0;
+  const handleRemiseValueChange = (value: number) => {
     setRemiseValue(value);
   };
 
@@ -256,13 +261,14 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
             />
             {remiseEnabled && (
               <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TextField
-                  type="number"
+                <CustomNumberInput
                   label="Pourcentage de remise"
                   value={remiseValue}
                   onChange={handleRemiseValueChange}
-                  inputProps={{ min: 0, max: 100 }}
-                  sx={{ width: 150 }}
+                  min={0}
+                  max={100}
+                  step={1}
+                  displayAsInteger={true}
                 />
                 <Typography variant="body1">%</Typography>
               </Box>

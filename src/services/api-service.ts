@@ -163,6 +163,11 @@ class ApiService {
         return this.fetchApi<LaborItem[]>(`/labor-items/${quoteId}`);
     }
 
+    // Splits
+    async getSplits(): Promise<any[]> {
+        return this.fetchApi<any[]>('/splits');
+    }
+
     async createLaborItem(quoteId: string, item: Omit<LaborItem, 'id'>): Promise<LaborItem> {
         const response = await fetch(`${API_BASE_URL}/quotes/${quoteId}/labor-items`, {
             method: 'POST',
