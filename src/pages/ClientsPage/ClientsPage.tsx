@@ -649,7 +649,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                                          <Box className="split-info">
                                            <AcUnitIcon className="split-icon" />
                                            <Typography className="split-text">
-                                             {split.Code || 'N/A'} - {split.name || 'N/A'} - {split.puissance || 0} kW
+                                             {split.Code || 'N/A'} - {split.name || 'N/A'} - {split.puissance || 0} BTU/KW
                                            </Typography>
                                          </Box>
                                        </Box>
