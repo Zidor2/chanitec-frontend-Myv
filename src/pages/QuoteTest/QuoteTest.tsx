@@ -1,11 +1,18 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Container, Typography, Button, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import Layout from '../../components/Layout/Layout';
 import { useQuote } from '../../contexts/QuoteContext';
 import './QuoteTest.scss';
 import logo from '../../logo.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 import html2pdf from 'html2pdf.js';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon
+} from '@mui/icons-material';
+import { SupplyItem, LaborItem } from '../../models/Quote';
+import { generateId } from '../../utils/id-generator';
 import logo512 from '../../assets/logo512.png';
 import CHANitec from '../../assets/CHANitec.png';
 
@@ -19,14 +26,6 @@ function formatDate(dateString: string) {
   return `${day}/${month}/${year}`;
 }
 
-// Add a helper function for number formatting to 2 decimal places
-function formatNumber(value: number | string | undefined): string {
-  if (value === undefined || value === null) return '0.00';
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(num)) return '0.00';
-  return num.toFixed(2);
-}
-
 interface QuoteTestProps {
   currentPath: string;
   onNavigate: (path: string) => void;
@@ -36,17 +35,28 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
   const {
     state,
     createNewQuote,
+    saveQuote,
+    updateQuote,
     setQuoteField,
+    addSupplyItem,
+    removeSupplyItem,
+    addLaborItem,
+    removeLaborItem,
+    recalculateTotals,
     clearQuote,
-    loadQuote
+    loadQuote,
+    updateLaborItem
   } = useQuote();
 
-  const { currentQuote, isLoading } = state;
+  const { currentQuote, isLoading, isExistingQuote, originalQuoteId } = state;
   const contentRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const quoteId = new URLSearchParams(location.search).get('id');
 
+  const [isFromHistory, setIsFromHistory] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [isPdfMode, setIsPdfMode] = useState(false);
 
@@ -62,7 +72,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
             createdAt = currentQuote.createdAt;
           } else {
             try {
-              const allQuotes = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/quotes`).then(res => res.json());
+              const allQuotes = await fetch(`${process.env.REACT_APP_API_URL}/quotes`).then(res => res.json());
               const found = allQuotes.find((q: any) => q.id === quoteId);
               if (found) {
                 createdAt = found.createdAt;
@@ -71,6 +81,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           }
           await loadQuote(quoteId, createdAt);
           console.log('Quote loaded successfully');
+          setIsReady(true);
         } catch (error) {
           console.error('Error loading quote:', error);
           navigate('/');
@@ -78,16 +89,26 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
       } else if (!currentQuote && !isLoading && !quoteId) {
         console.log('No quote ID provided, creating new quote');
         createNewQuote();
+        setIsReady(true);
       }
     };
 
     loadQuoteData();
-  }, [quoteId, createNewQuote, currentQuote, isLoading, loadQuote, navigate]);
+  }, [quoteId]);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const fromHistory = queryParams.get('fromHistory') === 'true';
+    const confirmed = queryParams.get('confirmed') === 'true';
+    setIsFromHistory(fromHistory);
+    setIsConfirmed(confirmed);
+  }, []);
 
   // Update isReadOnly when currentQuote changes
   useEffect(() => {
     if (currentQuote) {
       setIsReadOnly(currentQuote.confirmed || false);
+      setIsConfirmed(currentQuote.confirmed || false);
     }
   }, [currentQuote]);
 
@@ -110,6 +131,103 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
     clearQuote();
     createNewQuote();
     onNavigate('/');
+  };
+
+  const handleConfirmQuote = async () => {
+    if (!currentQuote) return;
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/quotes/${currentQuote.id}/confirm`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ confirmed: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to confirm quote');
+      }
+
+      setIsConfirmed(true);
+      setIsReadOnly(true);
+      alert('Devis confirmé avec succès. Prêt pour un nouveau devis.');
+      clearQuote();
+      createNewQuote();
+    } catch (error) {
+      console.error('Error confirming quote:', error);
+      alert('Erreur lors de la confirmation du devis');
+    }
+  };
+
+  const handleGeneratePDF = async () => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    try {
+      setIsPdfMode(true);
+      // Fallback: in case PDF generation hangs, reset after 5 seconds
+      timeoutId = setTimeout(() => {
+        setIsPdfMode(false);
+      }, 5000);
+      console.log('Current state:', {
+        contentRef: contentRef.current,
+        currentQuote: currentQuote,
+        isLoading: isLoading
+      });
+
+      if (!contentRef.current) {
+        console.error('Content reference is missing');
+        alert('Impossible de générer le PDF: la référence au contenu est manquante');
+        setIsPdfMode(false);
+        if (timeoutId) clearTimeout(timeoutId);
+        return;
+      }
+
+      if (!currentQuote) {
+        console.error('Current quote is missing');
+        alert('Impossible de générer le PDF: le devis actuel est manquant');
+        setIsPdfMode(false);
+        if (timeoutId) clearTimeout(timeoutId);
+        return;
+      }
+
+      if (isLoading) {
+        console.error('Quote is still loading');
+        alert('Veuillez patienter pendant le chargement du devis');
+        setIsPdfMode(false);
+        if (timeoutId) clearTimeout(timeoutId);
+        return;
+      }
+
+      console.log('Starting PDF generation...');
+      const element = contentRef.current;
+
+      const opt = {
+        margin: 5, // Set margin to 0 for closer print match
+        filename: `devis-${currentQuote.id}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 1.25, // Adjust scale for closer print match
+          useCORS: true,
+          logging: true
+        },
+        enableLinks: true,
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      // Generate PDF with save dialog
+      await html2pdf()
+        .from(element)
+        .set(opt)
+        .save();
+
+      console.log('PDF generation completed');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+    } finally {
+      setIsPdfMode(false);
+      if (timeoutId) clearTimeout(timeoutId);
+    }
   };
 
   const handlePrint = () => {
@@ -185,11 +303,8 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
 
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onHomeClick={handleHomeClick}>
-      <div ref={contentRef} className={isPdfMode ? 'is-pdf-mode' : ''}>
-        {/* Background Logo */}
-        <img src={logo512} alt="Background Logo" className="background-logo" />
-        {/* Second Background Logo */}
-        <img src={CHANitec} alt="CHANitec Logo" className="background-logo-second" />
+      <div ref={contentRef} className={`quote-test-content ${isPdfMode ? 'is-pdf-mode' : ''}`}>
+       {/* Background Logo */}
 
         {/* Header Section */}
         <div className="reference-header">
@@ -247,29 +362,29 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           </div>
         </div>
 
-        {/* Totals Section - Display backend calculated values */}
+        {/* Totals Section */}
         <div className="clearfix">
           <table className="summary-table" style={{ float: 'right' }}>
             <tbody>
-              <tr><th>TOTAL OFFRE USD HT:</th><td>{formatNumber(currentQuote.totalHT)}</td></tr>
-              <tr><th>TVA:</th><td>{formatNumber(currentQuote.tva)}</td></tr>
-              <tr><th>TOTAL OFFRE USD TTC:</th><td>{formatNumber(currentQuote.totalTTC)}</td></tr>
+              <tr><th>TOTAL OFFRE USD HT:</th><td>{currentQuote.totalHT}</td></tr>
+              <tr><th>TVA:</th><td>{(currentQuote.totalHT * (16 / 100)).toFixed(2)}</td></tr>
+              <tr><th>TOTAL OFFRE USD TTC:</th><td>{currentQuote.totalTTC}</td></tr>
             </tbody>
           </table>
         </div>
 
-        {/* Fournitures Section - Display backend calculated values */}
+        {/* Fournitures Section */}
         <div className="section-title">FOURNITURES</div>
         <div className="input-row">
-          <span> {currentQuote.supplyDescription || ''} </span>
+        <span> {currentQuote.supplyDescription || ''} </span>
           <div className='tx-row'>
-            <label>Tx de chg:</label>
-            <span> {formatNumber(currentQuote.supplyExchangeRate || 1.15)}</span>
-            <label>Tx de marge:</label>
-            <span>{formatNumber(Number(currentQuote.supplyMarginRate) || 0.75)}</span>
-          </div>
+          <label>Tx de chg:</label>
+          <span> {currentQuote.supplyExchangeRate || 1.15}</span>
+          <label>Tx de marge:</label>
+          <span>{currentQuote.supplyMarginRate || 0.75}</span>
         </div>
 
+        </div>
         <table className="data-table">
           <thead>
             <tr>
@@ -285,33 +400,34 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
             {currentQuote.supplyItems.map((item, idx) => (
               <tr key={idx}>
                 <td>{item.description}</td>
-                <td>{item.quantity}</td>
-                <td>{formatNumber(item.priceEuro)}</td>
-                <td>{formatNumber(item.priceDollar)}</td>
-                <td>{formatNumber(item.unitPriceDollar)}</td>
-                <td>{formatNumber(item.totalPriceDollar)}</td>
+                <td>{item.quantity} </td>
+                <td>{item.priceEuro}</td>
+                <td>{(item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)).toFixed(2)}</td>
+                <td>{((item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))).toFixed(2)}</td>
+                <td>{((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))).toFixed(2)} </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="totals-row">
               <td colSpan={5} style={{ textAlign: 'right' }}>TOTAL FOURNITURE $ HT:</td>
-              <td colSpan={2}>{formatNumber(currentQuote.totalSuppliesHT)}</td>
+              <td colSpan={2}>{currentQuote.supplyItems.reduce((sum, item) => sum + ((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))), 0).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>
 
-        {/* Main d'oeuvre Section - Display backend calculated values */}
+        {/* Main d'oeuvre Section */}
         <div className="section-title">MAIN D'OEUVRE</div>
         <div className="input-row">
           <span>{currentQuote.laborDescription || ''}</span>
           <div className='tx-row'>
-            <label>Tx de chg:</label>
-            <span>{formatNumber(currentQuote.laborExchangeRate || 1.2)}</span>
-            <label>Tx de marge:</label>
-            <span>{formatNumber(Number(currentQuote.laborMarginRate) || 0.8)}</span>
+          <label>Tx de chg:</label>
+          <span>{currentQuote.laborExchangeRate || 1.2}</span>
+          <label>Tx de marge:</label>
+          <span>{currentQuote.laborMarginRate || 0.8}</span>
           </div>
         </div>
+
 
         <table className="data-table">
           <thead>
@@ -330,18 +446,18 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
               <tr key={idx}>
                 <td>{item.nbTechnicians}</td>
                 <td>{item.nbHours}</td>
-                <td>{formatNumber(item.weekendMultiplier)}</td>
-                <td>{formatNumber(item.priceEuro)}</td>
-                <td>{formatNumber(item.priceDollar)}</td>
-                <td>{formatNumber(item.unitPriceDollar)}</td>
-                <td>{formatNumber(item.totalPriceDollar)}</td>
+                <td>{item.weekendMultiplier}</td>
+                <td>{item.priceEuro}</td>
+                <td>{(item.priceEuro * (currentQuote.laborExchangeRate || 1.2)).toFixed(2)}</td>
+                <td>{((item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))).toFixed(2)}</td>
+                <td>{((item.nbTechnicians * item.nbHours * item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="totals-row">
               <td colSpan={6} style={{ textAlign: 'right' }}>TOTAL MO $ HT:</td>
-              <td colSpan={2}>{formatNumber(currentQuote.totalLaborHT)}</td>
+              <td colSpan={2}>{currentQuote.laborItems.reduce((sum, item) => sum + ((item.nbTechnicians * item.nbHours * item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))), 0).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>

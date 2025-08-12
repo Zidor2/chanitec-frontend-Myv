@@ -61,7 +61,7 @@
   float: right;
   margin-top: 10px;
   border-collapse: collapse;
-  max-width: 270px;
+  max-width: 320px;
 }
 .summary-table th, .summary-table td {
   border: 1px solid #d3d3d3;
@@ -238,8 +238,17 @@
   background-color: #007399;
 }
 
-// Hide action buttons in print and PDF mode only
-@media print, screen and (class: is-pdf-mode) {
+
+
+// --- Print Styles to Preserve Current Layout ---
+@media print {
+  // Page setup for proper printing
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  // Hide action buttons in print mode
   .btn-print,
   .btn-save,
   .btn-update,
@@ -247,42 +256,163 @@
   .delete-btn {
     display: none !important;
   }
-}
 
-// Hide background logos by default
-.background-logo,
-.background-logo-second {
-  display: none;
-}
-
-// --- Unified Print and PDF Styles ---
-@media print, screen and (class: is-pdf-mode) {
-  .background-logo {
-    display: block;
-    position: absolute;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    opacity: 0.1;
-    z-index: 1000;
-    width: 90%;
-    max-width: 600px;
-    pointer-events: none;
-  }
+  // Hide background logos in print mode
+  .background-logo,
   .background-logo-second {
-    display: block;
-    position: absolute;
-    top: 75%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    opacity: 0.1;
-    z-index: 1000;
-    width: 60%;
-    max-width: 400px;
-    pointer-events: none;
+    display: none !important;
   }
+
+  // Ensure the page prints with current layout
   body, .main-content, .quote-test-root, #root {
-    background: transparent !important;
+    background: white !important;
+  }
+
+  // Preserve all current styling and layout
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  // Fix height restrictions that cut off content
+  .layout-root,
+  .dashboard-main,
+  .dashboard-content {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  // Ensure the main content container can expand
+  .quote-test-content {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  // Remove any container height limits
+  .client-info-box,
+  .clearfix,
+  .section-title,
+  .input-row,
+  .tx-row,
+  .data-table {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  // Ensure tables don't get cut off
+  .data-table {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  // Allow content to flow naturally
+  .clearfix {
+    clear: both !important;
+    overflow: visible !important;
+  }
+
+  // Force all content to be visible
+  .section-title,
+  .input-row,
+  .tx-row,
+  .data-table,
+  .summary-table {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  // Override ALL possible height restrictions
+  html, body {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  // Override any Material-UI or other framework height restrictions
+  .MuiBox-root,
+  .MuiContainer-root,
+  .MuiGrid-root,
+  .MuiPaper-root {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  // Ensure the root elements don't constrain height
+  #root,
+  .App,
+  .layout-root,
+  .dashboard-main,
+  .dashboard-content,
+  .quote-test-content {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  // Force all direct children to expand
+  .quote-test-content > * {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  // Ensure tables can expand to show all content
+  .data-table {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  // Remove any CSS Grid or Flexbox height constraints
+  .client-info-grid,
+  .input-row,
+  .tx-row {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  // Ensure taux de marge and taux de change are visible in print
+  .tx-row {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .tx-row label,
+  .tx-row span {
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #222 !important;
+    font-weight: bold !important;
+  }
+
+  // Ensure input-row content is visible
+  .input-row {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .input-row span {
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 }
 
