@@ -414,6 +414,25 @@
     visibility: visible !important;
     opacity: 1 !important;
   }
+
+  // Hide navigation bar in mobile version when printing
+  .mobile-app-bar,
+  .mobile-sidebar,
+  .mobile-toolbar-spacer {
+    display: none !important;
+  }
+
+  // Ensure mobile layout doesn't interfere with print
+  .mobile-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  // Hide any mobile-specific navigation elements
+  .MuiAppBar-root,
+  .MuiDrawer-root {
+    display: none !important;
+  }
 }
 
 // --- End of added styles ---
