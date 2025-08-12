@@ -303,3 +303,61 @@
     }
   }
 }
+
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .quote-content {
+    padding-bottom: 1rem;
+
+    &::before {
+      background-size: 200px; // Smaller background on mobile
+    }
+  }
+
+  .quote-actions {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .MuiButton-root {
+      width: 100%;
+      min-height: 48px; // Touch-friendly button height
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .quote-content {
+    padding-bottom: 0.5rem;
+
+    &::before {
+      background-size: 150px; // Even smaller background on small mobile
+    }
+  }
+
+  .quote-actions {
+    margin-bottom: 8px;
+
+    .MuiButton-root {
+      min-height: 44px; // Minimum touch target size
+      font-size: 14px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .quote-content {
+    &::before {
+      background-size: 100px; // Minimal background on very small screens
+    }
+  }
+
+  .quote-actions {
+    gap: 8px;
+
+    .MuiButton-root {
+      font-size: 13px;
+      padding: 8px 16px;
+    }
+  }
+}

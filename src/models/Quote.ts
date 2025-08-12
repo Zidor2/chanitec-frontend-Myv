@@ -7,9 +7,9 @@ export interface SupplyItem {
   description: string;
   quantity: number;
   priceEuro: number; // Price in Euro (PR €)
-  priceDollar?: number; // Price in Dollar (PR $)
-  unitPriceDollar?: number; // Unit price in Dollar (PV/u $)
-  totalPriceDollar?: number; // Total price in Dollar (PV $ Total HT)
+  priceDollar: number; // Price in Dollar (PR $) - calculated by backend
+  unitPriceDollar: number; // Unit price in Dollar (PV/u $) - calculated by backend
+  totalPriceDollar: number; // Total price in Dollar (PV $ Total HT) - calculated by backend
 }
 
 /**
@@ -23,9 +23,9 @@ export interface LaborItem {
   nbHours: number;
   weekendMultiplier: number; // 1 or 1.6
   priceEuro: number; // Price in Euro (PR €)
-  priceDollar?: number; // Price in Dollar (PR $)
-  unitPriceDollar?: number; // Unit price in Dollar (PV/u $)
-  totalPriceDollar?: number; // Total price in Dollar (PV $ Total HT)
+  priceDollar: number; // Price in Dollar (PR $) - calculated by backend
+  unitPriceDollar: number; // Unit price in Dollar (PV/u $) - calculated by backend
+  totalPriceDollar: number; // Total price in Dollar (PV $ Total HT) - calculated by backend
 }
 
 /**

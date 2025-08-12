@@ -4,6 +4,21 @@
   background-color: #f5f5f5;
 }
 
+// Mobile App Bar
+.mobile-app-bar {
+  background-color: #1976d2;
+  color: white;
+
+  .MuiToolbar-root {
+    min-height: 56px;
+  }
+}
+
+// Mobile Toolbar Spacer
+.mobile-toolbar-spacer {
+  height: 56px; // Same height as mobile app bar
+}
+
 // Sidebar
 .dashboard-sidebar {
   .sidebar-paper {
@@ -120,6 +135,27 @@
   }
 }
 
+// Mobile Sidebar
+.mobile-sidebar {
+  .MuiDrawer-paper {
+    background-color: white;
+    border-right: 1px solid #e0e0e0;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  }
+
+  // Mobile-specific adjustments when logo is hidden
+  .sidebar-content {
+    padding-top: 1rem; // Add top padding since logo is hidden
+  }
+
+  // Mobile sidebar header adjustments
+  .sidebar-header {
+    @media (max-width: 768px) {
+      display: none; // Ensure logo is hidden on mobile
+    }
+  }
+}
+
 // Main Content
 .dashboard-main {
   flex-grow: 1;
@@ -127,6 +163,11 @@
   transition: margin-left 0.3s ease;
   width: calc(100vw - 280px); // Ensure main content takes remaining width
   overflow-x: hidden; // Prevent horizontal scrolling
+
+  &.mobile-main {
+    margin-left: 0;
+    width: 100vw;
+  }
 
   .dashboard-content {
     padding: 0;
@@ -157,12 +198,31 @@
   .dashboard-main {
     margin-left: 0 !important;
     width: 100vw; // Full width on mobile
+
+    .dashboard-content {
+      padding-left: 5%;
+      padding-right: 5%;
+    }
   }
 
   .dashboard-sidebar {
     .sidebar-paper {
       width: 100vw;
     }
+  }
+}
+
+// Mobile-specific optimizations
+@media (max-width: 480px) {
+  .dashboard-main {
+    .dashboard-content {
+      padding-left: 2%;
+      padding-right: 2%;
+    }
+  }
+
+  .sidebar-paper {
+    width: 100vw !important;
   }
 }
 

@@ -42,7 +42,10 @@ class StorageService {
             this.saveSupply({
               description: item.description,
               priceEuro: item.priceEuro,
-              quantity: item.quantity || 1
+              quantity: item.quantity || 1,
+              priceDollar: 0, // Will be calculated by backend
+              unitPriceDollar: 0, // Will be calculated by backend
+              totalPriceDollar: 0 // Will be calculated by backend
             });
           });
           console.log(`Loaded ${items.length} sample items successfully`);

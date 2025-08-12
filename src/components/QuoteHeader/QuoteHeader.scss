@@ -88,3 +88,110 @@
     }
   }
 }
+
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .quote-header {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+
+    .quote-id-display {
+      margin-bottom: 0.75rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+
+      .id-label {
+        margin-right: 0;
+        font-size: 0.875rem;
+      }
+
+      .id-value {
+        font-size: 0.875rem;
+      }
+    }
+
+    .info-grid {
+      .header-field {
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+
+        .MuiFormLabel-root {
+          font-size: 0.8rem;
+        }
+
+        .MuiInputBase-input {
+          font-size: 0.85rem;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .quote-header {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+
+    .quote-id-display {
+      margin-bottom: 0.5rem;
+
+      .id-label {
+        font-size: 0.8rem;
+      }
+
+      .id-value {
+        font-size: 0.8rem;
+      }
+    }
+
+    .info-grid {
+      .header-field {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+
+        .MuiFormLabel-root {
+          font-size: 0.75rem;
+        }
+
+        .MuiInputBase-input {
+          font-size: 0.8rem;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .quote-header {
+    padding: 0.5rem;
+    margin-bottom: 0.75rem;
+
+    .quote-id-display {
+      margin-bottom: 0.5rem;
+
+      .id-label {
+        font-size: 0.75rem;
+      }
+
+      .id-value {
+        font-size: 0.75rem;
+      }
+    }
+
+    .info-grid {
+      .header-field {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+
+        .MuiFormLabel-root {
+          font-size: 0.7rem;
+        }
+
+        .MuiInputBase-input {
+          font-size: 0.75rem;
+        }
+      }
+    }
+  }
+}

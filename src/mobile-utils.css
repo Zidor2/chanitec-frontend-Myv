@@ -1,0 +1,150 @@
+/* Mobile Utilities CSS */
+/* Additional mobile-specific optimizations for Chanitec App */
+
+/* Mobile-specific table handling */
+@media (max-width: 768px) {
+  .mobile-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-table-wrapper table {
+    min-width: 600px;
+    white-space: nowrap;
+  }
+}
+
+/* Mobile form field optimizations */
+@media (max-width: 600px) {
+  .mobile-form-field {
+    margin-bottom: 16px;
+  }
+
+  .mobile-form-field .MuiFormControl-root {
+    width: 100%;
+  }
+
+  .mobile-form-field .MuiInputBase-root {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+/* Mobile button optimizations */
+@media (max-width: 600px) {
+  .mobile-button {
+    width: 100%;
+    min-height: 48px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .mobile-button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* Mobile spacing utilities */
+@media (max-width: 768px) {
+  .mobile-mt-1 { margin-top: 8px !important; }
+  .mobile-mt-2 { margin-top: 16px !important; }
+  .mobile-mt-3 { margin-top: 24px !important; }
+
+  .mobile-mb-1 { margin-bottom: 8px !important; }
+  .mobile-mb-2 { margin-bottom: 16px !important; }
+  .mobile-mb-3 { margin-bottom: 24px !important; }
+
+  .mobile-p-1 { padding: 8px !important; }
+  .mobile-p-2 { padding: 16px !important; }
+  .mobile-p-3 { padding: 24px !important; }
+}
+
+@media (max-width: 600px) {
+  .mobile-mt-1 { margin-top: 6px !important; }
+  .mobile-mt-2 { margin-top: 12px !important; }
+  .mobile-mt-3 { margin-top: 18px !important; }
+
+  .mobile-mb-1 { margin-bottom: 6px !important; }
+  .mobile-mb-2 { margin-bottom: 12px !important; }
+  .mobile-mb-3 { margin-bottom: 18px !important; }
+
+  .mobile-p-1 { padding: 6px !important; }
+  .mobile-p-2 { padding: 12px !important; }
+  .mobile-p-3 { padding: 18px !important; }
+}
+
+/* Mobile text utilities */
+@media (max-width: 768px) {
+  .mobile-text-sm { font-size: 0.875rem !important; }
+  .mobile-text-base { font-size: 1rem !important; }
+  .mobile-text-lg { font-size: 1.125rem !important; }
+}
+
+@media (max-width: 600px) {
+  .mobile-text-sm { font-size: 0.8rem !important; }
+  .mobile-text-base { font-size: 0.9rem !important; }
+  .mobile-text-lg { font-size: 1rem !important; }
+}
+
+/* Mobile layout utilities */
+@media (max-width: 768px) {
+  .mobile-hidden { display: none !important; }
+  .mobile-block { display: block !important; }
+  .mobile-flex { display: flex !important; }
+  .mobile-flex-col { flex-direction: column !important; }
+  .mobile-w-full { width: 100% !important; }
+}
+
+/* Mobile-specific animations */
+@media (max-width: 768px) {
+  .mobile-fade-in {
+    animation: mobileFadeIn 0.3s ease-in-out;
+  }
+
+  .mobile-slide-up {
+    animation: mobileSlideUp 0.3s ease-out;
+  }
+}
+
+@keyframes mobileFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mobileSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobile touch feedback */
+@media (hover: none) {
+  .mobile-touch-feedback:active {
+    background-color: rgba(25, 118, 210, 0.1);
+    transform: scale(0.98);
+    transition: all 0.1s ease;
+  }
+}
+
+/* Mobile scrollbar styling */
+@media (max-width: 768px) {
+  .mobile-scrollable::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .mobile-scrollable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  .mobile-scrollable::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+
+  .mobile-scrollable::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+}

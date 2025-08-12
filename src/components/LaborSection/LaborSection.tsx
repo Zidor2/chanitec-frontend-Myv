@@ -97,7 +97,10 @@ const LaborSection: React.FC<LaborSectionProps> = ({
       nbTechnicians,
       nbHours,
       weekendMultiplier,
-      priceEuro
+      priceEuro,
+      priceDollar: 0, // Will be calculated by calculateLaborItemTotal
+      unitPriceDollar: 0, // Will be calculated by calculateLaborItemTotal
+      totalPriceDollar: 0 // Will be calculated by calculateLaborItemTotal
     };
     const calculatedItem = calculateLaborItemTotal(newItem as LaborItem, exchangeRate, marginRate);
     onAddItem({

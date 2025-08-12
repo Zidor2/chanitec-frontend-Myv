@@ -127,3 +127,116 @@
     }
   }
 }
+
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .custom-number-input {
+    .custom-number-label {
+      font-size: 0.8rem;
+      margin-bottom: 6px;
+    }
+
+    .custom-number-container {
+      width: 100%;
+      min-height: 44px; // Touch-friendly height
+
+      .custom-number-field {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+      }
+
+      .number-control-button {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+
+        svg {
+          font-size: 20px;
+        }
+      }
+    }
+
+    &.display-only {
+      .custom-number-value {
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .custom-number-input {
+    .custom-number-label {
+      font-size: 0.75rem;
+      margin-bottom: 4px;
+    }
+
+    .custom-number-container {
+      min-height: 44px;
+
+      .custom-number-field {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+      }
+
+      .number-control-button {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+
+        svg {
+          font-size: 18px;
+        }
+      }
+    }
+
+    &.display-only {
+      .custom-number-value {
+        min-height: 44px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .custom-number-input {
+    .custom-number-label {
+      font-size: 0.7rem;
+      margin-bottom: 4px;
+    }
+
+    .custom-number-container {
+      min-height: 44px;
+
+      .custom-number-field {
+        padding: 8px 8px;
+        font-size: 0.8rem;
+      }
+
+      .number-control-button {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+
+        svg {
+          font-size: 16px;
+        }
+      }
+    }
+
+    &.display-only {
+      .custom-number-value {
+        min-height: 44px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+      }
+    }
+  }
+}

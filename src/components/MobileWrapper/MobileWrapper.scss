@@ -1,0 +1,138 @@
+.mobile-wrapper {
+  // Base styles
+  width: 100%;
+
+  // Mobile-specific optimizations
+  @media (max-width: 768px) {
+    // Ensure proper touch targets
+    button,
+    input,
+    select,
+    textarea,
+    [role="button"] {
+      min-height: 44px;
+    }
+
+    // Optimize table scrolling
+    .mobile-table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      table {
+        min-width: 600px;
+        white-space: nowrap;
+      }
+    }
+
+    // Mobile form optimizations
+    .mobile-form-field {
+      margin-bottom: 16px;
+
+      .MuiFormControl-root {
+        width: 100%;
+      }
+
+      .MuiInputBase-root {
+        font-size: 16px; // Prevent zoom on iOS
+      }
+    }
+
+    // Mobile button optimizations
+    .mobile-button {
+      width: 100%;
+      min-height: 48px;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+
+    .mobile-button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    // Further mobile optimizations
+    .mobile-table-wrapper {
+      table {
+        th, td {
+          padding: 6px 4px;
+          font-size: 0.8rem;
+        }
+      }
+    }
+
+    .mobile-form-field {
+      margin-bottom: 12px;
+    }
+
+    .mobile-button {
+      min-height: 44px;
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    // Very small screen optimizations
+    .mobile-table-wrapper {
+      table {
+        th, td {
+          padding: 4px 2px;
+          font-size: 0.75rem;
+        }
+      }
+    }
+
+    .mobile-button {
+      font-size: 13px;
+      padding: 8px 16px;
+    }
+  }
+}
+
+// Mobile-specific utility classes
+.mobile-hidden {
+  @media (max-width: 768px) {
+    display: none !important;
+  }
+}
+
+.mobile-visible {
+  @media (min-width: 769px) {
+    display: none !important;
+  }
+}
+
+.mobile-table-scroll {
+  @media (max-width: 768px) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    table {
+      min-width: 600px;
+    }
+  }
+}
+
+.mobile-full-width {
+  @media (max-width: 768px) {
+    width: 100% !important;
+  }
+}
+
+.mobile-stack {
+  @media (max-width: 768px) {
+    flex-direction: column !important;
+
+    > * {
+      margin-bottom: 8px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}

@@ -60,6 +60,68 @@
   }
 }
 
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .quote-actions {
+    padding: 1rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1.5rem;
+
+    .actions-container {
+      gap: 0.75rem;
+
+      .action-button {
+        min-width: 120px;
+        padding: 12px 16px;
+        min-height: 48px; // Touch-friendly button height
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .quote-actions {
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+
+    .actions-container {
+      gap: 0.5rem;
+
+      .action-button {
+        min-width: 100%;
+        min-height: 44px; // Minimum touch target size
+        font-size: 14px;
+        padding: 10px 16px;
+        margin-bottom: 0.5rem;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .quote-actions {
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+
+    .actions-container {
+      gap: 0.5rem;
+
+      .action-button {
+        min-height: 44px;
+        font-size: 13px;
+        padding: 8px 16px;
+      }
+    }
+  }
+}
+
 // PDF specific styles
 .pdf-container {
   .MuiPaper-root {

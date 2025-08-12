@@ -127,3 +127,173 @@
     }
   }
 }
+
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .labor-section {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+
+    .section-title {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .description-field {
+      height: auto;
+      min-height: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .rates-container {
+      margin-bottom: 1rem;
+
+      .rates-container-item {
+        width: 100% !important;
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    .add-labor-form {
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+
+      .add-button-container {
+        margin-top: 0.75rem;
+
+        .add-labor-button {
+          width: 100%;
+          min-height: 48px;
+        }
+      }
+    }
+
+    .items-table-container {
+      margin-bottom: 0.75rem;
+      overflow-x: auto; // Enable horizontal scrolling for tables
+
+      table {
+        min-width: 600px; // Ensure table has minimum width for scrolling
+
+        th, td {
+          padding: 8px 6px;
+          font-size: 0.875rem;
+        }
+      }
+    }
+
+    .total-container {
+      padding: 0.75rem;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .labor-section {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+
+    .section-title {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .description-field {
+      min-height: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .rates-container {
+      margin-bottom: 0.75rem;
+
+      .rates-container-item {
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    .add-labor-form {
+      padding: 0.5rem;
+      margin-bottom: 0.75rem;
+
+      .add-button-container {
+        margin-top: 0.5rem;
+
+        .add-labor-button {
+          min-height: 44px;
+          font-size: 14px;
+        }
+      }
+    }
+
+    .items-table-container {
+      margin-bottom: 0.5rem;
+
+      table {
+        th, td {
+          padding: 6px 4px;
+          font-size: 0.8rem;
+        }
+      }
+    }
+
+    .total-container {
+      padding: 0.5rem;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .labor-section {
+    padding: 0.5rem;
+    margin-bottom: 0.75rem;
+
+    .section-title {
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .description-field {
+      min-height: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .rates-container {
+      margin-bottom: 0.5rem;
+    }
+
+    .add-labor-form {
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+
+      .add-button-container {
+        margin-top: 0.5rem;
+
+        .add-labor-button {
+          font-size: 13px;
+          padding: 8px 16px;
+        }
+      }
+    }
+
+    .items-table-container {
+      margin-bottom: 0.5rem;
+
+      table {
+        th, td {
+          padding: 4px 2px;
+          font-size: 0.75rem;
+        }
+      }
+    }
+
+    .total-container {
+      padding: 0.5rem;
+      font-size: 0.8rem;
+    }
+  }
+}

@@ -11,3 +11,95 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Global Mobile Responsive Rules */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure proper touch targets on mobile */
+button,
+input,
+select,
+textarea,
+[role="button"] {
+  min-height: 44px; /* Minimum touch target size */
+}
+
+/* Mobile-first table responsiveness */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Mobile form improvements */
+form {
+  width: 100%;
+}
+
+/* Mobile-friendly spacing */
+@media (max-width: 768px) {
+  .MuiContainer-root {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .MuiGrid-container {
+    margin: 0 !important;
+  }
+
+  .MuiGrid-item {
+    padding: 8px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .MuiContainer-root {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .MuiGrid-item {
+    padding: 6px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .MuiContainer-root {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .MuiGrid-item {
+    padding: 4px !important;
+  }
+}
+
+/* Ensure proper mobile scrolling */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Mobile-friendly focus states */
+*:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Mobile-friendly hover states (only on devices that support hover) */
+@media (hover: hover) {
+  button:hover,
+  [role="button"]:hover {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+  }
+}
+
+/* Disable hover effects on touch devices */
+@media (hover: none) {
+  button:hover,
+  [role="button"]:hover {
+    transform: none;
+  }
+}
