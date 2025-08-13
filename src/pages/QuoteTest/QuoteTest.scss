@@ -1,4 +1,9 @@
 // --- Added for pixel-perfect match with reference HTML ---
+.quote-test-content {
+  position: relative;
+  min-height: 100vh;
+}
+
 .reference-header {
   display: flex;
   width: 100%;
@@ -437,3 +442,67 @@
 
 // --- End of added styles ---
 
+// Hide background logos by default
+.background-logo,
+.background-logo-second {
+  display: none;
+}
+
+// --- Background Logo Styles ---
+/* Show background logos when printing */
+@media print {
+  .background-logo,
+  .background-logo-second {
+    display: block !important;
+    position: absolute;
+    opacity: 0.1;
+    z-index: 1000;
+    pointer-events: none;
+  }
+
+  .background-logo {
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+  }
+
+  .background-logo-second {
+    top: 75%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    max-width: 400px;
+  }
+
+  body, .main-content, .quote-test-root, #root {
+    background: transparent !important;
+  }
+}
+
+/* Show background logos when in PDF mode */
+.quote-test-content.is-pdf-mode .background-logo,
+.quote-test-content.is-pdf-mode .background-logo-second {
+  display: block;
+  position: absolute;
+  opacity: 0.5;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.quote-test-content.is-pdf-mode .background-logo {
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+}
+
+.quote-test-content.is-pdf-mode .background-logo-second {
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  max-width: 400px;
+}
