@@ -236,6 +236,7 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
   // Open dialog to add a new item
   const handleAddItem = () => {
     setCurrentItem({
+      id: '',
       description: '',
       priceEuro: 0,
       quantity: 0
@@ -265,9 +266,15 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
       return;
     }
 
+    if (!isEditing && !currentItem.id) {
+      showSnackbar("L'ID de l'article est requis", 'error');
+      return;
+    }
+
     try {
       setLoading(true);
       const itemData = {
+        id: currentItem.id,
         description: currentItem.description,
         price: currentItem.priceEuro,
         quantity: currentItem.quantity === undefined || currentItem.quantity === null ? 0 : currentItem.quantity
@@ -276,7 +283,7 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
       if (isEditing && currentItem.id) {
         await itemsApi.updateItem(currentItem.id, itemData);
       } else {
-        await itemsApi.createItem(itemData);
+        await itemsApi.createItemWithCustomId(itemData);
       }
 
       showSnackbar(`Article ${isEditing ? 'mis à jour' : 'créé'} avec succès`, 'success');
@@ -720,6 +727,18 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
         <DialogContent>
           <TextField
             autoFocus
+            margin="dense"
+            name="id"
+            label="ID de l'article"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={currentItem.id || ''}
+            onChange={handleInputChange}
+            disabled={isEditing}
+            helperText={isEditing ? "L'ID ne peut pas être modifié en mode édition" : "Entrez un identifiant unique pour l'article"}
+          />
+          <TextField
             margin="dense"
             name="description"
             label="Description"
