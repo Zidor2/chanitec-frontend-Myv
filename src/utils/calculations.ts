@@ -139,3 +139,30 @@ export const calculateTotalTTCWithRemise = (totalHT: number, remise: number = 0)
   const totalWithRemise = calculateTotalWithRemise(totalHT, remise);
   return totalWithRemise + calculateVAT(totalWithRemise);
 };
+
+/**
+ * Formats a number to display with spaces for thousands separators
+ * @param value - The number to format
+ * @param decimals - Number of decimal places (default: 2)
+ * @returns Formatted string with spaces as thousand separators
+ */
+export function formatNumberWithSpaces(value: number, decimals: number = 2): string {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '0.00';
+  }
+
+  // Convert to number and round to specified decimals
+  const roundedValue = Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+
+  // Convert to string with fixed decimal places
+  const stringValue = roundedValue.toFixed(decimals);
+
+  // Split into integer and decimal parts
+  const [integerPart, decimalPart] = stringValue.split('.');
+
+  // Add spaces every 3 digits from right to left for integer part
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+  // Return formatted number
+  return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+}

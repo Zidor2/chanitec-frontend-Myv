@@ -15,6 +15,7 @@ import { SupplyItem, LaborItem } from '../../models/Quote';
 import { generateId } from '../../utils/id-generator';
 import logo512 from '../../assets/logo512.png';
 import CHANitec from '../../assets/CHANitec.png';
+import { formatNumberWithSpaces } from '../../utils/calculations';
 
 // Add a helper function for date formatting at the top level
 function formatDate(dateString: string) {
@@ -368,9 +369,9 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
         <div className="clearfix">
           <table className="summary-table" style={{ float: 'right' }}>
             <tbody>
-              <tr><th>TOTAL OFFRE USD HT:</th><td>{currentQuote.totalHT}</td></tr>
-              <tr><th>TVA:</th><td>{(currentQuote.totalHT * (16 / 100)).toFixed(2)}</td></tr>
-              <tr><th>TOTAL OFFRE USD TTC:</th><td>{currentQuote.totalTTC}</td></tr>
+              <tr><th>TOTAL OFFRE USD HT:</th><td>{formatNumberWithSpaces(currentQuote.totalHT)}</td></tr>
+              <tr><th>TVA:</th><td>{formatNumberWithSpaces((currentQuote.totalHT * (16 / 100)))}</td></tr>
+              <tr><th>TOTAL OFFRE USD TTC:</th><td>{formatNumberWithSpaces(currentQuote.totalTTC)}</td></tr>
             </tbody>
           </table>
         </div>
@@ -403,17 +404,17 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
               <tr key={idx}>
                 <td>{item.description}</td>
                 <td>{item.quantity} </td>
-                <td>{item.priceEuro}</td>
-                <td>{(item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)).toFixed(2)}</td>
-                <td>{((item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))).toFixed(2)}</td>
-                <td>{((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))).toFixed(2)} </td>
+                <td>{formatNumberWithSpaces(item.priceEuro)}</td>
+                <td>{formatNumberWithSpaces((item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)))}</td>
+                <td>{formatNumberWithSpaces(((item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))))}</td>
+                <td>{formatNumberWithSpaces(((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))))}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="totals-row">
               <td colSpan={5} style={{ textAlign: 'right' }}>TOTAL FOURNITURE $ HT:</td>
-              <td colSpan={2}>{currentQuote.supplyItems.reduce((sum, item) => sum + ((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))), 0).toFixed(2)}</td>
+              <td colSpan={2}>{formatNumberWithSpaces(currentQuote.supplyItems.reduce((sum, item) => sum + ((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))), 0))}</td>
             </tr>
           </tfoot>
         </table>
@@ -449,17 +450,17 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
                 <td>{item.nbTechnicians}</td>
                 <td>{item.nbHours}</td>
                 <td>{item.weekendMultiplier}</td>
-                <td>{item.priceEuro}</td>
-                <td>{(item.priceEuro * (currentQuote.laborExchangeRate || 1.2)).toFixed(2)}</td>
-                <td>{((item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))).toFixed(2)}</td>
-                <td>{((item.nbTechnicians * item.nbHours * item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))).toFixed(2)}</td>
+                <td>{formatNumberWithSpaces(item.priceEuro)}</td>
+                <td>{formatNumberWithSpaces((item.priceEuro * (currentQuote.laborExchangeRate || 1.2)))}</td>
+                <td>{formatNumberWithSpaces(((item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))))}</td>
+                <td>{formatNumberWithSpaces(((item.nbTechnicians * item.nbHours * item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))))}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="totals-row">
               <td colSpan={6} style={{ textAlign: 'right' }}>TOTAL MO $ HT:</td>
-              <td colSpan={2}>{currentQuote.laborItems.reduce((sum, item) => sum + ((item.nbTechnicians * item.nbHours * item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))), 0).toFixed(2)}</td>
+              <td colSpan={2}>{formatNumberWithSpaces(currentQuote.laborItems.reduce((sum, item) => sum + ((item.nbTechnicians * item.nbHours * item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))), 0))}</td>
             </tr>
           </tfoot>
         </table>
