@@ -24,7 +24,9 @@ import {
   Logout,
   AssignmentOutlined,
   BusinessOutlined,
-  GroupOutlined
+  GroupOutlined,
+  HelpOutline,
+  QuestionAnswer
 } from '@mui/icons-material';
 import logo from '../../assets/logo512.png';
 import './Layout.scss';
@@ -56,8 +58,12 @@ const Layout: React.FC<LayoutProps> = ({
     { path: '/items', label: 'Gérer les articles', icon: <InventoryOutlined /> },
     { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined /> },
     { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined /> },
-    { path: '/employees', label: 'Employés', icon: <GroupOutlined /> }
+    { path: '/employees', label: 'Employés', icon: <GroupOutlined /> },
+    { path: '/help', label: 'Aide', icon: <QuestionAnswer /> }
   ];
+
+  // Debug: Log navigation items
+  console.log('Navigation items:', navItems);
 
   const handleNavigate = (path: string) => {
     if (path === '/' && onHomeClick) {
@@ -87,21 +93,24 @@ const Layout: React.FC<LayoutProps> = ({
 
       <Box className="sidebar-content">
         <List className="sidebar-menu">
-          {navItems.map((item) => (
-            <ListItem
-              key={item.path}
-              className={`sidebar-menu-item ${currentPath === item.path ? 'active' : ''}`}
-              onClick={() => handleNavigate(item.path)}
-            >
-              <ListItemIcon className="menu-item-icon">
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                className="menu-item-text"
-              />
-            </ListItem>
-          ))}
+          {navItems.map((item) => {
+            console.log('Rendering nav item:', item);
+            return (
+              <ListItem
+                key={item.path}
+                className={`sidebar-menu-item ${currentPath === item.path ? 'active' : ''}`}
+                onClick={() => handleNavigate(item.path)}
+              >
+                <ListItemIcon className="menu-item-icon">
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  className="menu-item-text"
+                />
+              </ListItem>
+            );
+          })}
         </List>
       </Box>
 

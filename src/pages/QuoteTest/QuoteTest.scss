@@ -2,6 +2,8 @@
 .quote-test-content {
   position: relative;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
 }
 
 .reference-header {
@@ -41,6 +43,9 @@
   border: 1px solid #d3d3d3;
   border-radius: 8px;
   padding: 18px 5px 10px 5px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .client-info-grid {
   display: grid;
@@ -88,6 +93,9 @@
   margin: 0px 0 10px 0;
   text-align: left;
   background: transparent !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .input-row {
   display: flex;
@@ -96,6 +104,9 @@
   align-items: center;
   justify-content: space-between;
   background: transparent !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .input-row input, .input-row select {
   padding: 6px 10px;
@@ -118,7 +129,24 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+.tx-row label {
+  font-weight: bold;
+  font-size: 15px;
+  color: #222;
+  margin-right: 5px;
+}
 
+.tx-row span {
+  font-weight: bold;
+  font-size: 15px;
+  color: #222;
+  margin-right: 15px;
 }
 .input-row .add-btn {
   background: #1976d2;
@@ -143,6 +171,8 @@
   margin-bottom: 10px;
   background: #fff;
   background: transparent !important;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .data-table th, .data-table td {
   border: 1px solid #d3d3d3;
@@ -154,6 +184,116 @@
   background: #e3f0fa;
   color: #1976d2;
   font-weight: bold;
+}
+
+// Ensure all sections have consistent width matching client-info-box
+.section-title,
+.input-row,
+.tx-row,
+.data-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+// Ensure the clearfix container also uses full width
+.clearfix {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+// Add table layout and column width styles for better table formatting
+.data-table {
+  table-layout: fixed; // Ensure consistent column widths
+}
+
+// Specific column widths for supplies table
+.data-table th:nth-child(1), // Description
+.data-table td:nth-child(1) {
+  width: 25%;
+}
+
+.data-table th:nth-child(2), // Qté/Nb technicien
+.data-table td:nth-child(2) {
+  width: 8%;
+  text-align: center;
+}
+
+.data-table th:nth-child(3), // PR €/Nb heures
+.data-table td:nth-child(3) {
+  width: 12%;
+  text-align: center;
+}
+
+.data-table th:nth-child(4), // PR $/Majo Weekend
+.data-table td:nth-child(4) {
+  width: 12%;
+  text-align: center;
+}
+
+.data-table th:nth-child(5), // PV/u $/PR €
+.data-table td:nth-child(5) {
+  width: 12%;
+  text-align: right;
+}
+
+.data-table th:nth-child(6), // PV $ Total HT/PR $
+.data-table td:nth-child(6) {
+  width: 15%;
+  text-align: right;
+}
+
+.data-table th:nth-child(7), // PV $ Total HT (labor table only)
+.data-table td:nth-child(7) {
+  width: 17%;
+  text-align: right;
+}
+
+// Add table layout and column width styles for better table formatting
+.data-table {
+  table-layout: fixed; // Ensure consistent column widths
+}
+
+// Specific column widths for supplies table
+.data-table th:nth-child(1), // Description
+.data-table td:nth-child(1) {
+  width: 25%;
+}
+
+.data-table th:nth-child(2), // Qté/Nb technicien
+.data-table td:nth-child(2) {
+  width: 8%;
+  text-align: center;
+}
+
+.data-table th:nth-child(3), // PR €/Nb heures
+.data-table td:nth-child(3) {
+  width: 12%;
+  text-align: center;
+}
+
+.data-table th:nth-child(4), // PR $/Majo Weekend
+.data-table td:nth-child(4) {
+  width: 12%;
+  text-align: center;
+}
+
+.data-table th:nth-child(5), // PV/u $/PR €
+.data-table td:nth-child(5) {
+  width: 12%;
+  text-align: right;
+}
+
+.data-table th:nth-child(6), // PV $ Total HT/PR $
+.data-table td:nth-child(6) {
+  width: 15%;
+  text-align: right;
+}
+
+.data-table th:nth-child(7), // PV $ Total HT (labor table only)
+.data-table td:nth-child(7) {
+  width: 17%;
+  text-align: right;
 }
 .data-table input {
   width: 80px;
@@ -192,6 +332,11 @@
   content: "";
   display: table;
   clear: both;
+}
+.clearfix {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .btn-update {
   background-color: #2196F3;
@@ -437,6 +582,87 @@
   .MuiAppBar-root,
   .MuiDrawer-root {
     display: none !important;
+  }
+
+  // CRITICAL: Override Layout component width constraints for print
+  .dashboard-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .dashboard-main {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  // Ensure tables take full available width
+  .data-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  .data-table th,
+  .data-table td {
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  // Ensure client info box and other containers use full width
+  .client-info-box,
+  .reference-header,
+  .section-title,
+  .input-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  // Override any percentage-based padding that might limit width
+  .quote-test-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  // CRITICAL: Make all tables match client-info-box width exactly
+  .client-info-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 18px 5px 10px 5px !important;
+  }
+
+  // Ensure fourniture and main d'oeuvre tables match client-info-box width
+  .data-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    margin-bottom: 10px !important;
+  }
+
+  // Force all tables to use the same container width as client-info-box
+  .section-title,
+  .input-row,
+  .tx-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  // Ensure the reference header also uses full width
+  .reference-header {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 }
 

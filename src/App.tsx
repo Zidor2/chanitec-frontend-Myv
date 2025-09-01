@@ -16,6 +16,8 @@ import InterventionPage from './pages/interventionPage';
 import { storageService } from './services/storage-service';
 import OrgChartPage from './pages/orgChartPage';
 import EmployeesPage from './pages/employeesPage';
+import HelpPage from './pages/HelpPage/HelpPage';
+
 import './App.scss';
 
 const theme = createTheme({
@@ -223,9 +225,13 @@ const AppContent = () => {
       )}
       {/* App content */}
       {!isWarmingUp && (
-        <QuoteProvider>
-          <Routes>
-            <Route
+        <>
+
+
+          <QuoteProvider>
+            <div>
+              <Routes>
+                <Route
               path="/login"
               element={
                 isAuthenticated ?
@@ -320,7 +326,7 @@ const AppContent = () => {
               }
             />
 
-            <Route
+                        <Route
               path="/employees"
               element={
                 <ProtectedRoute>
@@ -329,9 +335,20 @@ const AppContent = () => {
               }
             />
 
+            <Route
+              path="/help"
+              element={
+                <ProtectedRoute>
+                  <HelpPage currentPath="/help" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="/" element={<Navigate to="/home" replace />} />
-          </Routes>
-        </QuoteProvider>
+              </Routes>
+            </div>
+          </QuoteProvider>
+        </>
       )}
       <Snackbar
         open={notification.open}
