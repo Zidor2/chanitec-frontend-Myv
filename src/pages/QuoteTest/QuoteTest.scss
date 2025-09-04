@@ -4,6 +4,7 @@
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
+  margin: 25px 50px 50px 50px;
 }
 
 .reference-header {
@@ -120,6 +121,12 @@
   font-size: 15px;
   color: #222;
 }
+.description {
+  font-weight: bold;
+  font-size: 15px;
+  color: #222;
+  width: 100%;
+}
 .tx-row span {
   font-weight: bold;
   font-size: 15px;
@@ -170,8 +177,7 @@
   border-collapse: collapse;
   margin-bottom: 10px;
   background: #fff;
-  background: transparent !important;
-  max-width: 100%;
+  background: red !important;
   box-sizing: border-box;
 }
 .data-table th, .data-table td {
@@ -191,8 +197,6 @@
 .input-row,
 .tx-row,
 .data-table {
-  width: 100% !important;
-  max-width: 100% !important;
   box-sizing: border-box;
 }
 
@@ -395,7 +399,7 @@
   // Page setup for proper printing
   @page {
     size: A4;
-    margin: 10mm;
+    margin: 5mm;
   }
 
   // Hide action buttons in print mode
@@ -447,18 +451,11 @@
   .clearfix,
   .section-title,
   .input-row,
-  .tx-row,
-  .data-table {
+  .tx-row {
     height: auto !important;
     min-height: auto !important;
     max-height: none !important;
     overflow: visible !important;
-  }
-
-  // Ensure tables don't get cut off
-  .data-table {
-    page-break-inside: auto !important;
-    break-inside: auto !important;
   }
 
   // Allow content to flow naturally
@@ -471,7 +468,6 @@
   .section-title,
   .input-row,
   .tx-row,
-  .data-table,
   .summary-table {
     display: block !important;
     visibility: visible !important;
@@ -512,14 +508,6 @@
 
   // Force all direct children to expand
   .quote-test-content > * {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  // Ensure tables can expand to show all content
-  .data-table {
     height: auto !important;
     min-height: auto !important;
     max-height: none !important;
@@ -599,18 +587,6 @@
     padding: 0 !important;
   }
 
-  // Ensure tables take full available width
-  .data-table {
-    width: 100% !important;
-    max-width: 100% !important;
-    table-layout: fixed !important;
-  }
-
-  .data-table th,
-  .data-table td {
-    width: auto !important;
-    max-width: none !important;
-  }
 
   // Ensure client info box and other containers use full width
   .client-info-box,
@@ -626,9 +602,9 @@
   // Override any percentage-based padding that might limit width
   .quote-test-content {
     padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    margin: 25px 50px 50px 50px !important;
+    width: calc(100% - 100px) !important;
+    max-width: calc(100% - 100px) !important;
   }
 
   // CRITICAL: Make all tables match client-info-box width exactly
@@ -639,13 +615,6 @@
     padding: 18px 5px 10px 5px !important;
   }
 
-  // Ensure fourniture and main d'oeuvre tables match client-info-box width
-  .data-table {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    margin-bottom: 10px !important;
-  }
 
   // Force all tables to use the same container width as client-info-box
   .section-title,
@@ -731,4 +700,51 @@
   transform: translate(-50%, -50%);
   width: 60%;
   max-width: 400px;
+}
+
+// Specific styles for labor table with custom column widths
+.data-table.labor-table {
+  table-layout: fixed;
+}
+
+.data-table.labor-table th:nth-child(1), // Nb technicien
+.data-table.labor-table td:nth-child(1) {
+  width: 12%; // Equal width for 4 middle columns
+  text-align: center;
+}
+
+.data-table.labor-table th:nth-child(2), // Nb heures
+.data-table.labor-table td:nth-child(2) {
+  width: 12%; // Equal width for 4 middle columns
+  text-align: center;
+}
+
+.data-table.labor-table th:nth-child(3), // Majo Weekend
+.data-table.labor-table td:nth-child(3) {
+  width: 12%; // Equal width for 4 middle columns
+  text-align: center;
+}
+
+.data-table.labor-table th:nth-child(4), // PR €
+.data-table.labor-table td:nth-child(4) {
+  width: 12%; // Equal width for 4 middle columns
+  text-align: right;
+}
+
+.data-table.labor-table th:nth-child(5), // PR $
+.data-table.labor-table td:nth-child(5) {
+  width: 15%; // A little bigger than the 4 equal columns
+  text-align: right;
+}
+
+.data-table.labor-table th:nth-child(6), // PV/u $
+.data-table.labor-table td:nth-child(6) {
+  width: 15%; // A little bigger than the 4 equal columns
+  text-align: right;
+}
+
+.data-table.labor-table th:nth-child(7), // PV $ Total HT
+.data-table.labor-table td:nth-child(7) {
+  width: 22%; // Biggest column for the total
+  text-align: right;
 }

@@ -26,7 +26,8 @@ import {
   BusinessOutlined,
   GroupOutlined,
   HelpOutline,
-  QuestionAnswer
+  QuestionAnswer,
+  AccountBalance
 } from '@mui/icons-material';
 import logo from '../../assets/logo512.png';
 import './Layout.scss';
@@ -59,6 +60,7 @@ const Layout: React.FC<LayoutProps> = ({
     { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined /> },
     { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined /> },
     { path: '/employees', label: 'Employés', icon: <GroupOutlined /> },
+    { path: '/financial', label: 'Financier', icon: <AccountBalance /> },
     { path: '/help', label: 'Aide', icon: <QuestionAnswer /> }
   ];
 

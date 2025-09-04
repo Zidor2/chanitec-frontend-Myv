@@ -1,0 +1,337 @@
+.financial-page {
+  padding: 24px;
+  background-color: #f5f7fa;
+
+  .page-title {
+    margin-bottom: 32px;
+    color: #1a237e;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .filter-section {
+    padding: 24px;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+
+    .section-title {
+      color: white;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    .MuiFormControl-root {
+      .MuiInputLabel-root {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .MuiOutlinedInput-root {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+
+        .MuiOutlinedInput-notchedOutline {
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        &:hover .MuiOutlinedInput-notchedOutline {
+          border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        &.Mui-focused .MuiOutlinedInput-notchedOutline {
+          border-color: white;
+        }
+      }
+
+      .MuiInputBase-input {
+        color: white;
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.7);
+        }
+      }
+
+      .MuiSelect-icon {
+        color: rgba(255, 255, 255, 0.8);
+      }
+    }
+
+    .MuiMenuItem-root {
+      color: #333;
+    }
+  }
+
+  .summary-cards {
+    margin-bottom: 32px;
+
+    .summary-card {
+      height: 160px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 16px;
+      transition: all 0.3s ease;
+      border: none;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+      }
+
+      .card-icon {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        font-size: 48px;
+        opacity: 0.2;
+        color: currentColor;
+      }
+
+      &.total-quotes {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      &.total-supplies {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+      }
+
+      &.total-labor {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+      }
+
+      &.total-revenue {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: white;
+      }
+
+      .MuiCardContent-root {
+        padding: 24px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        .MuiTypography-h4 {
+          font-weight: 700;
+          margin-bottom: 8px;
+        }
+
+        .MuiTypography-body2 {
+          opacity: 0.9;
+        }
+      }
+    }
+  }
+
+  .quotes-table-section {
+    margin-bottom: 32px;
+    border-radius: 16px;
+    overflow: hidden;
+
+    .section-title {
+      padding: 24px 24px 16px 24px;
+      margin: 0;
+      color: #1a237e;
+      font-weight: 600;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .MuiTableContainer-root {
+      .MuiTable-root {
+        .MuiTableHead-root {
+          background-color: #f8f9fa;
+
+          .MuiTableRow-root {
+            .MuiTableCell-head {
+              font-weight: 600;
+              color: #1a237e;
+              border-bottom: 2px solid #e0e0e0;
+              padding: 16px;
+            }
+          }
+        }
+
+        .MuiTableBody-root {
+          .MuiTableRow-root {
+            transition: background-color 0.2s ease;
+
+            &:hover {
+              background-color: #f8f9fa;
+            }
+
+            .MuiTableCell-body {
+              padding: 16px;
+              border-bottom: 1px solid #f0f0f0;
+            }
+
+            &:last-child .MuiTableCell-body {
+              border-bottom: none;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .bottom-totals-section {
+    padding: 32px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+
+    .section-title {
+      color: white;
+      margin-bottom: 24px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .total-box {
+      text-align: center;
+      padding: 24px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-4px);
+      }
+
+      .MuiTypography-h6 {
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 12px;
+        font-weight: 500;
+      }
+
+      .MuiTypography-h4 {
+        color: white;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .MuiTypography-body2 {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.875rem;
+      }
+    }
+  }
+
+  // Responsive design
+  @media (max-width: 960px) {
+    padding: 16px;
+
+    .filter-section {
+      padding: 20px;
+
+      .MuiGrid-container {
+        .MuiGrid-item {
+          margin-bottom: 16px;
+        }
+      }
+    }
+
+    .summary-cards {
+      .MuiGrid-item {
+        margin-bottom: 16px;
+      }
+
+      .summary-card {
+        height: 140px;
+
+        .MuiCardContent-root {
+          padding: 20px;
+
+          .MuiTypography-h4 {
+            font-size: 1.75rem;
+          }
+        }
+
+        .card-icon {
+          font-size: 36px;
+        }
+      }
+    }
+
+    .quotes-table-section {
+      .MuiTableContainer-root {
+        overflow-x: auto;
+      }
+    }
+
+    .bottom-totals-section {
+      padding: 24px;
+
+      .total-box {
+        margin-bottom: 16px;
+        padding: 20px;
+      }
+    }
+  }
+
+  @media (max-width: 600px) {
+    .page-title {
+      font-size: 1.75rem;
+      margin-bottom: 24px;
+    }
+
+    .filter-section {
+      padding: 16px;
+
+      .section-title {
+        font-size: 1.25rem;
+      }
+    }
+
+    .summary-cards {
+      .summary-card {
+        height: 120px;
+
+        .MuiCardContent-root {
+          padding: 16px;
+
+          .MuiTypography-h4 {
+            font-size: 1.5rem;
+          }
+
+          .MuiTypography-body2 {
+            font-size: 0.75rem;
+          }
+        }
+
+        .card-icon {
+          font-size: 32px;
+        }
+      }
+    }
+
+    .quotes-table-section {
+      .section-title {
+        padding: 16px;
+        font-size: 1.25rem;
+      }
+    }
+
+    .bottom-totals-section {
+      padding: 20px;
+
+      .section-title {
+        font-size: 1.5rem;
+      }
+
+      .total-box {
+        padding: 16px;
+
+        .MuiTypography-h4 {
+          font-size: 1.75rem;
+        }
+      }
+    }
+  }
+}

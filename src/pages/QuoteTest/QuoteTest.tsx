@@ -379,7 +379,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
         {/* Fournitures Section */}
         <div className="section-title">FOURNITURES</div>
         <div className="input-row">
-        <span> {currentQuote.supplyDescription || ''} </span>
+        <span className="description" > {currentQuote.supplyDescription || ''} </span>
           <div className='tx-row'>
           <label>Tx de chg:</label>
           <span> {currentQuote.supplyExchangeRate || 1.15}</span>
@@ -413,8 +413,8 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           </tbody>
           <tfoot>
             <tr className="totals-row">
-              <td colSpan={5} style={{ textAlign: 'right' }}>TOTAL FOURNITURE $ HT:</td>
-              <td colSpan={2}>{formatNumberWithSpaces(currentQuote.supplyItems.reduce((sum, item) => sum + ((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))), 0))}</td>
+              <td colSpan={5} style={{ textAlign: 'left' }}>TOTAL FOURNITURE $ HT:</td>
+              <td>{formatNumberWithSpaces(currentQuote.supplyItems.reduce((sum, item) => sum + ((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))), 0))}</td>
             </tr>
           </tfoot>
         </table>
@@ -422,7 +422,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
         {/* Main d'oeuvre Section */}
         <div className="section-title">MAIN D'OEUVRE</div>
         <div className="input-row">
-          <span>{currentQuote.laborDescription || ''}</span>
+          <span className="description"> {currentQuote.laborDescription || ''}</span>
           <div className='tx-row'>
           <label>Tx de chg:</label>
           <span>{currentQuote.laborExchangeRate || 1.2}</span>
@@ -432,7 +432,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
         </div>
 
 
-        <table className="data-table">
+        <table className="data-table labor-table">
           <thead>
             <tr>
               <th>Nb technicien</th>

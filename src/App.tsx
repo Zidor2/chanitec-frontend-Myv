@@ -17,6 +17,7 @@ import { storageService } from './services/storage-service';
 import OrgChartPage from './pages/orgChartPage';
 import EmployeesPage from './pages/employeesPage';
 import HelpPage from './pages/HelpPage/HelpPage';
+import FinancialPage from './pages/FinancialPage/FinancialPage';
 
 import './App.scss';
 
@@ -340,6 +341,15 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <HelpPage currentPath="/help" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/financial"
+              element={
+                <ProtectedRoute>
+                  <FinancialPage currentPath="/financial" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
