@@ -1,18 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, Container, Typography, Button, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import Layout from '../../components/Layout/Layout';
 import { useQuote } from '../../contexts/QuoteContext';
 import './QuoteTest.scss';
 import logo from '../../logo.png';
 import { useLocation, useNavigate } from 'react-router-dom';
-import html2pdf from 'html2pdf.js';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon
-} from '@mui/icons-material';
-import { SupplyItem, LaborItem } from '../../models/Quote';
-import { generateId } from '../../utils/id-generator';
 import logo512 from '../../assets/logo512.png';
 import CHANitec from '../../assets/CHANitec.png';
 import { formatNumberWithSpaces } from '../../utils/calculations';
@@ -36,28 +28,17 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
   const {
     state,
     createNewQuote,
-    saveQuote,
-    updateQuote,
     setQuoteField,
-    addSupplyItem,
-    removeSupplyItem,
-    addLaborItem,
-    removeLaborItem,
-    recalculateTotals,
     clearQuote,
-    loadQuote,
-    updateLaborItem
+    loadQuote
   } = useQuote();
 
-  const { currentQuote, isLoading, isExistingQuote, originalQuoteId } = state;
+  const { currentQuote, isLoading } = state;
   const contentRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const quoteId = new URLSearchParams(location.search).get('id');
 
-  const [isFromHistory, setIsFromHistory] = useState(false);
-  const [isConfirmed, setIsConfirmed] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [isPdfMode, setIsPdfMode] = useState(false);
 
@@ -82,7 +63,6 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           }
           await loadQuote(quoteId, createdAt);
           console.log('Quote loaded successfully');
-          setIsReady(true);
         } catch (error) {
           console.error('Error loading quote:', error);
           navigate('/');
@@ -90,26 +70,17 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
       } else if (!currentQuote && !isLoading && !quoteId) {
         console.log('No quote ID provided, creating new quote');
         createNewQuote();
-        setIsReady(true);
       }
     };
 
     loadQuoteData();
-  }, [quoteId]);
+  }, [quoteId, isLoading, currentQuote, loadQuote, createNewQuote, navigate]);
 
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const fromHistory = queryParams.get('fromHistory') === 'true';
-    const confirmed = queryParams.get('confirmed') === 'true';
-    setIsFromHistory(fromHistory);
-    setIsConfirmed(confirmed);
-  }, []);
 
   // Update isReadOnly when currentQuote changes
   useEffect(() => {
     if (currentQuote) {
       setIsReadOnly(currentQuote.confirmed || false);
-      setIsConfirmed(currentQuote.confirmed || false);
     }
   }, [currentQuote]);
 
@@ -134,102 +105,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
     onNavigate('/');
   };
 
-  const handleConfirmQuote = async () => {
-    if (!currentQuote) return;
 
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/quotes/${currentQuote.id}/confirm`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ confirmed: true }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to confirm quote');
-      }
-
-      setIsConfirmed(true);
-      setIsReadOnly(true);
-      alert('Devis confirmé avec succès. Prêt pour un nouveau devis.');
-      clearQuote();
-      createNewQuote();
-    } catch (error) {
-      console.error('Error confirming quote:', error);
-      alert('Erreur lors de la confirmation du devis');
-    }
-  };
-
-  const handleGeneratePDF = async () => {
-    let timeoutId: NodeJS.Timeout | null = null;
-    try {
-      setIsPdfMode(true);
-      // Fallback: in case PDF generation hangs, reset after 5 seconds
-      timeoutId = setTimeout(() => {
-        setIsPdfMode(false);
-      }, 5000);
-      console.log('Current state:', {
-        contentRef: contentRef.current,
-        currentQuote: currentQuote,
-        isLoading: isLoading
-      });
-
-      if (!contentRef.current) {
-        console.error('Content reference is missing');
-        alert('Impossible de générer le PDF: la référence au contenu est manquante');
-        setIsPdfMode(false);
-        if (timeoutId) clearTimeout(timeoutId);
-        return;
-      }
-
-      if (!currentQuote) {
-        console.error('Current quote is missing');
-        alert('Impossible de générer le PDF: le devis actuel est manquant');
-        setIsPdfMode(false);
-        if (timeoutId) clearTimeout(timeoutId);
-        return;
-      }
-
-      if (isLoading) {
-        console.error('Quote is still loading');
-        alert('Veuillez patienter pendant le chargement du devis');
-        setIsPdfMode(false);
-        if (timeoutId) clearTimeout(timeoutId);
-        return;
-      }
-
-      console.log('Starting PDF generation...');
-      const element = contentRef.current;
-
-      const opt = {
-        margin: 5, // Set margin to 0 for closer print match
-        filename: `devis-${currentQuote.id}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 1.25, // Adjust scale for closer print match
-          useCORS: true,
-          logging: true
-        },
-        enableLinks: true,
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-
-      // Generate PDF with save dialog
-      await html2pdf()
-        .from(element)
-        .set(opt)
-        .save();
-
-      console.log('PDF generation completed');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
-    } finally {
-      setIsPdfMode(false);
-      if (timeoutId) clearTimeout(timeoutId);
-    }
-  };
 
   const handlePrint = () => {
     setIsPdfMode(true);
@@ -451,16 +327,16 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
                 <td>{item.nbHours}</td>
                 <td>{item.weekendMultiplier}</td>
                 <td>{formatNumberWithSpaces(item.priceEuro)}</td>
-                <td>{formatNumberWithSpaces((item.priceEuro * (currentQuote.laborExchangeRate || 1.2)))}</td>
-                <td>{formatNumberWithSpaces(((item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))))}</td>
-                <td>{formatNumberWithSpaces(((item.nbTechnicians * item.nbHours * item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))))}</td>
+                <td>{formatNumberWithSpaces(item.priceDollar || 0)}</td>
+                <td>{formatNumberWithSpaces(item.unitPriceDollar || 0)}</td>
+                <td>{formatNumberWithSpaces(item.totalPriceDollar || 0)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="totals-row">
               <td colSpan={6} style={{ textAlign: 'right' }}>TOTAL MO $ HT:</td>
-              <td colSpan={2}>{formatNumberWithSpaces(currentQuote.laborItems.reduce((sum, item) => sum + ((item.nbTechnicians * item.nbHours * item.priceEuro * (currentQuote.laborExchangeRate || 1.2)) * (1 / (currentQuote.laborMarginRate || 0.8))), 0))}</td>
+              <td colSpan={2}>{formatNumberWithSpaces(currentQuote.totalLaborHT)}</td>
             </tr>
           </tfoot>
         </table>
