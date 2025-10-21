@@ -19,6 +19,7 @@ import Layout from '../../components/Layout/Layout';
 import { PriceOffer } from '../../models/PriceOffer';
 import { priceOfferService } from '../../services/price-offer-service';
 import { apiService } from '../../services/api-service';
+import { calculateTotalWithRemise, calculateVAT } from '../../utils/calculations';
 import './PriceOfferPage.scss';
 import logo512 from '../../assets/logo512.png';
 import logoChanitec from '../../assets/logo chanitecc.png';
@@ -92,26 +93,7 @@ const PriceOfferPage: React.FC<PriceOfferPageProps> = ({ currentPath, onNavigate
           return;
         }
 
-        // Create a new price offer from the quote
-        const newOffer: PriceOffer = {
-          quoteId: quote.id,
-          clientName: quote.clientName,
-          siteName: quote.siteName,
-          object: quote.object,
-          date: quote.date,
-          supplyDescription: quote.supplyDescription,
-          supplyTotalHT: quote.totalSuppliesHT,
-          laborDescription: quote.laborDescription,
-          laborTotalHT: quote.totalLaborHT,
-          totalHT: quote.totalHT,
-          tva: quote.tva,
-          totalTTC: quote.totalTTC,
-          remise: quote.remise,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-
-        // Save the new price offer
+        // Create and save the new price offer from the quote
         const savedOffer = priceOfferService.createFromQuote(quote);
         console.log('Created and saved price offer:', savedOffer);
 
@@ -211,29 +193,6 @@ const PriceOfferPage: React.FC<PriceOfferPageProps> = ({ currentPath, onNavigate
               </Box>
             </Box>
 
-            {/* Remise Message */}
-            {priceOffer.remise && priceOffer.remise > 0 && (
-              <Box sx={{
-                mt: 2,
-                mb: 3,
-                p: 2,
-                backgroundColor: '#e8f5e8',
-                border: '1px solid #4caf50',
-                borderRadius: 1,
-                textAlign: 'center'
-              }}>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    color: '#2e7d32',
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem'
-                  }}
-                >
-                  Remise appliquée : {priceOffer.remise}%
-                </Typography>
-              </Box>
-            )}
 
             {/* Items Table */}
             <Box sx={{ mb: 4 }}>
@@ -270,23 +229,61 @@ const PriceOfferPage: React.FC<PriceOfferPageProps> = ({ currentPath, onNavigate
             </Box>
 
             {/* Totals */}
-            <Box className="totals" sx={{ mb: 4 }}>
-              <Box className="total-line">
-                <Typography variant="subtitle1">TOTAL USD HT</Typography>
-                <Typography variant="subtitle1">TVA: 16%</Typography>
-                <Typography variant="subtitle1">TOTAL USD TTC</Typography>
-              </Box>
-              <Box className="total-row">
-                <Typography variant="body1">
-                  {(Number(priceOffer.totalHT ?? 0)).toFixed(2)}
-                </Typography>
-                <Typography variant="body1">
-                  {(Number(priceOffer.tva ?? 0)).toFixed(2)}
-                </Typography>
-                <Typography variant="body1" fontWeight="bold">
-                  {(Number(priceOffer.totalTTC ?? 0)).toFixed(2)}
-                </Typography>
-              </Box>
+            <Box sx={{ mb: 4 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ border: '1px solid #000', padding: '0.4rem' }}>
+                      <Typography variant="subtitle1">TOTAL USD HT</Typography>
+                    </td>
+                    <td style={{ border: '1px solid #000', padding: '0.4rem', textAlign: 'right' }}>
+                      <Typography variant="body1">{(Number(priceOffer.totalHT ?? 0)).toFixed(2)}</Typography>
+                    </td>
+                  </tr>
+                  {priceOffer.remise && priceOffer.remise > 0 && (
+                    <tr>
+                      <td style={{ border: '1px solid #000', padding: '0.4rem' }}>
+                        <Typography variant="subtitle1">Remise ({priceOffer.remise}%)</Typography>
+                      </td>
+                      <td style={{ border: '1px solid #000', padding: '0.4rem', textAlign: 'right' }}>
+                        <Typography variant="body1" sx={{ color: '#4caf50' }}>
+                          -{(Number(priceOffer.totalHT ?? 0) * (priceOffer.remise / 100)).toFixed(2)}
+                        </Typography>
+                      </td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td style={{ border: '1px solid #000', padding: '0.4rem' }}>
+                      <Typography variant="subtitle1">TOTAL HT APRÈS REMISE</Typography>
+                    </td>
+                    <td style={{ border: '1px solid #000', padding: '0.4rem', textAlign: 'right' }}>
+                      <Typography variant="body1">
+                        {calculateTotalWithRemise(Number(priceOffer.totalHT ?? 0), priceOffer.remise || 0).toFixed(2)}
+                      </Typography>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #000', padding: '0.4rem' }}>
+                      <Typography variant="subtitle1">TVA: 16%</Typography>
+                    </td>
+                    <td style={{ border: '1px solid #000', padding: '0.4rem', textAlign: 'right' }}>
+                      <Typography variant="body1">
+                        {calculateVAT(calculateTotalWithRemise(Number(priceOffer.totalHT ?? 0), priceOffer.remise || 0)).toFixed(2)}
+                      </Typography>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #000', padding: '0.4rem' }}>
+                      <Typography variant="subtitle1">TOTAL USD TTC</Typography>
+                    </td>
+                    <td style={{ border: '1px solid #000', padding: '0.4rem', textAlign: 'right' }}>
+                      <Typography variant="body1" fontWeight="bold">
+                        {(Number(priceOffer.totalTTC ?? 0)).toFixed(2)}
+                      </Typography>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </Box>
 
             {/* Conditions */}

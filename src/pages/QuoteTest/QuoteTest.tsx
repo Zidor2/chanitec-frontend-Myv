@@ -7,7 +7,7 @@ import logo from '../../logo.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 import logo512 from '../../assets/logo512.png';
 import CHANitec from '../../assets/CHANitec.png';
-import { formatNumberWithSpaces } from '../../utils/calculations';
+import { formatNumberWithSpaces, calculateTotalWithRemise, calculateVAT } from '../../utils/calculations';
 
 // Add a helper function for date formatting at the top level
 function formatDate(dateString: string) {
@@ -246,8 +246,26 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           <table className="summary-table" style={{ float: 'right' }}>
             <tbody>
               <tr><th>TOTAL OFFRE USD HT:</th><td>{formatNumberWithSpaces(currentQuote.totalHT)}</td></tr>
-              <tr><th>TVA:</th><td>{formatNumberWithSpaces((currentQuote.totalHT * (16 / 100)))}</td></tr>
-              <tr><th>TOTAL OFFRE USD TTC:</th><td>{formatNumberWithSpaces(currentQuote.totalTTC)}</td></tr>
+              {currentQuote.remise && currentQuote.remise > 0 && (
+                <tr>
+                  <th>Remise ({currentQuote.remise}%):</th>
+                  <td style={{ color: '#4caf50' }}>
+                    -{formatNumberWithSpaces(currentQuote.totalHT * (currentQuote.remise / 100))}
+                  </td>
+                </tr>
+              )}
+              <tr>
+                <th>TOTAL HT APRÈS REMISE:</th>
+                <td>{formatNumberWithSpaces(calculateTotalWithRemise(currentQuote.totalHT, currentQuote.remise || 0))}</td>
+              </tr>
+              <tr>
+                <th>TVA:</th>
+                <td>{formatNumberWithSpaces(calculateVAT(calculateTotalWithRemise(currentQuote.totalHT, currentQuote.remise || 0)))}</td>
+              </tr>
+              <tr>
+                <th>TOTAL OFFRE USD TTC:</th>
+                <td>{formatNumberWithSpaces(currentQuote.totalTTC)}</td>
+              </tr>
             </tbody>
           </table>
         </div>

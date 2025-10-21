@@ -28,6 +28,7 @@ class PriceOfferService {
       totalHT: quote.totalHT,
       tva: quote.tva,
       totalTTC: quote.totalTTC,
+      remise: quote.remise,
       createdAt: now,
       updatedAt: now
     };
