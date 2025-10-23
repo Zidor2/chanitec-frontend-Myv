@@ -94,9 +94,13 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
 
           return {
             id: itemAny.id,
+            item_id: itemAny.id, // Set item_id to the catalog item ID
             description: description,
             priceEuro: parseFloat(itemAny.price) || 0,
-            quantity: itemAny.quantity !== undefined && itemAny.quantity !== null ? Number(itemAny.quantity) : 0
+            quantity: itemAny.quantity !== undefined && itemAny.quantity !== null ? Number(itemAny.quantity) : 0,
+            priceDollar: 0, // Will be calculated
+            unitPriceDollar: 0, // Will be calculated
+            totalPriceDollar: 0 // Will be calculated
           } as SupplyItem;
         });
 
@@ -175,12 +179,14 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
       };
       const calculatedItem = calculateSupplyItemTotal(itemWithCustomPrice, exchangeRate, marginRate);
       onAddItem({
+        item_id: selectedItem.id, // Include catalog item ID for inventory tracking
         description: calculatedItem.description,
         quantity: Math.round(quantity), // Ensure quantity is an integer
         priceEuro: calculatedItem.priceEuro,
         priceDollar: calculatedItem.priceDollar,
         unitPriceDollar: calculatedItem.unitPriceDollar,
-        totalPriceDollar: calculatedItem.totalPriceDollar
+        totalPriceDollar: calculatedItem.totalPriceDollar,
+        inventory_deducted: false // Mark as not yet deducted
       });
       handleCloseCustomPriceDialog();
     }
@@ -206,12 +212,14 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
   const addItemToQuote = (item: SupplyItem, qty: number) => {
     const calculatedItem = calculateSupplyItemTotal(item, exchangeRate, marginRate);
     onAddItem({
+      item_id: item.id, // Include catalog item ID for inventory tracking
       description: calculatedItem.description,
       quantity: Math.round(qty), // Ensure quantity is an integer
       priceEuro: calculatedItem.priceEuro,
       priceDollar: calculatedItem.priceDollar,
       unitPriceDollar: calculatedItem.unitPriceDollar,
-      totalPriceDollar: calculatedItem.totalPriceDollar
+      totalPriceDollar: calculatedItem.totalPriceDollar,
+      inventory_deducted: false // Mark as not yet deducted
     });
     handleCloseSearchDialog();
   };
@@ -461,15 +469,35 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
                       className={selectedItem?.id === item.id ? 'selected-item' : ''}
                       onClick={() => handleSelectItem(item)}
                     >
-                                                                    <TableCell>
-                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                           {item.description}
-                           {item.quantity === 0 && (
-                             <WarningIcon fontSize="small" color="warning" />
-                           )}
-                         </Box>
-                       </TableCell>
-                       <TableCell align="right">{Math.round(item.quantity)}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {item.description}
+                          {item.quantity === 0 && (
+                            <WarningIcon fontSize="small" color="warning" />
+                          )}
+                          {item.quantity < 5 && item.quantity > 0 && (
+                            <Chip
+                              label="Stock faible"
+                              size="small"
+                              color="warning"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
+                          {Math.round(item.quantity)}
+                          {item.quantity < 0 && (
+                            <Chip
+                              label="Stock négatif"
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+                      </TableCell>
                        <TableCell align="right">{Number(item.priceEuro || 0).toFixed(2)}</TableCell>
                       <TableCell align="center">
                         <Button

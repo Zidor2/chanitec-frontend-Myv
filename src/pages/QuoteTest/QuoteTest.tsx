@@ -246,7 +246,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           <table className="summary-table" style={{ float: 'right' }}>
             <tbody>
               <tr><th>TOTAL OFFRE USD HT:</th><td>{formatNumberWithSpaces(currentQuote.totalHT)}</td></tr>
-              {currentQuote.remise && currentQuote.remise > 0 && (
+              {(currentQuote.remise && currentQuote.remise > 0) && (
                 <tr>
                   <th>Remise ({currentQuote.remise}%):</th>
                   <td style={{ color: '#4caf50' }}>

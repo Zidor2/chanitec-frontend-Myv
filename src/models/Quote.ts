@@ -4,12 +4,14 @@
 export interface SupplyItem {
   id: string;
   quote_id?: string;
+  item_id: string; // Required: Reference to catalog item
   description: string;
   quantity: number;
   priceEuro: number; // Price in Euro (PR €)
   priceDollar: number; // Price in Dollar (PR $) - calculated by backend
   unitPriceDollar: number; // Unit price in Dollar (PV/u $) - calculated by backend
   totalPriceDollar: number; // Total price in Dollar (PV $ Total HT) - calculated by backend
+  inventory_deducted?: boolean; // Track if inventory was already deducted
 }
 
 /**

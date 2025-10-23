@@ -40,6 +40,7 @@ class StorageService {
           const items = sampleItems as SupplyItem[];
           items.forEach(item => {
             this.saveSupply({
+              item_id: item.id, // Include the item_id from the sample data
               description: item.description,
               priceEuro: item.priceEuro,
               quantity: item.quantity || 1,

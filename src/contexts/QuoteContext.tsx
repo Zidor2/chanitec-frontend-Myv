@@ -471,7 +471,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       totalHT: 0,
       tva: 0,
       totalTTC: 0,
-      remise: currentRemise, // Use the preserved remise value
+      remise: currentRemise || undefined, // Use the preserved remise value or undefined
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       version: 0,
@@ -500,7 +500,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       // Ensure remise is preserved and totals are calculated with remise for display
       const quoteWithRemise = {
         ...quote,
-        remise: quote.remise || 0
+        remise: quote.remise
       };
 
       dispatch({ type: 'SET_ORIGINAL_QUOTE_ID', payload: id });
@@ -556,14 +556,14 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
           tva,
           totalTTC,
           // Use the passed remise value if provided, otherwise use the current state
-          remise: remiseValue !== undefined ? remiseValue : (state.currentQuote.remise || 0),
+          remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise,
         };
         const savedQuote = await apiService.saveQuote(quoteToSave);
 
         // After saving, recalculate totals with remise for display
         const finalSavedQuote = {
           ...savedQuote,
-          remise: remiseValue !== undefined ? remiseValue : (state.currentQuote.remise || 0)
+          remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise
         };
 
         dispatch({ type: 'SET_QUOTE', payload: finalSavedQuote });
@@ -603,7 +603,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
           tva,
           totalTTC,
           // Use the passed remise value if provided, otherwise use the current state
-          remise: remiseValue !== undefined ? remiseValue : (state.currentQuote.remise || 0),
+          remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise,
           metadata: {
             ...state.currentQuote.metadata,
             version: 1,
@@ -621,11 +621,49 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
           const newItem = {
             ...item,
             id: undefined,
-            quote_id: newId
+            quote_id: newId,
+            // Ensure item_id is included for inventory tracking
+            item_id: item.item_id || '',
+            // Mark as inventory deducted if it was already deducted
+            inventory_deducted: item.inventory_deducted || false
           };
           return apiService.createSupplyItem(newId, newItem);
         });
         await Promise.all(supplyItemPromises);
+
+        // Deduct inventory for supply items (only for items not already deducted)
+        const inventoryDeductionPromises = state.currentQuote.supplyItems
+          .filter(item => item.item_id && !item.inventory_deducted)
+          .map(async (item) => {
+            try {
+              const result = await apiService.deductInventory(item.item_id, item.quantity);
+              if (result.success) {
+                console.log(`Inventory deducted: ${item.quantity} units from item ${item.item_id}. New quantity: ${result.newQuantity}`);
+                // Mark item as inventory deducted
+                return { itemId: item.id, success: true, newQuantity: result.newQuantity };
+              } else {
+                console.warn(`Failed to deduct inventory for item ${item.item_id}: ${result.error}`);
+                return { itemId: item.id, success: false, error: result.error };
+              }
+            } catch (error) {
+              console.error(`Error deducting inventory for item ${item.item_id}:`, error);
+              return { itemId: item.id, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+            }
+          });
+
+        // Wait for all inventory deductions to complete
+        const inventoryResults = await Promise.all(inventoryDeductionPromises);
+
+        // Log results
+        const successfulDeductions = inventoryResults.filter(r => r.success);
+        const failedDeductions = inventoryResults.filter(r => !r.success);
+
+        if (successfulDeductions.length > 0) {
+          console.log(`Successfully deducted inventory for ${successfulDeductions.length} items`);
+        }
+        if (failedDeductions.length > 0) {
+          console.warn(`Failed to deduct inventory for ${failedDeductions.length} items:`, failedDeductions);
+        }
       }
 
       // Create new labor items
@@ -650,7 +688,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       // After fetching from backend, recalculate totals with remise for display
       const finalQuote = {
         ...completeQuoteResponse,
-        remise: remiseValue !== undefined ? remiseValue : (state.currentQuote.remise || 0)
+        remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise
       };
 
       dispatch({ type: 'SET_QUOTE', payload: finalQuote });
