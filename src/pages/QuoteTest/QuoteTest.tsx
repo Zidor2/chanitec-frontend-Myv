@@ -285,6 +285,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
         <table className="data-table">
           <thead>
             <tr>
+              <th>N°</th>
               <th>Description</th>
               <th>Qté</th>
               <th>PR €</th>
@@ -296,6 +297,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           <tbody>
             {currentQuote.supplyItems.map((item, idx) => (
               <tr key={idx}>
+                <td>{idx + 1}</td>
                 <td>{item.description}</td>
                 <td>{item.quantity} </td>
                 <td>{formatNumberWithSpaces(item.priceEuro)}</td>
@@ -307,7 +309,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           </tbody>
           <tfoot>
             <tr className="totals-row">
-              <td colSpan={5} style={{ textAlign: 'left' }}>TOTAL FOURNITURE $ HT:</td>
+              <td colSpan={6} style={{ textAlign: 'left' }}>TOTAL FOURNITURE $ HT:</td>
               <td>{formatNumberWithSpaces(currentQuote.supplyItems.reduce((sum, item) => sum + ((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))), 0))}</td>
             </tr>
           </tfoot>

@@ -211,43 +211,49 @@
 }
 
 // Specific column widths for supplies table
-.data-table th:nth-child(1), // Description
+.data-table th:nth-child(1), // N° column
 .data-table td:nth-child(1) {
+  width: 5%;
+  text-align: center;
+}
+
+.data-table th:nth-child(2), // Description
+.data-table td:nth-child(2) {
   width: 25%;
 }
 
-.data-table th:nth-child(2), // Qté/Nb technicien
-.data-table td:nth-child(2) {
+.data-table th:nth-child(3), // Qté/Nb technicien
+.data-table td:nth-child(3) {
   width: 8%;
   text-align: center;
 }
 
-.data-table th:nth-child(3), // PR €/Nb heures
-.data-table td:nth-child(3) {
-  width: 12%;
-  text-align: center;
-}
-
-.data-table th:nth-child(4), // PR $/Majo Weekend
+.data-table th:nth-child(4), // PR €/Nb heures
 .data-table td:nth-child(4) {
   width: 12%;
   text-align: center;
 }
 
-.data-table th:nth-child(5), // PV/u $/PR €
+.data-table th:nth-child(5), // PR $/Majo Weekend
 .data-table td:nth-child(5) {
+  width: 12%;
+  text-align: center;
+}
+
+.data-table th:nth-child(6), // PV/u $/PR €
+.data-table td:nth-child(6) {
   width: 12%;
   text-align: right;
 }
 
-.data-table th:nth-child(6), // PV $ Total HT/PR $
-.data-table td:nth-child(6) {
+.data-table th:nth-child(7), // PV $ Total HT/PR $
+.data-table td:nth-child(7) {
   width: 15%;
   text-align: right;
 }
 
-.data-table th:nth-child(7), // PV $ Total HT (labor table only)
-.data-table td:nth-child(7) {
+.data-table th:nth-child(8), // PV $ Total HT (labor table only)
+.data-table td:nth-child(8) {
   width: 17%;
   text-align: right;
 }
@@ -258,43 +264,49 @@
 }
 
 // Specific column widths for supplies table
-.data-table th:nth-child(1), // Description
+.data-table th:nth-child(1), // N° column
 .data-table td:nth-child(1) {
+  width: 5%;
+  text-align: center;
+}
+
+.data-table th:nth-child(2), // Description
+.data-table td:nth-child(2) {
   width: 25%;
 }
 
-.data-table th:nth-child(2), // Qté/Nb technicien
-.data-table td:nth-child(2) {
+.data-table th:nth-child(3), // Qté/Nb technicien
+.data-table td:nth-child(3) {
   width: 8%;
   text-align: center;
 }
 
-.data-table th:nth-child(3), // PR €/Nb heures
-.data-table td:nth-child(3) {
-  width: 12%;
-  text-align: center;
-}
-
-.data-table th:nth-child(4), // PR $/Majo Weekend
+.data-table th:nth-child(4), // PR €/Nb heures
 .data-table td:nth-child(4) {
   width: 12%;
   text-align: center;
 }
 
-.data-table th:nth-child(5), // PV/u $/PR €
+.data-table th:nth-child(5), // PR $/Majo Weekend
 .data-table td:nth-child(5) {
+  width: 12%;
+  text-align: center;
+}
+
+.data-table th:nth-child(6), // PV/u $/PR €
+.data-table td:nth-child(6) {
   width: 12%;
   text-align: right;
 }
 
-.data-table th:nth-child(6), // PV $ Total HT/PR $
-.data-table td:nth-child(6) {
+.data-table th:nth-child(7), // PV $ Total HT/PR $
+.data-table td:nth-child(7) {
   width: 15%;
   text-align: right;
 }
 
-.data-table th:nth-child(7), // PV $ Total HT (labor table only)
-.data-table td:nth-child(7) {
+.data-table th:nth-child(8), // PV $ Total HT (labor table only)
+.data-table td:nth-child(8) {
   width: 17%;
   text-align: right;
 }

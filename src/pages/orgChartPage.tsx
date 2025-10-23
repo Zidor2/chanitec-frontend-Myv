@@ -3,6 +3,34 @@ import { Box } from '@mui/material';
 import Layout from '../components/Layout/Layout';
 import './orgChartPage.scss';
 
+// Function to generate dummy profile picture using initials
+const generateDummyAvatar = (name: string): string => {
+  const initials = name
+    .split(' ')
+    .map(word => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  // Generate a consistent color based on the name
+  const colors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+  ];
+  const colorIndex = name.length % colors.length;
+  const backgroundColor = colors[colorIndex];
+
+  // Create SVG data URL
+  const svg = `
+    <svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="32" fill="${backgroundColor}"/>
+      <text x="32" y="40" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
 interface Employee {
   id: number;
   name: string;
@@ -25,7 +53,7 @@ const employees: Employee[] = [
     name: 'Bilel AYACHI',
     title: 'Departement Froid et climatisation',
     location: 'TUN Tunis - Extension',
-    avatar: 'https://randomuser.me/api/portraits/men/61.jpg',
+    avatar: generateDummyAvatar('Bilel AYACHI'),
     children: [
       {
         id: 2,
@@ -33,7 +61,7 @@ const employees: Employee[] = [
         title: 'Chef de service Chargé de clim-domestique',
         subType: 'UTEX',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/62.jpg',
+        avatar: generateDummyAvatar('BALU MAVINGA Jean'),
       },
       {
         id: 3,
@@ -41,7 +69,7 @@ const employees: Employee[] = [
         title: 'Chef de service Chargé de clim-domestique',
         subType: 'UTEX',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/63.jpg',
+        avatar: generateDummyAvatar('IKALABA NKOSI Louison'),
       },
       {
         id: 4,
@@ -49,7 +77,7 @@ const employees: Employee[] = [
         title: 'Chef de service Chargé de clim-domestique',
         subType: 'UTEX',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/64.jpg',
+        avatar: generateDummyAvatar('MATALATALA WISAMAU Richard'),
       },
       {
         id: 5,
@@ -57,7 +85,7 @@ const employees: Employee[] = [
         title: 'Chef de service Chargé de clim-domestique',
         subType: 'SNEL',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/65.jpg',
+        avatar: generateDummyAvatar('MBENZA VUAMISA Willy'),
       },
       {
         id: 6,
@@ -65,7 +93,7 @@ const employees: Employee[] = [
         title: 'Chef de service Chargé de clim-domestique',
         subType: 'UTEX',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/66.jpg',
+        avatar: generateDummyAvatar('MFIKA MFUNDU KIMPEMBE Roc'),
       },
       {
         id: 7,
@@ -73,7 +101,7 @@ const employees: Employee[] = [
         title: 'Chef de service Chargé de clim-domestique',
         subType: 'UTEX',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/67.jpg',
+        avatar: generateDummyAvatar('TOKO ZABANA Juvénal'),
       },
       {
         id: 8,
@@ -81,7 +109,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/68.jpg',
+        avatar: generateDummyAvatar('KAKUTALUA NGUVU Bienvenu'),
       },
       {
         id: 9,
@@ -89,7 +117,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/69.jpg',
+        avatar: generateDummyAvatar('KAMAKAMA MBALA Joseph'),
       },
       {
         id: 10,
@@ -97,7 +125,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/70.jpg',
+        avatar: generateDummyAvatar('KUMBANA MOYO Beckers'),
       },
       {
         id: 11,
@@ -105,7 +133,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/71.jpg',
+        avatar: generateDummyAvatar('LUVUALU Thomas'),
       },
       {
         id: 12,
@@ -113,7 +141,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/72.jpg',
+        avatar: generateDummyAvatar('MAKANDA KABEYA Jean'),
       },
       {
         id: 13,
@@ -121,7 +149,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/73.jpg',
+        avatar: generateDummyAvatar('MAKANDA KABEYA Jean'),
       },
       {
         id: 14,
@@ -129,7 +157,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/74.jpg',
+        avatar: generateDummyAvatar('MAKANDA KABEYA Jean'),
       },
       {
         id: 15,
@@ -137,7 +165,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
+        avatar: generateDummyAvatar('MAKANDA KABEYA Jean'),
       },
       {
         id: 16,
@@ -145,7 +173,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/76.jpg',
+        avatar: generateDummyAvatar('MAKANDA KABEYA Jean'),
       },
       {
         id: 17,
@@ -153,7 +181,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/77.jpg',
+        avatar: generateDummyAvatar('MAKANDA KABEYA Jean'),
       },
       {
         id: 18,
@@ -161,7 +189,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/78.jpg',
+        avatar: generateDummyAvatar('MAKANDA KABEYA Jean'),
       },
       {
         id: 19,
@@ -169,7 +197,7 @@ const employees: Employee[] = [
         title: 'Polyvalent',
         subType: 'POLIVALONT',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/79.jpg',
+        avatar: generateDummyAvatar('MAKANDA KABEYA Jean'),
       },
       {
         id: 20,
@@ -177,16 +205,16 @@ const employees: Employee[] = [
         title: 'Chef de service adj chargé du climatisation centralisé',
         subType: 'BCDC',
         location: 'TUN Tunis - Extension',
-        avatar: 'https://randomuser.me/api/portraits/men/80.jpg',
+        avatar: generateDummyAvatar('SADI TONDASE Dodo'),
       },
     ],
   },
 ];
 
-const OrgChartPage: React.FC<OrgChartPageProps> = ({ 
-  currentPath = '/org-chart', 
-  onNavigate, 
-  onLogout 
+const OrgChartPage: React.FC<OrgChartPageProps> = ({
+  currentPath = '/org-chart',
+  onNavigate,
+  onLogout
 }) => {
   const leader = employees[0];
   const isAdmin = localStorage.getItem('role') === 'admin';

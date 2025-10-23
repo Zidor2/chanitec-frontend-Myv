@@ -34,6 +34,7 @@ import { apiService } from '../../services/api-service';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CustomNumberInput from '../../components/CustomNumberInput/CustomNumberInput';
+import { calculateVAT } from '../../utils/calculations';
 
 interface HistoryPageProps {
   currentPath: string;
@@ -109,7 +110,12 @@ const QuoteConfirmationModal: React.FC<QuoteConfirmationModalProps> = ({
                 Site: {quote.siteName}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Total TTC: {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(quote.totalTTC)}
+                Total TTC: {quote.remise && quote.remise > 0 ?
+                  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(
+                    calculateTotalTTCAfterDiscount(quote)
+                  ) + ` (avec remise de ${quote.remise}%)` :
+                  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(quote.totalTTC)
+                }
               </Typography>
             </Box>
           )}
@@ -146,6 +152,22 @@ const QuoteConfirmationModal: React.FC<QuoteConfirmationModalProps> = ({
       </form>
     </Dialog>
   );
+};
+
+// Helper function to calculate total TTC after discount
+const calculateTotalTTCAfterDiscount = (quote: Quote): number => {
+  if (!quote.remise || quote.remise <= 0) {
+    return quote.totalTTC;
+  }
+
+  // Calculate total HT after discount
+  const totalHTAfterDiscount = quote.totalHT - (quote.totalHT * quote.remise / 100);
+
+  // Calculate VAT on the discounted amount
+  const tvaAfterDiscount = calculateVAT(totalHTAfterDiscount);
+
+  // Return total TTC after discount
+  return totalHTAfterDiscount + tvaAfterDiscount;
 };
 
 const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate, onLogout }) => {
@@ -610,19 +632,25 @@ ${quoteDetails}`);
                         <Box className="info-item">
                           <Typography className="label">Total TTC</Typography>
                           <Typography className="value total">
-                            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(quote.totalTTC)}
-                            {quote.remise && quote.remise > 0 && (
-                              <Typography
-                                component="span"
-                                sx={{
-                                  ml: 1,
-                                  color: '#4caf50',
-                                  fontSize: '0.85em',
-                                  fontWeight: 'bold'
-                                }}
-                              >
-                                (-{quote.remise}%)
-                              </Typography>
+                            {quote.remise && quote.remise > 0 ? (
+                              <>
+                                {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(
+                                  calculateTotalTTCAfterDiscount(quote)
+                                )}
+                                <Typography
+                                  component="span"
+                                  sx={{
+                                    ml: 1,
+                                    color: '#4caf50',
+                                    fontSize: '0.85em',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
+                                  (-{quote.remise}%)
+                                </Typography>
+                              </>
+                            ) : (
+                              new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(quote.totalTTC)
                             )}
                           </Typography>
                         </Box>
