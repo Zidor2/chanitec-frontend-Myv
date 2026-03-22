@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import './CustomNumberInput.scss';
@@ -33,10 +33,14 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
   displayAsInteger = false
 }) => {
   const [inputValue, setInputValue] = useState<string>(displayAsInteger ? Math.round(value).toString() : Number(value).toFixed(2));
+  /** When true, the user is editing — do not overwrite the string from `value` on each keystroke. */
+  const isFocusedRef = useRef(false);
 
-  // Update input value when prop value changes
+  // Update input value when prop value changes (e.g. parent reset, +/- buttons) — not while typing
   useEffect(() => {
-    setInputValue(displayAsInteger ? Math.round(value).toString() : Number(value).toFixed(2));
+    if (!isFocusedRef.current) {
+      setInputValue(displayAsInteger ? Math.round(value).toString() : Number(value).toFixed(2));
+    }
   }, [value, displayAsInteger]);
   if (displayOnly) {
     return (
@@ -49,13 +53,17 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
 
   const handleIncrease = () => {
     if (max === undefined || value < max) {
-      onChange(Number((value + step).toFixed(2)));
+      const newVal = Number((value + step).toFixed(2));
+      onChange(newVal);
+      setInputValue(displayAsInteger ? Math.round(newVal).toString() : newVal.toFixed(2));
     }
   };
 
   const handleDecrease = () => {
     if (value > min) {
-      onChange(Number((value - step).toFixed(2)));
+      const newVal = Number((value - step).toFixed(2));
+      onChange(newVal);
+      setInputValue(displayAsInteger ? Math.round(newVal).toString() : newVal.toFixed(2));
     }
   };
 
@@ -91,6 +99,7 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
   };
 
   const handleBlur = () => {
+    isFocusedRef.current = false;
     // When user finishes editing, validate and update the value
     if (inputValue === '') {
       // If input is empty, reset to minimum value
@@ -129,6 +138,9 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
         <input
           type="number"
           value={inputValue}
+          onFocus={() => {
+            isFocusedRef.current = true;
+          }}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}

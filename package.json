@@ -40,7 +40,8 @@
         "dev": "react-scripts start",
         "electron:dev": "concurrently \"npm:start\" \"wait-on http://localhost:3000 && set ELECTRON_START_URL=http://localhost:3000&& electron .\"",
         "electron:prod": "npm run build && electron .",
-        "electron:build": "electron-builder --win --x64"
+        "electron:build": "npm run build && electron-builder --win --x64",
+        "electron:build:installer": "npm run build && electron-builder --win --x64 --publish never"
     },
     "eslintConfig": {
         "extends": [
@@ -78,15 +79,29 @@
         "productName": "Chanitec",
         "files": [
             "build/**/*",
-            "electron-main.js"
+            "electron-main.js",
+            "package.json"
         ],
         "directories": {
-            "buildResources": "public"
+            "buildResources": "public",
+            "output": "dist"
         },
         "win": {
             "target": [
-                "nsis"
-            ]
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "public/icon.ico"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true
         },
         "extraMetadata": {
             "main": "electron-main.js"

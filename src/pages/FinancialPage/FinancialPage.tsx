@@ -472,36 +472,6 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <Autocomplete
                 fullWidth
-                options={sites}
-                value={selectedSite}
-                onChange={(event, newValue) => {
-                  setSelectedSite(newValue);
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Site"
-                    placeholder="Rechercher un site..."
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                )}
-                isOptionEqualToValue={(option, value) => option === value}
-                noOptionsText="Aucun site trouvé"
-                clearOnEscape
-                selectOnFocus
-                handleHomeEndKeys
-              />
-            </Box>
-            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <Autocomplete
-                fullWidth
                 options={clients}
                 value={selectedClient}
                 onChange={(event, newValue) => {
@@ -529,6 +499,37 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
                 handleHomeEndKeys
               />
             </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <Autocomplete
+                fullWidth
+                options={sites}
+                value={selectedSite}
+                onChange={(event, newValue) => {
+                  setSelectedSite(newValue);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Site"
+                    placeholder="Rechercher un site..."
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                )}
+                isOptionEqualToValue={(option, value) => option === value}
+                noOptionsText="Aucun site trouvé"
+                clearOnEscape
+                selectOnFocus
+                handleHomeEndKeys
+              />
+            </Box>
+
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <Autocomplete
                 fullWidth

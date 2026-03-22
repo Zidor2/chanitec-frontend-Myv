@@ -19,7 +19,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Alert
+  Alert,
+  Autocomplete
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -176,6 +177,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate, onLo
     id: '',
     client: '',
     site: '',
+    object: '',
     period: 'all',
     startDate: '',
     endDate: '',
@@ -274,6 +276,16 @@ ${quoteDetails}`);
     // eslint-disable-next-line
   }, [filters.client, clients]);
 
+  // Distinct quote objects (non-empty) for the object filter dropdown
+  const uniqueObjects = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const q of quotes) {
+      const o = q.object?.trim();
+      if (o) set.add(o);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [quotes]);
+
   // Helper to parse date safely
   const parseQuoteDate = (dateStr: string | Date): Date => {
     if (dateStr instanceof Date) return dateStr;
@@ -304,6 +316,12 @@ ${quoteDetails}`);
     }
     if (filters.site) {
       result = result.filter(q => q.siteName === (sites.find(s => s.id === filters.site)?.name));
+    }
+    if ((filters.object || '').trim()) {
+      const needle = (filters.object || '').trim().toLowerCase();
+      result = result.filter(q =>
+        (q.object || '').toLowerCase().includes(needle)
+      );
     }
     // Filter for alerted quotes (passed reminder date and not confirmed)
     if (filters.showAlertedOnly) {
@@ -357,7 +375,7 @@ ${quoteDetails}`);
     setFilters(prev => ({ ...prev, [field]: value }));
   };
   const handleClearFilters = () => {
-    setFilters({ id: '', client: '', site: '', period: 'all', startDate: '', endDate: '', showAlertedOnly: false });
+    setFilters({ id: '', client: '', site: '', object: '', period: 'all', startDate: '', endDate: '', showAlertedOnly: false });
   };
 
   // Handlers for quote card actions
@@ -498,6 +516,33 @@ ${quoteDetails}`);
                 ))}
               </Select>
             </FormControl>
+
+            <Autocomplete
+              freeSolo
+              fullWidth
+              size="small"
+              options={uniqueObjects}
+              value={filters.object}
+              onInputChange={(_, newValue) => {
+                handleFilterChange('object', newValue ?? '');
+              }}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  label="Objet"
+                  placeholder="Choisir dans la liste ou taper…"
+                  variant="outlined"
+                  type="text"
+                  InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
+                />
+              )}
+              filterOptions={(options, state) => {
+                const input = state.inputValue.trim().toLowerCase();
+                if (!input) return options;
+                return options.filter(o => o.toLowerCase().includes(input));
+              }}
+              noOptionsText="Aucune correspondance — le texte saisi filtre quand même les devis"
+            />
 
             <FormControl fullWidth size="small">
               <InputLabel>Période</InputLabel>

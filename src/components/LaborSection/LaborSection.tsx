@@ -51,7 +51,7 @@ const LaborSection: React.FC<LaborSectionProps> = ({
   const [nbTechnicians, setNbTechnicians] = useState(1);
   const [nbHours, setNbHours] = useState(1);
   const [weekendMultiplier, setWeekendMultiplier] = useState(1);
-  const [priceEuro, setPriceEuro] = useState(10);
+  const [priceEuro, setPriceEuro] = useState(11);
 
   // Weekend multiplier options
   const weekendOptions = [
@@ -111,11 +111,11 @@ const LaborSection: React.FC<LaborSectionProps> = ({
     setNbTechnicians(1);
     setNbHours(1);
     setWeekendMultiplier(1);
-    setPriceEuro(10);
+    setPriceEuro(11);
   };
 
   return (
-    <Paper className="labor-section" elevation={2}>
+    <Paper className="labor-section" elevation={2}>s
       <Typography variant="h6" className="section-title">
         MAIN D'OEUVRE
       </Typography>
