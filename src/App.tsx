@@ -13,7 +13,6 @@ import LoginPage from './pages/LoginPage/LoginPage';
 import HomePage from './pages/HomePage/HomePage';
 import QuoteTest from './pages/QuoteTest/QuoteTest';
 import InterventionPage from './pages/interventionPage';
-import { storageService } from './services/storage-service';
 import OrgChartPage from './pages/orgChartPage';
 import EmployeesPage from './pages/employeesPage';
 import HelpPage from './pages/HelpPage/HelpPage';
@@ -99,7 +98,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentPath, setCurrentPath] = useState('/');
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -184,10 +182,8 @@ const AppContent = () => {
       if (confirmed) newPath += `&confirmed=${confirmed}`;
 
       setPriceOfferQuoteId(quoteId);
-      setCurrentPath(newPath);
       navigate(newPath);
     } else {
-      setCurrentPath(path);
       navigate(path);
     }
   };

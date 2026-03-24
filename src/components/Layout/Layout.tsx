@@ -25,7 +25,6 @@ import {
   AssignmentOutlined,
   BusinessOutlined,
   GroupOutlined,
-  HelpOutline,
   QuestionAnswer,
   AccountBalance
 } from '@mui/icons-material';

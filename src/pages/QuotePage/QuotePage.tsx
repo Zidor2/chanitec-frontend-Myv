@@ -8,7 +8,6 @@ import TotalSection from '../../components/TotalSection/TotalSection';
 import QuoteActions from '../../components/QuoteActions/QuoteActions';
 import { useQuote } from '../../contexts/QuoteContext';
 import './QuotePage.scss';
-import logo from '../../logo.png';
 import { useLocation } from 'react-router-dom';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { apiService } from '../../services/api-service';

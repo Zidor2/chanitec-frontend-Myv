@@ -27,7 +27,6 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import Layout from '../../components/Layout/Layout';
 import './HistoryPage.scss';
 import { ReceiptLongOutlined } from '@mui/icons-material';
-import logo from '../../logo.png';
 import AddAlarmIcon from '@mui/icons-material/AddAlarm';
 import WarningIcon from '@mui/icons-material/Warning';
 import { Client, Site, Quote } from '../../models/Quote';
@@ -444,7 +443,7 @@ ${quoteDetails}`);
     const formattedDate = reminderDate.toISOString().split('T')[0];
 
     try {
-      const updatedQuote = await apiService.setReminderDate(quoteId, formattedDate);
+      await apiService.setReminderDate(quoteId, formattedDate);
       setQuotes(prev => prev.map(q => q.id === quoteId ? { ...q, reminderDate: formattedDate } : q));
       alert('Rappel configuré avec succès');
     } catch (error: any) {

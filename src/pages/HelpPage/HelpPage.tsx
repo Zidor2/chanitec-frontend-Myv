@@ -6,27 +6,17 @@ import {
   Paper,
   Card,
   CardContent,
-  CardHeader,
   Button,
   Chip,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
   Alert,
   CircularProgress,
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip
+  AccordionDetails
 } from '@mui/material';
 
 import {
@@ -39,14 +29,9 @@ import {
   Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
   Storage as StorageIcon,
-  Api as ApiIcon,
-  Speed as SpeedIcon,
-  Memory as MemoryIcon,
-  NetworkCheck as NetworkCheckIcon
 } from '@mui/icons-material';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { enhancedStorageService } from '../../services/enhanced-storage-service';
-import { apiService } from '../../services/api-service';
 import Layout from '../../components/Layout/Layout';
 import './HelpPage.scss';
 
@@ -57,14 +42,6 @@ interface ConnectionTest {
   details?: string;
   timestamp?: string;
   responseTime?: number;
-}
-
-interface BackendHealth {
-  endpoint: string;
-  status: 'healthy' | 'unhealthy' | 'unknown';
-  responseTime: number;
-  lastChecked: string;
-  error?: string;
 }
 
 interface SystemInfo {
@@ -101,7 +78,6 @@ interface LogEntry {
 const HelpPage: React.FC<HelpPageProps> = ({ currentPath, onNavigate, onLogout }) => {
   const { isOnline, isConnecting, lastOnline, lastOffline } = useNetworkStatus();
   const [connectionTests, setConnectionTests] = useState<ConnectionTest[]>([]);
-  const [backendHealth, setBackendHealth] = useState<BackendHealth[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isRunningTests, setIsRunningTests] = useState(false);
   const [cacheStatus, setCacheStatus] = useState(enhancedStorageService.getCacheStatus());

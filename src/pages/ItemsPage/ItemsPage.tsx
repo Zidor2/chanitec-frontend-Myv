@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -28,7 +27,6 @@ import {
   InputAdornment
 } from '@mui/material';
 import Layout from '../../components/Layout/Layout';
-import logo from '../../logo.png';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -44,7 +42,6 @@ import * as XLSX from 'xlsx';
 import { SupplyItem } from '../../models/Quote';
 import { itemsApi } from '../../services/api';
 import './ItemsPage.scss';
-import { v4 as uuidv4 } from 'uuid';
 import CustomNumberInput from '../../components/CustomNumberInput/CustomNumberInput';
 
 
@@ -52,44 +49,6 @@ interface ItemsPageProps {
   currentPath: string;
   onNavigate: (path: string) => void;
   onLogout?: () => void;
-}
-
-interface ExcelItem {
-  Description: string;
-  price: number;
-}
-
-interface ProcessedItem {
-  valid: boolean;
-  rowIndex: number;
-  item?: {
-    description: string;
-    priceEuro: number;
-  };
-  error?: string;
-  rawData?: any;
-}
-
-interface ImportResultItem {
-  rowIndex: number;
-  item?: any;
-  error?: string;
-  rawData?: any;
-}
-
-interface ImportSummary {
-  total: number;
-  valid: number;
-  invalid: number;
-  imported: number;
-  errors: number;
-}
-
-interface ImportResults {
-  totalProcessed: number;
-  successful: ImportResultItem[];
-  failed: ImportResultItem[];
-  summary: ImportSummary;
 }
 
 interface ProcessedExcelItem {
@@ -106,18 +65,6 @@ interface ProcessedExcelItem {
     quantity: any;
     price: any;
   };
-}
-
-// Add type for worksheet with index signature
-interface ExtendedWorksheet {
-  [key: string]: any;
-  '!ref'?: string;
-}
-
-// Add type for cell address
-interface CellAddress {
-  r: number;
-  c: number;
 }
 
 const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) => {
@@ -319,86 +266,6 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
     if (file) {
       handleFileUpload(file);
     }
-  };
-
-  // Add this new function after handleSaveItem
-  const handleImportItems = async (items: { description: string; priceEuro: number }[]) => {
-    const results = {
-      successful: [] as any[],
-      failed: [] as any[],
-      total: items.length,
-      imported: 0
-    };
-
-    try {
-      setLoading(true);
-
-      // Process each item one by one
-      for (const item of items) {
-        try {
-          // Validate item
-          if (!item.description) {
-            results.failed.push({
-              item,
-              error: 'La description est requise'
-            });
-            continue;
-          }
-
-          // Prepare item data (same structure as handleSaveItem)
-          const itemData = {
-            description: item.description,
-            price: item.priceEuro,
-            quantity: 0 // Default quantity for import
-          };
-
-          // Create item using the same API call as handleSaveItem
-          const response = await itemsApi.createItem(itemData);
-
-          results.successful.push({
-            original: item,
-            created: response
-          });
-          results.imported++;
-
-          // Show progress
-          showSnackbar(
-            `Import en cours: ${results.imported}/${items.length} articles traités...`,
-            'info'
-          );
-        } catch (error) {
-          results.failed.push({
-            item,
-            error: `Erreur: ${(error as Error).message}`
-          });
-        }
-      }
-
-      // Show final results
-      if (results.failed.length > 0) {
-        if (results.successful.length > 0) {
-          showSnackbar(
-            `Import partiel: ${results.successful.length} articles importés, ${results.failed.length} échecs`,
-            'warning' as const
-          );
-        } else {
-          showSnackbar('Échec de l\'import: aucun article importé', 'error');
-        }
-        console.error('Failed imports:', results.failed);
-      } else {
-        showSnackbar(`${results.successful.length} articles importés avec succès`, 'success');
-      }
-
-      // Refresh the list
-      await loadItems();
-    } catch (error) {
-      console.error('Error during import:', error);
-      showSnackbar('Erreur lors de l\'import', 'error');
-    } finally {
-      setLoading(false);
-    }
-
-    return results;
   };
 
   // Update handleFileUpload function

@@ -4,7 +4,6 @@ import {
   Container,
   Typography,
   Paper,
-  Divider,
   Button,
   Select,
   MenuItem,
@@ -13,8 +12,6 @@ import {
 } from '@mui/material';
 import { PrintOutlined } from '@mui/icons-material';
 import { format } from 'date-fns';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import Layout from '../../components/Layout/Layout';
 import { PriceOffer } from '../../models/PriceOffer';
 import { priceOfferService } from '../../services/price-offer-service';
@@ -24,7 +21,6 @@ import './PriceOfferPage.scss';
 import logo512 from '../../assets/logo512.png';
 import logoChanitec from '../../assets/logo chanitecc.png';
 import signatureAyachi from '../../assets/signature-ayachi.png';
-import signaturePerrache from '../../assets/signature-perrache.png.png';
 
 interface PriceOfferPageProps {
   currentPath: string;
@@ -69,13 +65,11 @@ const PriceOfferPage: React.FC<PriceOfferPageProps> = ({ currentPath, onNavigate
 
       try {
         // Find the quote in the list to get createdAt
-        let createdAt = '';
         let numberToDisplayLocal = '';
         try {
           const allQuotes = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/quotes`).then(res => res.json());
           const found = allQuotes.find((q: any) => q.id === quoteIdFromUrl);
           if (found) {
-            createdAt = found.createdAt;
             numberToDisplayLocal = found.number_chanitec && found.number_chanitec.trim() !== '' ? found.number_chanitec : found.id;
           } else {
             setError('Quote not found');
@@ -110,28 +104,6 @@ const PriceOfferPage: React.FC<PriceOfferPageProps> = ({ currentPath, onNavigate
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!contentRef.current) return;
-
-    const canvas = await html2canvas(contentRef.current, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    });
-
-    const imgData = canvas.toDataURL('image/png');
-    // Set PDF size to match the rendered content (no A4 limitation)
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'px',
-      format: [canvas.width, canvas.height]
-    });
-
-    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-    pdf.save(`Offer de Prix_${numberToDisplay || priceOffer?.quoteId || 'unknown'}.pdf`);
   };
 
   if (error) {

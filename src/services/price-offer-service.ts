@@ -1,4 +1,4 @@
-import { PriceOffer, PriceOfferCreationDTO } from '../models/PriceOffer';
+import { PriceOffer } from '../models/PriceOffer';
 import { Quote } from '../models/Quote';
 
 const STORAGE_KEY = 'price_offers';

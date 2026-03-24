@@ -4,7 +4,6 @@ import { Client, Site } from '../../models/Quote';
 import { apiService } from '../../services/api-service';
 import { extractVersion } from '../../utils/id-generator';
 import './QuoteHeader.scss';
-import CustomNumberInput from '../CustomNumberInput/CustomNumberInput';
 
 interface QuoteHeaderProps {
   quoteId: string;
@@ -35,16 +34,14 @@ const QuoteHeader: React.FC<QuoteHeaderProps> = ({
   const [sites, setSites] = useState<Site[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSitesLoading, setIsSitesLoading] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [siteError, setSiteError] = useState<string | null>(null);
-  const [clientMargin, setClientMargin] = useState<number | null>(null);
 
   // Format quoteId to display version information
   const formatQuoteId = (id: string) => {
     const match = id.match(/^(F-\d{8})-(\d{3})$/);
 
     if (match) {
-      const [_, baseId, version] = match;
+      const [, baseId, version] = match;
       const versionNum = parseInt(version, 10);
 
       if (versionNum === 0) {
@@ -85,7 +82,6 @@ const QuoteHeader: React.FC<QuoteHeaderProps> = ({
       if (!clientName) {
         console.log('No client selected, clearing sites');
         setSites([]);
-        setSelectedClientId(null);
         setSiteError(null);
         return;
       }
@@ -100,11 +96,8 @@ const QuoteHeader: React.FC<QuoteHeaderProps> = ({
         if (!selectedClient) {
           console.log('No matching client found, clearing sites');
           setSites([]);
-          setSelectedClientId(null);
           return;
         }
-
-        setSelectedClientId(selectedClient.id);
 
         const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
         const sitesUrl = `${API_BASE_URL}/sites/by-client?clientId=${selectedClient.id}`;
@@ -147,7 +140,6 @@ const QuoteHeader: React.FC<QuoteHeaderProps> = ({
     if (selectedClient && selectedClient.Taux_marge != null) {
       const margin = Number(selectedClient.Taux_marge);
       if (!isNaN(margin)) {
-        setClientMargin(margin);
         // Don't automatically set margin rates - let user control them manually
         // if (onClientMarginChange) onClientMarginChange(margin);
       }
@@ -166,7 +158,6 @@ const QuoteHeader: React.FC<QuoteHeaderProps> = ({
       if (selectedClient && selectedClient.Taux_marge != null) {
         const margin = Number(selectedClient.Taux_marge);
         if (!isNaN(margin)) {
-          setClientMargin(margin);
           // Don't automatically set margin rates - let user control them manually
           // if (onClientMarginChange) onClientMarginChange(margin);
         }

@@ -47,7 +47,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   onPrint,
   onDownloadPDF
 }) => {
-  const { state, setQuoteField, clearQuote, createNewQuote, updateRemise } = useQuote();
+  const { state, clearQuote, createNewQuote, updateRemise } = useQuote();
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
   const [snackbarSeverity, setSnackbarSeverity] = React.useState<'success' | 'error'>('success');

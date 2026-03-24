@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box } from '@mui/material';
 import Layout from '../components/Layout/Layout';
 import './orgChartPage.scss';
 
@@ -217,7 +216,6 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
   onLogout
 }) => {
   const leader = employees[0];
-  const isAdmin = localStorage.getItem('role') === 'admin';
 
   // Group employees by title
   const climDomestiqueEmployees = leader.children?.filter(emp => emp.title === 'Chef de service Chargé de clim-domestique') || [];

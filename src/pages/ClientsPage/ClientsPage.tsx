@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-import logo from '../../logo.png';
 import {
   Box,
   Button,
@@ -10,45 +9,28 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Divider,
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
-  Chip,
   Card,
   CardContent,
-  InputBase,
   Collapse,
   Snackbar,
   Alert,
   Menu,
   MenuItem,
   ListItemIcon,
-  InputAdornment,
-  Grid
+  InputAdornment
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
-  ExpandMore as ExpandMoreIcon,
-  Place as PlaceIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
-  MoreVert as MoreVertIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
   Business as BusinessIcon,
@@ -56,9 +38,6 @@ import {
 } from '@mui/icons-material';
 import Layout from '../../components/Layout/Layout';
 import { Client, Site, Split } from '../../models/Quote'; // <-- Import Split here
-import { apiService } from '../../services/api-service';
-import { generateClientId } from '../../utils/id-generator';
-import CustomNumberInput from '../../components/CustomNumberInput/CustomNumberInput';
 import './ClientsPage.scss';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -89,7 +68,6 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
 
   // State for new site
   const [newSiteName, setNewSiteName] = useState('');
-  const [newSiteAddress, setNewSiteAddress] = useState('');
 
   // State for snackbar
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -203,7 +181,6 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       Taux_marge: 0
     });
     setNewSiteName('');
-    setNewSiteAddress('');
     setIsEditing(false);
     setDialogOpen(true);
   };
@@ -477,11 +454,6 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   // Close snackbar
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
-  };
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, client: Client) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedClient(client);
   };
 
   const handleMenuClose = () => {

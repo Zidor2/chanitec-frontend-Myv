@@ -277,7 +277,7 @@ class ApiService {
             const newQuantity = currentQuantity - quantityToDeduct;
 
             // Update the item with new quantity
-            const updatedItem = await this.fetchApi<any>(`/items/${itemId}`, {
+            await this.fetchApi<any>(`/items/${itemId}`, {
                 method: 'PUT',
                 body: JSON.stringify({
                     description: item.description,

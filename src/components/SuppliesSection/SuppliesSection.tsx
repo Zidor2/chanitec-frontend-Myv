@@ -18,7 +18,6 @@ import {
   TextField,
   Typography,
   MenuItem,
-  Alert,
   Chip
 } from '@mui/material';
 import {
@@ -67,15 +66,12 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<SupplyItem | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [quantityInputValue, setQuantityInputValue] = useState<string>('1');
   const [customPriceDialogOpen, setCustomPriceDialogOpen] = useState(false);
   const [customPrice, setCustomPrice] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [editPriceDialogOpen, setEditPriceDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SupplyItem | null>(null);
   const [editPrice, setEditPrice] = useState<number>(0);
   const [editQuantity, setEditQuantity] = useState<number>(1);
-  const [editQuantityInputValue, setEditQuantityInputValue] = useState<string>('1');
   const [quantityWarningDialogOpen, setQuantityWarningDialogOpen] = useState(false);
   const [pendingItem, setPendingItem] = useState<SupplyItem | null>(null);
   const [pendingQuantity, setPendingQuantity] = useState<number>(1);
@@ -84,7 +80,6 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
   useEffect(() => {
     const loadCatalogItems = async () => {
       try {
-        setIsLoading(true);
         const loadedItems = await apiService.getSupplies();
 
         // Map API response to expected structure if needed
@@ -108,8 +103,6 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
         setFilteredItems(mappedItems);
       } catch (error) {
         console.error('Error loading catalog items:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -151,7 +144,6 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
     setSearchTerm('');
     setSelectedItem(null);
     setQuantity(1);
-    setQuantityInputValue('1');
   };
 
   // Handle closing the search dialog
@@ -245,7 +237,6 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
     setEditingItem(item);
     setEditPrice(item.priceEuro);
     setEditQuantity(item.quantity);
-    setEditQuantityInputValue(item.quantity.toString());
     setEditPriceDialogOpen(true);
   };
 
@@ -254,19 +245,16 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
     setEditingItem(null);
     setEditPrice(0);
     setEditQuantity(1);
-    setEditQuantityInputValue('1');
   };
 
     // Handle quantity input change for search dialog
   const handleQuantityInputChange = (value: number) => {
     setQuantity(value);
-    setQuantityInputValue(value.toString());
   };
 
   // Handle edit quantity input change
   const handleEditQuantityInputChange = (value: number) => {
     setEditQuantity(value);
-    setEditQuantityInputValue(value.toString());
   };
 
   const handleUpdatePrice = () => {

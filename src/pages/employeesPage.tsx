@@ -173,21 +173,6 @@ const EmployeesPage: React.FC<EmployeesPageProps> = ({
     return `${years}y ${months}m`;
   };
 
-  const getTypeDescription = (subTypeId: number | undefined) => {
-    switch (subTypeId) {
-      case 1:
-        return 'Chef de service Chargé de clim-domestique';
-      case 2:
-        return 'Polyvalent';
-      case 3:
-      case 4:
-      case 5:
-        return 'Chef de service adj chargé du climatisation centralisé';
-      default:
-        return '';
-    }
-  };
-
   if (loading) {
     return (
       <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
