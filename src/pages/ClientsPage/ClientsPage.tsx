@@ -337,7 +337,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: currentClient.name.trim(),
+          name: (currentClient.name ?? '').trim(),
           Taux_marge: currentClient.Taux_marge || 0
         })
       });
@@ -410,7 +410,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: currentClient.name.trim(),
+          name: (currentClient.name ?? '').trim(),
           Taux_marge: currentClient.Taux_marge || 0
         })
       });
