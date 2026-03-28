@@ -42,6 +42,49 @@ import './ClientsPage.scss';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+interface SplitLookupResult {
+  exists: boolean;
+  clientName?: string;
+  siteName?: string;
+  siteId?: string;
+}
+
+async function fetchSplitCodeLookup(code: string): Promise<SplitLookupResult> {
+  const trimmed = code.trim();
+  if (!trimmed) return { exists: false };
+  const res = await fetch(
+    `${API_BASE_URL}/splits/lookup?code=${encodeURIComponent(trimmed)}`
+  );
+  if (!res.ok) throw new Error('Lookup failed');
+  return res.json();
+}
+
+/** True if this code is already used on another site (or any site when site id is still temporary). */
+function isSplitCodeConflictForCurrentSite(
+  lookup: SplitLookupResult,
+  currentSiteId: string
+): boolean {
+  if (!lookup.exists) return false;
+  if (!lookup.siteId) return true;
+  if (currentSiteId.startsWith('temp-')) return true;
+  return lookup.siteId !== currentSiteId;
+}
+
+/** Same non-empty code used more than once in the dialog (any site). */
+function findDuplicateSplitCodesInForm(sites: Site[] | undefined): string | null {
+  const seen = new Map<string, string>();
+  for (const site of sites || []) {
+    for (const sp of site.splits || []) {
+      const c = (sp.Code || '').trim();
+      if (!c) continue;
+      const key = c.toLowerCase();
+      if (seen.has(key)) return c;
+      seen.set(key, c);
+    }
+  }
+  return null;
+}
+
 interface ClientsPageProps {
   currentPath: string;
   onNavigate: (path: string) => void;
@@ -225,22 +268,56 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     // Note: The actual deletion API call happens in handleUpdateClientAndSites
   };
 
+  const validateSplitCodesWithServer = async (): Promise<string | null> => {
+    const sites = currentClient.sites || [];
+    for (const site of sites) {
+      for (const split of site.splits || []) {
+        const code = (split.Code || '').trim();
+        if (!code) continue;
+        try {
+          const lookup = await fetchSplitCodeLookup(code);
+          if (isSplitCodeConflictForCurrentSite(lookup, site.id)) {
+            if (lookup.exists && lookup.clientName && lookup.siteName) {
+              return `Ce code split existe déjà : ${lookup.clientName} > ${lookup.siteName}`;
+            }
+            return 'Ce code split existe déjà pour un autre emplacement.';
+          }
+        } catch {
+          return 'Impossible de vérifier le code split. Réessayez.';
+        }
+      }
+    }
+    return null;
+  };
+
   // Save client (either create new or update existing)
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!currentClient.name?.trim()) {
+      showSnackbar('Le nom du client est requis', 'error');
+      return;
+    }
+    const dupCode = findDuplicateSplitCodesInForm(currentClient.sites);
+    if (dupCode) {
+      showSnackbar(
+        `Le code split "${dupCode}" est utilisé plusieurs fois dans le formulaire.`,
+        'error'
+      );
+      return;
+    }
+    const serverErr = await validateSplitCodesWithServer();
+    if (serverErr) {
+      showSnackbar(serverErr, 'error');
+      return;
+    }
     if (isEditing) {
-      handleUpdateClientAndSites();
+      await handleUpdateClientAndSites();
     } else {
-      handleCreateClientAndSite(); // Renamed the original save function
+      await handleCreateClientAndSite();
     }
   };
 
   // Renamed function for creating a NEW client and its first site
   const handleCreateClientAndSite = async () => {
-    if (!currentClient.name?.trim()) {
-      showSnackbar('Le nom du client est requis', 'error');
-      return;
-    }
-
     // Check if we have sites added or if we need to use the newSiteName
     const hasSites = (currentClient.sites?.length || 0) > 0;
     const siteNameToUse = hasSites ? currentClient.sites![0].name : newSiteName.trim();
@@ -323,11 +400,6 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     if (!currentClient || !currentClient.id) {
       console.error('Update error: No current client ID');
       showSnackbar('Erreur: Client non identifiable pour la mise à jour', 'error');
-      return;
-    }
-
-    if (!currentClient.name?.trim()) {
-      showSnackbar('Le nom du client est requis', 'error');
       return;
     }
 
@@ -778,6 +850,31 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                             : s
                         );
                         setCurrentClient({ ...currentClient, sites: newSites });
+                      }}
+                      onBlur={async (e) => {
+                        const code = e.target.value.trim();
+                        if (!code) return;
+                        try {
+                          const lookup = await fetchSplitCodeLookup(code);
+                          if (isSplitCodeConflictForCurrentSite(lookup, site.id)) {
+                            if (lookup.exists && lookup.clientName && lookup.siteName) {
+                              showSnackbar(
+                                `Ce code split existe déjà : ${lookup.clientName} > ${lookup.siteName}`,
+                                'error'
+                              );
+                            } else {
+                              showSnackbar(
+                                'Ce code split existe déjà pour un autre emplacement.',
+                                'error'
+                              );
+                            }
+                          }
+                        } catch {
+                          showSnackbar(
+                            'Impossible de vérifier le code split. Réessayez.',
+                            'error'
+                          );
+                        }
                       }}
                     />
                     <TextField
