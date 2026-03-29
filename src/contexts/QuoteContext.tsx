@@ -15,6 +15,7 @@ import {
   calculateVAT
 } from '../utils/calculations';
 import { generateId, generateQuoteId } from '../utils/id-generator';
+import { cloneQuoteSnapshot, quotesContentEqual } from '../utils/quote-compare';
 
 // Default values
 const DEFAULT_EXCHANGE_RATE = 1.2;
@@ -30,6 +31,8 @@ interface QuoteState {
   error: string | null;
   isExistingQuote: boolean;
   originalQuoteId: string | null;
+  /** Snapshot when the quote was last loaded or saved; used to detect edits before print. */
+  originalQuoteSnapshot: Quote | null;
 }
 
 // Action types
@@ -50,6 +53,7 @@ export type QuoteAction =
   | { type: 'REMOVE_LABOR_ITEM'; payload: string }
   | { type: 'RECALCULATE_TOTALS' }
   | { type: 'SET_ORIGINAL_QUOTE_ID'; payload: string | null }
+  | { type: 'SET_ORIGINAL_QUOTE_SNAPSHOT'; payload: Quote | null }
   | { type: 'UPDATE_REMISE'; payload: number };
 
 // Initial state
@@ -60,6 +64,7 @@ const initialState: QuoteState = {
   error: null,
   isExistingQuote: false,
   originalQuoteId: null,
+  originalQuoteSnapshot: null,
 };
 
 // Reducer function
@@ -85,6 +90,7 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
         currentQuote: null,
         isEditing: false,
         isExistingQuote: false,
+        originalQuoteSnapshot: null,
       };
 
     case 'START_EDIT':
@@ -379,6 +385,13 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
       };
     }
 
+    case 'SET_ORIGINAL_QUOTE_SNAPSHOT': {
+      return {
+        ...state,
+        originalQuoteSnapshot: action.payload ? cloneQuoteSnapshot(action.payload) : null,
+      };
+    }
+
     case 'UPDATE_REMISE': {
       if (!state.currentQuote) return state;
 
@@ -408,6 +421,8 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 // Context interface
 interface QuoteContextProps {
   state: QuoteState;
+  /** True when the current quote differs from the last loaded/saved version (existing quotes only). */
+  isQuoteDirty: () => boolean;
   createNewQuote: () => void;
   loadQuote: (id: string, createdAt: string, fromHistory?: boolean) => void;
   saveQuote: (remiseValue?: number) => Promise<boolean>;
@@ -486,6 +501,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
 
     dispatch({ type: 'SET_QUOTE', payload: newQuote });
     dispatch({ type: 'SET_EXISTING_QUOTE', payload: false });
+    dispatch({ type: 'SET_ORIGINAL_QUOTE_SNAPSHOT', payload: null });
   };
 
   // Load a quote by ID
@@ -505,6 +521,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
 
       dispatch({ type: 'SET_ORIGINAL_QUOTE_ID', payload: id });
       dispatch({ type: 'SET_QUOTE', payload: quoteWithRemise });
+      dispatch({ type: 'SET_ORIGINAL_QUOTE_SNAPSHOT', payload: quoteWithRemise });
       dispatch({ type: 'SET_EXISTING_QUOTE', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
     } catch (error) {
@@ -569,6 +586,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
         dispatch({ type: 'SET_QUOTE', payload: finalSavedQuote });
         dispatch({ type: 'SET_EXISTING_QUOTE', payload: true });
         dispatch({ type: 'SET_ORIGINAL_QUOTE_ID', payload: savedQuote.id });
+        dispatch({ type: 'SET_ORIGINAL_QUOTE_SNAPSHOT', payload: finalSavedQuote });
         return true;
       } else {
         // For updating an existing quote: create a new quote with a new ID and parent reference
@@ -694,6 +712,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_QUOTE', payload: finalQuote });
       dispatch({ type: 'SET_EXISTING_QUOTE', payload: true });
       dispatch({ type: 'SET_ORIGINAL_QUOTE_ID', payload: newId });
+      dispatch({ type: 'SET_ORIGINAL_QUOTE_SNAPSHOT', payload: finalQuote });
       return true;
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to save quote' });
@@ -774,8 +793,15 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
     dispatch({ type: 'CLEAR_QUOTE' });
   };
 
+  const isQuoteDirty = React.useCallback((): boolean => {
+    if (!state.currentQuote || !state.isExistingQuote) return false;
+    if (!state.originalQuoteSnapshot) return true;
+    return !quotesContentEqual(state.currentQuote, state.originalQuoteSnapshot);
+  }, [state]);
+
   const value = {
     state,
+    isQuoteDirty,
     createNewQuote,
     loadQuote,
     saveQuote,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import './CustomNumberInput.scss';
@@ -32,16 +32,21 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
   displayOnly = false,
   displayAsInteger = false
 }) => {
-  const [inputValue, setInputValue] = useState<string>(displayAsInteger ? Math.round(value).toString() : Number(value).toFixed(2));
+  const formatForInput = useCallback(
+    (n: number) => (displayAsInteger ? Math.round(n).toString() : Number(n).toFixed(2)),
+    [displayAsInteger]
+  );
+
+  const [inputValue, setInputValue] = useState<string>(formatForInput(value));
   /** When true, the user is editing — do not overwrite the string from `value` on each keystroke. */
   const isFocusedRef = useRef(false);
 
   // Update input value when prop value changes (e.g. parent reset, +/- buttons) — not while typing
   useEffect(() => {
     if (!isFocusedRef.current) {
-      setInputValue(displayAsInteger ? Math.round(value).toString() : Number(value).toFixed(2));
+      setInputValue(formatForInput(value));
     }
-  }, [value, displayAsInteger]);
+  }, [value, formatForInput]);
   if (displayOnly) {
     return (
       <Box className="custom-number-input display-only" sx={{ display: 'flex', flexDirection: 'column', width: fullWidth ? '100%' : 'auto' }}>
@@ -51,23 +56,35 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
     );
   }
 
+  // Props may be strings (e.g. from API); `value + step` would concatenate strings and break `.toFixed`.
+  const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+  const safeStep = Number.isFinite(Number(step)) && Number(step) !== 0 ? Number(step) : 1;
+  const safeMin = Number.isFinite(Number(min)) ? Number(min) : 0;
+  const safeMax = max !== undefined && Number.isFinite(Number(max)) ? Number(max) : undefined;
+
   const handleIncrease = () => {
-    if (max === undefined || value < max) {
-      const newVal = Number((value + step).toFixed(2));
+    if (safeMax === undefined || safeValue < safeMax) {
+      let newVal = Number((safeValue + safeStep).toFixed(2));
+      if (safeMax !== undefined && newVal > safeMax) {
+        newVal = safeMax;
+      }
       onChange(newVal);
-      setInputValue(displayAsInteger ? Math.round(newVal).toString() : newVal.toFixed(2));
+      setInputValue(formatForInput(newVal));
     }
   };
 
   const handleDecrease = () => {
-    if (value > min) {
-      const newVal = Number((value - step).toFixed(2));
+    if (safeValue > safeMin) {
+      let newVal = Number((safeValue - safeStep).toFixed(2));
+      if (newVal < safeMin) {
+        newVal = safeMin;
+      }
       onChange(newVal);
-      setInputValue(displayAsInteger ? Math.round(newVal).toString() : newVal.toFixed(2));
+      setInputValue(formatForInput(newVal));
     }
   };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newInputValue = e.target.value;
     setInputValue(newInputValue);
 
@@ -78,10 +95,12 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
 
     const newValue = parseFloat(newInputValue);
     if (!isNaN(newValue)) {
-      if (max !== undefined && newValue > max) {
-        onChange(max);
-      } else if (newValue < min) {
-        onChange(min);
+      if (safeMax !== undefined && newValue > safeMax) {
+        onChange(safeMax);
+        setInputValue(formatForInput(safeMax));
+      } else if (newValue < safeMin) {
+        onChange(safeMin);
+        setInputValue(formatForInput(safeMin));
       } else {
         onChange(newValue);
       }
@@ -102,21 +121,22 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
     isFocusedRef.current = false;
     // When user finishes editing, validate and update the value
     if (inputValue === '') {
-      // If input is empty, reset to minimum value
-      onChange(min);
+      onChange(safeMin);
+      setInputValue(formatForInput(safeMin));
     } else {
       const newValue = parseFloat(inputValue);
       if (isNaN(newValue)) {
-        // If invalid number, reset to current value
-        setInputValue(displayAsInteger ? Math.round(value).toString() : Number(value).toFixed(2));
+        setInputValue(formatForInput(safeValue));
       } else {
-        // Validate and update
-        if (max !== undefined && newValue > max) {
-          onChange(max);
-        } else if (newValue < min) {
-          onChange(min);
+        if (safeMax !== undefined && newValue > safeMax) {
+          onChange(safeMax);
+          setInputValue(formatForInput(safeMax));
+        } else if (newValue < safeMin) {
+          onChange(safeMin);
+          setInputValue(formatForInput(safeMin));
         } else {
           onChange(newValue);
+          setInputValue(formatForInput(newValue));
         }
       }
     }
@@ -129,7 +149,7 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
         <IconButton
           size="small"
           onClick={handleDecrease}
-          disabled={disabled || value <= min}
+          disabled={disabled || safeValue <= safeMin}
           className="number-control-button decrease-button"
         >
           <RemoveIcon fontSize="small" />
@@ -144,9 +164,9 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          min={min}
-          max={max}
-          step={step}
+          min={safeMin}
+          max={safeMax}
+          step={safeStep}
           disabled={disabled}
           className={`custom-number-field ${variant} ${margin}`}
         />
@@ -154,7 +174,7 @@ const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
         <IconButton
           size="small"
           onClick={handleIncrease}
-          disabled={disabled || (max !== undefined && value >= max)}
+          disabled={disabled || (safeMax !== undefined && safeValue >= safeMax)}
           className="number-control-button increase-button"
         >
           <AddIcon fontSize="small" />

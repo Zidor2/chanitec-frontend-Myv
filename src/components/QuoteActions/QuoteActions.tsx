@@ -47,7 +47,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   onPrint,
   onDownloadPDF
 }) => {
-  const { state, clearQuote, createNewQuote, updateRemise } = useQuote();
+  const { state, clearQuote, createNewQuote, updateRemise, isQuoteDirty } = useQuote();
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
   const [snackbarSeverity, setSnackbarSeverity] = React.useState<'success' | 'error'>('success');
@@ -56,6 +56,8 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   const [remiseDialogOpen, setRemiseDialogOpen] = React.useState(false);
   const [remiseEnabled, setRemiseEnabled] = React.useState(false);
   const [remiseValue, setRemiseValue] = React.useState(0);
+  /** After remise dialog: reset to new quote (Mettre à jour) vs print only (Enregistrer sous). */
+  const [afterRemiseAction, setAfterRemiseAction] = React.useState<'newQuote' | 'print' | null>(null);
 
 
 
@@ -75,12 +77,14 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
     setRemiseEnabled(currentRemise > 0);
     setRemiseValue(currentRemise);
 
+    setAfterRemiseAction('newQuote');
     // Open remise dialog
     setRemiseDialogOpen(true);
   };
 
   // Handle actual save with remise
   const handleSaveWithRemise = async () => {
+    const remiseAction = afterRemiseAction;
     try {
       // Set the remise value in the quote if enabled
       if (remiseEnabled) {
@@ -89,20 +93,27 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
         updateRemise(0);
       }
 
-      // Use onSave for both new quotes and updates since they do the same thing
       // Pass the remise value directly to avoid race condition
       const success = await onSave(remiseEnabled ? remiseValue : 0);
 
       if (success) {
+        setRemiseDialogOpen(false);
+        setAfterRemiseAction(null);
+
+        if (remiseAction === 'print') {
+          setSnackbarMessage('Devis mis à jour. Ouverture de l’aperçu d’impression…');
+          setSnackbarSeverity('success');
+          setSnackbarOpen(true);
+          onPrint();
+          return;
+        }
+
         const message = isExistingQuote
           ? 'Devis mis à jour avec succès! Prêt pour un nouveau devis.'
           : 'Devis enregistré avec succès! Prêt pour un nouveau devis.';
         setSnackbarMessage(message);
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
-
-        // Close the remise dialog first
-        setRemiseDialogOpen(false);
 
         // Wait a bit for the state to update before clearing
         setTimeout(() => {
@@ -128,9 +139,8 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
     }
   };
 
-  // Handle save and print action
+  // Handle save and print: new → save then print; existing unchanged → print only; existing dirty → same as Mettre à jour then print
   const handleSaveAndPrint = async () => {
-    // Validate that client and site are selected
     if (!clientName || !siteName || clientName.trim() === '' || siteName.trim() === '') {
       alert('Veuillez sélectionner un client et un site avant d\'enregistrer le devis.');
       setSnackbarMessage('Veuillez sélectionner un client et un site avant d\'enregistrer le devis.');
@@ -140,7 +150,6 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
     }
 
     try {
-      // First save the quote if it doesn't exist
       if (!isExistingQuote) {
         const success = await onSave();
         if (!success) {
@@ -152,10 +161,20 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
         setSnackbarMessage('Devis enregistré avec succès!');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
+        onPrint();
+        return;
       }
 
-      // Then proceed with print functionality
-      onPrint();
+      if (!isQuoteDirty()) {
+        onPrint();
+        return;
+      }
+
+      const currentRemise = state.currentQuote?.remise || 0;
+      setRemiseEnabled(currentRemise > 0);
+      setRemiseValue(currentRemise);
+      setAfterRemiseAction('print');
+      setRemiseDialogOpen(true);
     } catch (error) {
       setSnackbarMessage('Erreur lors de l\'enregistrement du devis.');
       setSnackbarSeverity('error');
@@ -190,6 +209,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
     setRemiseDialogOpen(false);
     setRemiseEnabled(false);
     setRemiseValue(0);
+    setAfterRemiseAction(null);
   };
 
   return (
@@ -246,7 +266,11 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
       {/* Remise Dialog */}
       <Dialog open={remiseDialogOpen} onClose={handleCloseRemiseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {isExistingQuote ? 'Configuration de la Remise - Mise à jour' : 'Configuration de la Remise - Nouveau devis'}
+          {afterRemiseAction === 'print'
+            ? 'Configuration de la Remise - Mise à jour avant impression'
+            : isExistingQuote
+              ? 'Configuration de la Remise - Mise à jour'
+              : 'Configuration de la Remise - Nouveau devis'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
@@ -280,7 +304,11 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
             Annuler
           </Button>
           <Button onClick={handleSaveWithRemise} color="primary" variant="contained">
-            {isExistingQuote ? 'Mettre à jour' : 'Enregistrer'}
+            {afterRemiseAction === 'print'
+              ? 'Mettre à jour et imprimer'
+              : isExistingQuote
+                ? 'Mettre à jour'
+                : 'Enregistrer'}
           </Button>
         </DialogActions>
       </Dialog>
