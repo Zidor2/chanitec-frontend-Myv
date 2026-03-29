@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import {
   Box,
@@ -126,18 +126,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const [deletedSplits, setDeletedSplits] = useState<string[]>([]); // Track split codes to delete
   const [puissanceInputs, setPuissanceInputs] = useState<{[key: string]: string}>({}); // Store raw input values for puissance fields
 
-  // Load clients on component mount
-  useEffect(() => {
-    loadClients();
-  }, []);
-
-  // Filter clients when search term changes
-  useEffect(() => {
-    filterClients();
-  }, [searchTerm, selectedSite, clients]);
-
   // Filter clients based on search term and site filter
-  const filterClients = () => {
+  const filterClients = useCallback(() => {
     let filtered = [...clients];
 
     // Search filter
@@ -156,7 +146,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     }
 
     setFilteredClients(filtered);
-  };
+  }, [clients, searchTerm, selectedSite]);
 
   // Get all unique sites for the dropdown
   const getAllSites = () => {
@@ -177,8 +167,15 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     setSelectedSite('all');
   };
 
+  // Show snackbar with message
+  const showSnackbar = useCallback((message: string, severity: 'success' | 'error') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  }, []);
+
   // Load all clients with their sites
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/clients`);
@@ -214,7 +211,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     } finally {
       setLoading(false);
     }
-  };
+  }, [showSnackbar]);
+
+  // Load clients on component mount
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
+
+  // Filter clients when search term changes
+  useEffect(() => {
+    filterClients();
+  }, [filterClients]);
 
   // Open dialog to add a new client
   const handleAddClient = () => {
@@ -514,13 +521,6 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     setNewSiteName('');
     setIsEditing(false);
     setPuissanceInputs({}); // Clear puissance inputs
-  };
-
-  // Show snackbar with message
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setSnackbarOpen(true);
   };
 
   // Close snackbar

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, FC } from 'react';
+import React, { useState, useEffect, useRef, FC, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -102,18 +102,15 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
     onNavigate('/');
   };
 
-  // Load items when component mounts
-  useEffect(() => {
-    loadItems();
+  // Show snackbar with message
+  const showSnackbar = useCallback((message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
   }, []);
 
-  // Filter items when search term or filters change
-  useEffect(() => {
-    filterItems();
-  }, [searchTerm, items, quantityFilter, priceRange]);
-
   // Load all items from API
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     try {
       setLoading(true);
       const data = await itemsApi.getAllItems();
@@ -134,10 +131,10 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [showSnackbar]);
 
   // Filter items based on search term and filters
-  const filterItems = () => {
+  const filterItems = useCallback(() => {
     let filtered = [...items];
 
     // Search filter
@@ -159,14 +156,17 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
     );
 
     setFilteredItems(filtered);
-  };
+  }, [items, searchTerm, quantityFilter, priceRange]);
 
-  // Show snackbar with message
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setSnackbarOpen(true);
-  };
+  // Load items when component mounts
+  useEffect(() => {
+    loadItems();
+  }, [loadItems]);
+
+  // Filter items when search term or filters change
+  useEffect(() => {
+    filterItems();
+  }, [filterItems]);
 
   // Close snackbar
   const handleCloseSnackbar = () => {
