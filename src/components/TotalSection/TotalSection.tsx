@@ -9,6 +9,7 @@ interface TotalSectionProps {
   tva: number;
   totalTTC: number;
   remise?: number;
+  hbc?: number;
 }
 
 const TotalSection: React.FC<TotalSectionProps> = ({
@@ -17,7 +18,8 @@ const TotalSection: React.FC<TotalSectionProps> = ({
   totalHT,
   tva,
   totalTTC,
-  remise
+  remise,
+  hbc
 }) => {
   // Calculate original total before discount
   const originalTotalHT = Number(totalSuppliesHT ?? 0) + Number(totalLaborHT ?? 0);
@@ -25,14 +27,20 @@ const TotalSection: React.FC<TotalSectionProps> = ({
   // Calculate discount amount
   const discountAmount = remise && remise > 0 ? (originalTotalHT * (remise / 100)) : 0;
 
-  // Calculate discounted total
-  const discountedTotalHT = originalTotalHT - discountAmount;
+  // Total after remise
+  const totalAfterRemise = originalTotalHT - discountAmount;
 
-  // Calculate VAT on discounted total
-  const vatOnDiscounted = discountedTotalHT * 0.16;
+  // Calculate HBC amount on the discounted total
+  const hbcAmount = hbc && hbc > 0 ? totalAfterRemise * (hbc / 100) : 0;
+
+  // Total after HBC and before VAT
+  const totalAfterHBC = totalAfterRemise + hbcAmount;
+
+  // Calculate VAT on total after HBC
+  const vatOnTotal = totalAfterHBC * 0.16;
 
   // Calculate final TTC
-  const finalTTC = discountedTotalHT + vatOnDiscounted;
+  const finalTTC = totalAfterHBC + vatOnTotal;
 
   return (
     <Paper className="total-section" elevation={2}>
@@ -52,13 +60,21 @@ const TotalSection: React.FC<TotalSectionProps> = ({
                 </TableCell>
               </TableRow>
             )}
+            {hbc && hbc > 0 && (
+              <TableRow>
+                <TableCell className="total-label">HBC ({hbc}%):</TableCell>
+                <TableCell align="right" className="total-value" style={{ color: '#ffa000' }}>
+                  +{hbcAmount.toFixed(2)}
+                </TableCell>
+              </TableRow>
+            )}
             <TableRow>
-              <TableCell className="total-label">TOTAL HT APRÈS REMISE:</TableCell>
-              <TableCell align="right" className="total-value">{discountedTotalHT.toFixed(2)}</TableCell>
+              <TableCell className="total-label">TOTAL HT APRÈS REMISE{hbc && hbc > 0 ? ' + HBC' : ''}:</TableCell>
+              <TableCell align="right" className="total-value">{totalAfterHBC.toFixed(2)}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell className="total-label">TVA:</TableCell>
-              <TableCell align="right" className="total-value">{vatOnDiscounted.toFixed(2)}</TableCell>
+              <TableCell align="right" className="total-value">{vatOnTotal.toFixed(2)}</TableCell>
             </TableRow>
             <TableRow className="grand-total-row">
               <TableCell className="total-label grand-total">TOTAL OFFRE USD TTC:</TableCell>

@@ -203,6 +203,7 @@ const QuotePage: React.FC<QuotePageProps> = ({ currentPath, onNavigate, onLogout
           tva={currentQuote.tva}
           totalTTC={currentQuote.totalTTC}
           remise={currentQuote.remise}
+          hbc={currentQuote.hbc}
         />
       </Container>
 

@@ -10,7 +10,8 @@ import {
   calculateSupplyItemTotal,
   calculateTotalLabor,
   calculateTotalSupplies,
-  calculateTotalTTCWithRemise,
+  calculateTotalTTCWithRemiseAndHBC,
+  calculateTotalWithRemiseAndHBC,
   calculateTotalWithRemise,
   calculateVAT
 } from '../utils/calculations';
@@ -54,7 +55,8 @@ export type QuoteAction =
   | { type: 'RECALCULATE_TOTALS' }
   | { type: 'SET_ORIGINAL_QUOTE_ID'; payload: string | null }
   | { type: 'SET_ORIGINAL_QUOTE_SNAPSHOT'; payload: Quote | null }
-  | { type: 'UPDATE_REMISE'; payload: number };
+  | { type: 'UPDATE_REMISE'; payload: number }
+  | { type: 'UPDATE_HBC'; payload: number };
 
 // Initial state
 const initialState: QuoteState = {
@@ -147,12 +149,11 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
       const updatedItems = [...state.currentQuote.supplyItems, calculatedItem];
       const totalSuppliesHT = calculateTotalSupplies(updatedItems);
       const totalHT = Number(totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
-
-      // Apply remise if present
       const remise = state.currentQuote.remise || 0;
-      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
-      const tva = calculateVAT(totalHTWithRemise);
-      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
+      const hbc = state.currentQuote.hbc || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, hbc);
 
       return {
         ...state,
@@ -182,12 +183,11 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const totalSuppliesHT = calculateTotalSupplies(updatedItems);
       const totalHT = Number(totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
-
-      // Apply remise if present
       const remise = state.currentQuote.remise || 0;
-      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
-      const tva = calculateVAT(totalHTWithRemise);
-      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
+      const hbc = state.currentQuote.hbc || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, hbc);
 
       return {
         ...state,
@@ -211,12 +211,11 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const totalSuppliesHT = calculateTotalSupplies(updatedItems);
       const totalHT = Number(totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
-
-      // Apply remise if present
       const remise = state.currentQuote.remise || 0;
-      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
-      const tva = calculateVAT(totalHTWithRemise);
-      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
+      const hbc = state.currentQuote.hbc || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, hbc);
 
       return {
         ...state,
@@ -249,12 +248,11 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
       const updatedItems = [...state.currentQuote.laborItems, calculatedItem];
       const totalLaborHT = calculateTotalLabor(updatedItems);
       const totalHT = Number(totalLaborHT) + Number(state.currentQuote.totalSuppliesHT);
-
-      // Apply remise if present
       const remise = state.currentQuote.remise || 0;
-      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
-      const tva = calculateVAT(totalHTWithRemise);
-      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
+      const hbc = state.currentQuote.hbc || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, hbc);
 
       return {
         ...state,
@@ -284,12 +282,11 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const totalLaborHT = calculateTotalLabor(updatedItems);
       const totalHT = Number(totalLaborHT) + Number(state.currentQuote.totalSuppliesHT);
-
-      // Apply remise if present
       const remise = state.currentQuote.remise || 0;
-      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
-      const tva = calculateVAT(totalHTWithRemise);
-      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
+      const hbc = state.currentQuote.hbc || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, hbc);
 
       return {
         ...state,
@@ -313,12 +310,11 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const totalLaborHT = calculateTotalLabor(updatedItems);
       const totalHT = Number(totalLaborHT) + Number(state.currentQuote.totalSuppliesHT);
-
-      // Apply remise if present
       const remise = state.currentQuote.remise || 0;
-      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
-      const tva = calculateVAT(totalHTWithRemise);
-      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
+      const hbc = state.currentQuote.hbc || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, hbc);
 
       return {
         ...state,
@@ -357,11 +353,11 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
       const totalLaborHT = calculateTotalLabor(recalculatedLaborItems);
       const totalHT = Number(totalSuppliesHT) + Number(totalLaborHT);
 
-      // Apply remise if present
       const remise = state.currentQuote.remise || 0;
-      const totalHTWithRemise = calculateTotalWithRemise(totalHT, remise);
-      const tva = calculateVAT(totalHTWithRemise);
-      const totalTTC = calculateTotalTTCWithRemise(totalHT, remise);
+      const hbc = state.currentQuote.hbc || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, hbc);
 
       return {
         ...state,
@@ -397,15 +393,38 @@ const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
 
       const newRemise = action.payload;
       const totalHT = Number(state.currentQuote.totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
-      const totalHTWithRemise = calculateTotalWithRemise(totalHT, newRemise);
-      const tva = calculateVAT(totalHTWithRemise);
-      const totalTTC = calculateTotalTTCWithRemise(totalHT, newRemise);
+      const hbc = state.currentQuote.hbc || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, newRemise, hbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, newRemise, hbc);
 
       return {
         ...state,
         currentQuote: {
           ...state.currentQuote,
           remise: newRemise,
+          totalHT,
+          tva,
+          totalTTC,
+        },
+      };
+    }
+
+    case 'UPDATE_HBC': {
+      if (!state.currentQuote) return state;
+
+      const newHbc = action.payload;
+      const totalHT = Number(state.currentQuote.totalSuppliesHT) + Number(state.currentQuote.totalLaborHT);
+      const remise = state.currentQuote.remise || 0;
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, newHbc);
+      const tva = calculateVAT(totalHTWithRemiseAndHBC);
+      const totalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, newHbc);
+
+      return {
+        ...state,
+        currentQuote: {
+          ...state.currentQuote,
+          hbc: newHbc,
           totalHT,
           tva,
           totalTTC,
@@ -425,8 +444,8 @@ interface QuoteContextProps {
   isQuoteDirty: () => boolean;
   createNewQuote: () => void;
   loadQuote: (id: string, createdAt: string, fromHistory?: boolean) => void;
-  saveQuote: (remiseValue?: number) => Promise<boolean>;
-  updateQuote: (remiseValue?: number) => Promise<boolean>;
+  saveQuote: (remiseValue?: number, hbcValue?: number) => Promise<boolean>;
+  updateQuote: (remiseValue?: number, hbcValue?: number) => Promise<boolean>;
   setQuoteField: <K extends keyof Quote>(field: K, value: Quote[K]) => void;
   addSupplyItem: (item: Omit<SupplyItem, 'id'>) => void;
   updateSupplyItem: (item: SupplyItem) => void;
@@ -436,6 +455,7 @@ interface QuoteContextProps {
   removeLaborItem: (id: string) => void;
   recalculateTotals: () => void;
   updateRemise: (remise: number) => void;
+  updateHBC: (hbc: number) => void;
   clearQuote: () => void;
 }
 
@@ -451,8 +471,9 @@ interface QuoteProviderProps {
 export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(quoteReducer, initialState);
 
-  // Use a ref to preserve the remise value across quote operations
+  // Use refs to preserve remise and HBC values across quote operations
   const preservedRemiseRef = React.useRef<number>(0);
+  const preservedHbcRef = React.useRef<number>(0);
 
   // Create a new quote
   const createNewQuote = async () => {
@@ -464,8 +485,9 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       console.warn('Failed to fetch real-time exchange rate, using default:', e);
     }
 
-    // Use the preserved remise value from the ref
+    // Use the preserved remise and HBC values from refs
     const currentRemise = preservedRemiseRef.current;
+    const currentHbc = preservedHbcRef.current;
 
     const newQuote: Quote = {
       id: generateQuoteId(), // This will create ID with version 000
@@ -487,6 +509,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       tva: 0,
       totalTTC: 0,
       remise: currentRemise || undefined, // Use the preserved remise value or undefined
+      hbc: currentHbc || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       version: 0,
@@ -513,10 +536,11 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
         throw new Error('Quote not found');
       }
 
-      // Ensure remise is preserved and totals are calculated with remise for display
+      // Ensure remise and HBC are preserved and totals are calculated with the display values
       const quoteWithRemise = {
         ...quote,
-        remise: quote.remise
+        remise: quote.remise,
+        hbc: quote.hbc
       };
 
       dispatch({ type: 'SET_ORIGINAL_QUOTE_ID', payload: id });
@@ -533,7 +557,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
   };
 
   // Save or update quote
-  const saveQuote = async (remiseValue?: number): Promise<boolean> => {
+  const saveQuote = async (remiseValue?: number, hbcValue?: number): Promise<boolean> => {
     if (!state.currentQuote) return false;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -572,15 +596,17 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
           totalHT,
           tva,
           totalTTC,
-          // Use the passed remise value if provided, otherwise use the current state
+          // Use the passed remise and HBC values if provided, otherwise use the current state
           remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise,
+          hbc: hbcValue !== undefined ? hbcValue : state.currentQuote.hbc,
         };
         const savedQuote = await apiService.saveQuote(quoteToSave);
 
         // After saving, recalculate totals with remise for display
         const finalSavedQuote = {
           ...savedQuote,
-          remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise
+          remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise,
+          hbc: hbcValue !== undefined ? hbcValue : state.currentQuote.hbc
         };
 
         dispatch({ type: 'SET_QUOTE', payload: finalSavedQuote });
@@ -620,8 +646,9 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
           totalHT,
           tva,
           totalTTC,
-          // Use the passed remise value if provided, otherwise use the current state
+          // Use the passed remise and HBC values if provided, otherwise use the current state
           remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise,
+          hbc: hbcValue !== undefined ? hbcValue : state.currentQuote.hbc,
           metadata: {
             ...state.currentQuote.metadata,
             version: 1,
@@ -641,47 +668,11 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
             id: undefined,
             quote_id: newId,
             // Ensure item_id is included for inventory tracking
-            item_id: item.item_id || '',
-            // Mark as inventory deducted if it was already deducted
-            inventory_deducted: item.inventory_deducted || false
+            item_id: item.item_id || ''
           };
           return apiService.createSupplyItem(newId, newItem);
         });
         await Promise.all(supplyItemPromises);
-
-        // Deduct inventory for supply items (only for items not already deducted)
-        const inventoryDeductionPromises = state.currentQuote.supplyItems
-          .filter(item => item.item_id && !item.inventory_deducted)
-          .map(async (item) => {
-            try {
-              const result = await apiService.deductInventory(item.item_id, item.quantity);
-              if (result.success) {
-                console.log(`Inventory deducted: ${item.quantity} units from item ${item.item_id}. New quantity: ${result.newQuantity}`);
-                // Mark item as inventory deducted
-                return { itemId: item.id, success: true, newQuantity: result.newQuantity };
-              } else {
-                console.warn(`Failed to deduct inventory for item ${item.item_id}: ${result.error}`);
-                return { itemId: item.id, success: false, error: result.error };
-              }
-            } catch (error) {
-              console.error(`Error deducting inventory for item ${item.item_id}:`, error);
-              return { itemId: item.id, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-            }
-          });
-
-        // Wait for all inventory deductions to complete
-        const inventoryResults = await Promise.all(inventoryDeductionPromises);
-
-        // Log results
-        const successfulDeductions = inventoryResults.filter(r => r.success);
-        const failedDeductions = inventoryResults.filter(r => !r.success);
-
-        if (successfulDeductions.length > 0) {
-          console.log(`Successfully deducted inventory for ${successfulDeductions.length} items`);
-        }
-        if (failedDeductions.length > 0) {
-          console.warn(`Failed to deduct inventory for ${failedDeductions.length} items:`, failedDeductions);
-        }
       }
 
       // Create new labor items
@@ -706,7 +697,8 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       // After fetching from backend, recalculate totals with remise for display
       const finalQuote = {
         ...completeQuoteResponse,
-        remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise
+        remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise,
+        hbc: hbcValue !== undefined ? hbcValue : state.currentQuote.hbc
       };
 
       dispatch({ type: 'SET_QUOTE', payload: finalQuote });
@@ -723,8 +715,8 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
   };
 
   // Remove the updateQuote function since it's now consolidated with saveQuote
-  const updateQuote = async (remiseValue?: number): Promise<boolean> => {
-    return saveQuote(remiseValue);
+  const updateQuote = async (remiseValue?: number, hbcValue?: number): Promise<boolean> => {
+    return saveQuote(remiseValue, hbcValue);
   };
 
   // Update a field in the quote
@@ -740,7 +732,8 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
       field === 'supplyMarginRate' ||
       field === 'laborExchangeRate' ||
       field === 'laborMarginRate' ||
-      field === 'remise'
+      field === 'remise' ||
+      field === 'hbc'
     ) {
       dispatch({ type: 'RECALCULATE_TOTALS' });
     }
@@ -786,9 +779,15 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
     dispatch({ type: 'UPDATE_REMISE', payload: remise });
   };
 
+  // Update HBC and recalculate totals
+  const updateHBC = (hbc: number) => {
+    dispatch({ type: 'UPDATE_HBC', payload: hbc });
+  };
+
   const clearQuote = () => {
-    // Preserve the remise value before clearing
+    // Preserve the remise and HBC values before clearing
     preservedRemiseRef.current = state.currentQuote?.remise || 0;
+    preservedHbcRef.current = state.currentQuote?.hbc || 0;
 
     dispatch({ type: 'CLEAR_QUOTE' });
   };
@@ -815,6 +814,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
     removeLaborItem,
     recalculateTotals,
     updateRemise,
+    updateHBC,
     clearQuote
   };
 

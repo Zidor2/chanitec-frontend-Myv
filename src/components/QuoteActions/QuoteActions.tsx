@@ -27,8 +27,8 @@ interface QuoteActionsProps {
   siteName: string;
   date: string;
   isExistingQuote: boolean;
-  onSave: (remiseValue?: number) => Promise<boolean>;
-  onUpdate?: (remiseValue?: number) => Promise<boolean>;
+  onSave: (remiseValue?: number, hbcValue?: number) => Promise<boolean>;
+  onUpdate?: (remiseValue?: number, hbcValue?: number) => Promise<boolean>;
   onViewHistory: () => void;
   contentRef: React.RefObject<HTMLDivElement>;
   onPrint: () => void;
@@ -47,7 +47,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   onPrint,
   onDownloadPDF
 }) => {
-  const { state, clearQuote, createNewQuote, updateRemise, isQuoteDirty } = useQuote();
+  const { state, clearQuote, createNewQuote, updateRemise, updateHBC, isQuoteDirty } = useQuote();
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
   const [snackbarSeverity, setSnackbarSeverity] = React.useState<'success' | 'error'>('success');
@@ -56,6 +56,8 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   const [remiseDialogOpen, setRemiseDialogOpen] = React.useState(false);
   const [remiseEnabled, setRemiseEnabled] = React.useState(false);
   const [remiseValue, setRemiseValue] = React.useState(0);
+  const [hbcEnabled, setHbcEnabled] = React.useState(false);
+  const [hbcValue, setHbcValue] = React.useState(0);
   /** After remise dialog: reset to new quote (Mettre à jour) vs print only (Enregistrer sous). */
   const [afterRemiseAction, setAfterRemiseAction] = React.useState<'newQuote' | 'print' | null>(null);
 
@@ -74,8 +76,11 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
 
     // Initialize remise dialog with current values from the quote state
     const currentRemise = state.currentQuote?.remise || 0;
+    const currentHbc = state.currentQuote?.hbc || 0;
     setRemiseEnabled(currentRemise > 0);
     setRemiseValue(currentRemise);
+    setHbcEnabled(currentHbc > 0);
+    setHbcValue(currentHbc);
 
     setAfterRemiseAction('newQuote');
     // Open remise dialog
@@ -86,15 +91,21 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
   const handleSaveWithRemise = async () => {
     const remiseAction = afterRemiseAction;
     try {
-      // Set the remise value in the quote if enabled
+      // Set the remise and HBC values in the quote if enabled
       if (remiseEnabled) {
         updateRemise(remiseValue);
       } else {
         updateRemise(0);
       }
 
-      // Pass the remise value directly to avoid race condition
-      const success = await onSave(remiseEnabled ? remiseValue : 0);
+      if (hbcEnabled) {
+        updateHBC(hbcValue);
+      } else {
+        updateHBC(0);
+      }
+
+      // Pass the remise and HBC values directly to avoid race condition
+      const success = await onSave(remiseEnabled ? remiseValue : 0, hbcEnabled ? hbcValue : 0);
 
       if (success) {
         setRemiseDialogOpen(false);
@@ -171,8 +182,11 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
       }
 
       const currentRemise = state.currentQuote?.remise || 0;
+      const currentHbc = state.currentQuote?.hbc || 0;
       setRemiseEnabled(currentRemise > 0);
       setRemiseValue(currentRemise);
+      setHbcEnabled(currentHbc > 0);
+      setHbcValue(currentHbc);
       setAfterRemiseAction('print');
       setRemiseDialogOpen(true);
     } catch (error) {
@@ -199,9 +213,22 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
     }
   };
 
+  // Handle HBC checkbox change
+  const handleHbcCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setHbcEnabled(event.target.checked);
+    if (!event.target.checked) {
+      setHbcValue(0);
+    }
+  };
+
   // Handle remise value change
   const handleRemiseValueChange = (value: number) => {
     setRemiseValue(value);
+  };
+
+  // Handle HBC value change
+  const handleHbcValueChange = (value: number) => {
+    setHbcValue(value);
   };
 
   // Close remise dialog
@@ -209,6 +236,8 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
     setRemiseDialogOpen(false);
     setRemiseEnabled(false);
     setRemiseValue(0);
+    setHbcEnabled(false);
+    setHbcValue(0);
     setAfterRemiseAction(null);
   };
 
@@ -289,6 +318,31 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
                   label="Pourcentage de remise"
                   value={remiseValue}
                   onChange={handleRemiseValueChange}
+                  min={0}
+                  max={100}
+                  step={1}
+                  displayAsInteger={true}
+                />
+                <Typography variant="body1">%</Typography>
+              </Box>
+            )}
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hbcEnabled}
+                  onChange={handleHbcCheckboxChange}
+                />
+              }
+              label="HBC"
+              sx={{ mt: 2 }}
+            />
+            {hbcEnabled && (
+              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CustomNumberInput
+                  label="Pourcentage HBC"
+                  value={hbcValue}
+                  onChange={handleHbcValueChange}
                   min={0}
                   max={100}
                   step={1}

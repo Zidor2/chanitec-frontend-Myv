@@ -258,46 +258,6 @@ class ApiService {
 
     // Inventory Management
     /**
-     * Deduct inventory quantity from a catalog item
-     * @param itemId Catalog item ID
-     * @param quantityToDeduct Amount to subtract from current quantity
-     * @returns Updated item with new quantity
-     */
-    async deductInventory(itemId: string, quantityToDeduct: number): Promise<{ success: boolean; newQuantity: number; error?: string }> {
-        try {
-            // Get current item data
-            const items = await this.fetchApi<any[]>('/items');
-            const item = items.find(i => i.id === itemId);
-
-            if (!item) {
-                return { success: false, newQuantity: 0, error: 'Item not found in catalog' };
-            }
-
-            const currentQuantity = item.quantity || 0;
-            const newQuantity = currentQuantity - quantityToDeduct;
-
-            // Update the item with new quantity
-            await this.fetchApi<any>(`/items/${itemId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    description: item.description,
-                    price: item.price,
-                    quantity: newQuantity
-                })
-            });
-
-            return { success: true, newQuantity, error: undefined };
-        } catch (error) {
-            console.error('Error deducting inventory:', error);
-            return {
-                success: false,
-                newQuantity: 0,
-                error: error instanceof Error ? error.message : 'Failed to deduct inventory'
-            };
-        }
-    }
-
-    /**
      * Get catalog item by ID
      * @param itemId Catalog item ID
      * @returns Catalog item data

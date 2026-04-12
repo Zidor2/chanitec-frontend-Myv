@@ -17,15 +17,15 @@ import {
   TableRow,
   TextField,
   Typography,
-  MenuItem,
-  Chip
+  MenuItem
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
   Edit as EditIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  Error as ErrorIcon
 } from '@mui/icons-material';
 import { SupplyItem } from '../../models/Quote';
 import { apiService } from '../../services/api-service';
@@ -177,8 +177,7 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
         priceEuro: calculatedItem.priceEuro,
         priceDollar: calculatedItem.priceDollar,
         unitPriceDollar: calculatedItem.unitPriceDollar,
-        totalPriceDollar: calculatedItem.totalPriceDollar,
-        inventory_deducted: false // Mark as not yet deducted
+        totalPriceDollar: calculatedItem.totalPriceDollar
       });
       handleCloseCustomPriceDialog();
     }
@@ -200,22 +199,6 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
     }
   };
 
-  // Helper function to add item to quote
-  const addItemToQuote = (item: SupplyItem, qty: number) => {
-    const calculatedItem = calculateSupplyItemTotal(item, exchangeRate, marginRate);
-    onAddItem({
-      item_id: item.id, // Include catalog item ID for inventory tracking
-      description: calculatedItem.description,
-      quantity: Math.round(qty), // Ensure quantity is an integer
-      priceEuro: calculatedItem.priceEuro,
-      priceDollar: calculatedItem.priceDollar,
-      unitPriceDollar: calculatedItem.unitPriceDollar,
-      totalPriceDollar: calculatedItem.totalPriceDollar,
-      inventory_deducted: false // Mark as not yet deducted
-    });
-    handleCloseSearchDialog();
-  };
-
   // Handle quantity warning confirmation
   const handleQuantityWarningConfirm = () => {
     if (pendingItem) {
@@ -231,6 +214,21 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
     setQuantityWarningDialogOpen(false);
     setPendingItem(null);
     setPendingQuantity(1);
+  };
+
+  // Helper function to add item to quote
+  const addItemToQuote = (item: SupplyItem, qty: number) => {
+    const calculatedItem = calculateSupplyItemTotal(item, exchangeRate, marginRate);
+    onAddItem({
+      item_id: item.id, // Include catalog item ID for inventory tracking
+      description: calculatedItem.description,
+      quantity: Math.round(qty), // Ensure quantity is an integer
+      priceEuro: calculatedItem.priceEuro,
+      priceDollar: calculatedItem.priceDollar,
+      unitPriceDollar: calculatedItem.unitPriceDollar,
+      totalPriceDollar: calculatedItem.totalPriceDollar
+    });
+    handleCloseSearchDialog();
   };
 
   const handleOpenEditPriceDialog = (item: SupplyItem) => {
@@ -438,7 +436,6 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
                              <TableHead>
                  <TableRow>
                    <TableCell>Description</TableCell>
-                   <TableCell align="right">Quantité</TableCell>
                    <TableCell align="right">Prix €</TableCell>
                    <TableCell align="center">Action</TableCell>
                  </TableRow>
@@ -446,7 +443,7 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
               <TableBody>
                                  {filteredItems.length === 0 ? (
                    <TableRow>
-                     <TableCell colSpan={4} align="center">
+                     <TableCell colSpan={3} align="center">
                        Aucun article trouvé
                      </TableCell>
                    </TableRow>
@@ -461,28 +458,10 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {item.description}
                           {item.quantity === 0 && (
-                            <WarningIcon fontSize="small" color="warning" />
+                            <ErrorIcon fontSize="small" color="error" />
                           )}
-                          {item.quantity < 5 && item.quantity > 0 && (
-                            <Chip
-                              label="Stock faible"
-                              size="small"
-                              color="warning"
-                              variant="outlined"
-                            />
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
-                          {Math.round(item.quantity)}
-                          {item.quantity < 0 && (
-                            <Chip
-                              label="Stock négatif"
-                              size="small"
-                              color="error"
-                              variant="outlined"
-                            />
+                          {item.quantity > 0 && item.quantity < 5 && (
+                            <WarningIcon fontSize="small" sx={{ color: '#ff9800' }} />
                           )}
                         </Box>
                       </TableCell>

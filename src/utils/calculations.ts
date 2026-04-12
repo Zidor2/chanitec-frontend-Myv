@@ -133,11 +133,28 @@ export const calculateTotalWithRemise = (totalHT: number, remise: number = 0): n
 };
 
 /**
- * Calculates the total TTC with remise applied
+ * Calculates the total with remise and HBC applied
  */
-export const calculateTotalTTCWithRemise = (totalHT: number, remise: number = 0): number => {
+export const calculateTotalWithRemiseAndHBC = (
+  totalHT: number,
+  remise: number = 0,
+  hbc: number = 0
+): number => {
   const totalWithRemise = calculateTotalWithRemise(totalHT, remise);
-  return totalWithRemise + calculateVAT(totalWithRemise);
+  const validHBC = Number(hbc) || 0;
+  return totalWithRemise + totalWithRemise * (validHBC / 100);
+};
+
+/**
+ * Calculates the total TTC with remise and HBC applied
+ */
+export const calculateTotalTTCWithRemiseAndHBC = (
+  totalHT: number,
+  remise: number = 0,
+  hbc: number = 0
+): number => {
+  const totalWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+  return totalWithRemiseAndHBC + calculateVAT(totalWithRemiseAndHBC);
 };
 
 /**

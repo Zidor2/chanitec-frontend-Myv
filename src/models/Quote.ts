@@ -11,7 +11,6 @@ export interface SupplyItem {
   priceDollar: number; // Price in Dollar (PR $) - calculated by backend
   unitPriceDollar: number; // Unit price in Dollar (PV/u $) - calculated by backend
   totalPriceDollar: number; // Total price in Dollar (PV $ Total HT) - calculated by backend
-  inventory_deducted?: boolean; // Track if inventory was already deducted
 }
 
 /**
@@ -88,8 +87,9 @@ export interface Quote {
   tva: number;
   totalTTC: number;
 
-  // Discount
+  // Discount / adjustment
   remise?: number; // Discount percentage
+  hbc?: number; // HBC percentage applied after remise and before tax
 
   // Metadata
   createdAt: string;
