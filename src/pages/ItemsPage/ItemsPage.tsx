@@ -75,7 +75,7 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
 
   // State for filters
   const [quantityFilter, setQuantityFilter] = useState('all');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
 
   // State for dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -177,7 +177,7 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
   const clearFilters = () => {
     setSearchTerm('');
     setQuantityFilter('all');
-    setPriceRange([0, 1000]);
+    setPriceRange([0, 10000]);
   };
 
   // Open dialog to add a new item
@@ -484,7 +484,7 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
                     onChange={(_, newValue) => setPriceRange(newValue as [number, number])}
                     valueLabelDisplay="auto"
                     min={0}
-                    max={1000}
+                    max={100000}
                     className="price-slider"
                   />
                 </Box>
