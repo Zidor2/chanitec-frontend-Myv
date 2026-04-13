@@ -12,7 +12,6 @@ import {
   calculateTotalSupplies,
   calculateTotalTTCWithRemiseAndHBC,
   calculateTotalWithRemiseAndHBC,
-  calculateTotalWithRemise,
   calculateVAT
 } from '../utils/calculations';
 import { generateId, generateQuoteId } from '../utils/id-generator';
