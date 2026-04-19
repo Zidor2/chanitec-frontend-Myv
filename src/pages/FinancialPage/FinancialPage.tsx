@@ -28,12 +28,14 @@ import {
   TrendingUp as TrendingUpIcon,
   AttachMoney as MoneyIcon,
   Build as BuildIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  GetApp as DownloadIcon
 } from '@mui/icons-material';
 import Layout from '../../components/Layout/Layout';
 import { apiService } from '../../services/api-service';
 import { itemsApi } from '../../services/api';
 import { SupplyItem } from '../../models/Quote';
+import * as XLSX from 'xlsx';
 import './FinancialPage.scss';
 
 interface FinancialPageProps {
@@ -73,9 +75,20 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
   });
 
   // Get unique values for filters - only from latest versions
-  const sites = Array.from(new Set(quotes.map(q => q.siteName).filter(Boolean) || []));
-  const clients = Array.from(new Set(quotes.map(q => q.clientName).filter(Boolean) || []));
-  const objects = Array.from(new Set(quotes.map(q => q.object).filter(Boolean) || []));
+  const allSites = Array.from(new Set(quotes.map(q => q.siteName).filter(Boolean) || []));
+  const allClients = Array.from(new Set(quotes.map(q => q.clientName).filter(Boolean) || []));
+  const allObjects = Array.from(new Set(quotes.map(q => q.object).filter(Boolean) || []));
+
+  // Filter sites and objects based on selected client
+  const sites = selectedClient
+    ? Array.from(new Set(quotes.filter(q => q.clientName === selectedClient).map(q => q.siteName).filter(Boolean)))
+    : allSites;
+
+  const clients = allClients;
+
+  const objects = selectedClient
+    ? Array.from(new Set(quotes.filter(q => q.clientName === selectedClient).map(q => q.object).filter(Boolean)))
+    : allObjects;
 
   // Get unique equipment (splits) from all quotes
   const equipment = Array.from(new Set(
@@ -105,17 +118,25 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
   const getLatestQuoteVersions = (allQuotes: any[]) => {
     const quoteGroups = new Map();
 
+    console.log('Filtering to latest versions from', allQuotes.length, 'total quotes');
+
     allQuotes.forEach(quote => {
       const key = quote.parentId || quote.id; // Use parentId if exists, otherwise use id
 
-      if (!quoteGroups.has(key) ||
-          (quote.version && quoteGroups.get(key).version < quote.version) ||
-          (quote.updatedAt && quoteGroups.get(key).updatedAt < quote.updatedAt)) {
+      const current = quoteGroups.get(key);
+      const shouldReplace = !current ||
+        (quote.version > (current.version || 0)) ||
+        (quote.version === (current.version || 0) && new Date(quote.updatedAt || 0) > new Date(current.updatedAt || 0));
+
+      if (shouldReplace) {
         quoteGroups.set(key, quote);
       }
     });
 
-    return Array.from(quoteGroups.values());
+    const result = Array.from(quoteGroups.values());
+    console.log('Filtered to', result.length, 'latest version quotes');
+
+    return result;
   };
 
   // Fetch quotes and items on component mount
@@ -277,6 +298,23 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
     filterQuotes();
   }, [filterQuotes]);
 
+  // Clear site and object selections when client changes
+  useEffect(() => {
+    if (selectedClient) {
+      // Check if current site is valid for the selected client
+      const clientSites = quotes.filter(q => q.clientName === selectedClient).map(q => q.siteName);
+      if (selectedSite && !clientSites.includes(selectedSite)) {
+        setSelectedSite(null);
+      }
+
+      // Check if current object is valid for the selected client
+      const clientObjects = quotes.filter(q => q.clientName === selectedClient).map(q => q.object);
+      if (selectedObject && !clientObjects.includes(selectedObject)) {
+        setSelectedObject(null);
+      }
+    }
+  }, [selectedClient, selectedSite, selectedObject, quotes]);
+
     const calculateFinancialSummary = (quotes: any[]) => {
     const totalQuotes = quotes.length;
     console.log('Calculating financial summary for', totalQuotes, 'FILTERED quotes only');
@@ -365,6 +403,85 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
     });
   };
 
+  const exportToExcel = () => {
+    if (filteredQuotes.length === 0) {
+      alert('Aucune donnée à exporter');
+      return;
+    }
+
+    // Prepare data for Excel
+    const excelData = filteredQuotes.map((quote) => {
+      // Calculate supplies total
+      let suppliesTotal = 0;
+      const convertedSuppliesTotal = Number(quote.totalSuppliesHT);
+      if (quote.totalSuppliesHT && !isNaN(convertedSuppliesTotal) && convertedSuppliesTotal > 0) {
+        suppliesTotal = convertedSuppliesTotal;
+      } else if (quote.supplyItems && Array.isArray(quote.supplyItems) && quote.supplyItems.length > 0) {
+        suppliesTotal = quote.supplyItems.reduce((sum: number, item: any) => {
+          return sum + (Number(item.totalPriceDollar) || 0);
+        }, 0);
+      }
+
+      // Calculate labor total
+      let laborTotal = 0;
+      const convertedLaborTotal = Number(quote.totalLaborHT);
+      if (quote.totalLaborHT && !isNaN(convertedLaborTotal) && convertedLaborTotal > 0) {
+        laborTotal = convertedLaborTotal;
+      } else if (quote.laborItems && Array.isArray(quote.laborItems)) {
+        laborTotal = quote.laborItems.reduce((sum: number, item: any) => {
+          return sum + (Number(item.totalPriceDollar) || 0);
+        }, 0);
+      }
+
+      // Calculate total
+      const totalHT = suppliesTotal + laborTotal;
+
+      return {
+        'ID Devis': quote.id,
+        'Client': quote.clientName || '',
+        'Site': quote.siteName || '',
+        'Objet': quote.object || '',
+        'Date': quote.date || '',
+        'Fournitures ($)': suppliesTotal.toFixed(2),
+        'Main d\'Oeuvre ($)': laborTotal.toFixed(2),
+        'Total ($)': totalHT.toFixed(2),
+        'Équipement': quote.splits?.map((split: any) => split.name || split.description || split.Code).join(', ') || '',
+        'Version': quote.version || 1,
+        'Statut': quote.status || 'draft'
+      };
+    });
+
+    // Create workbook and worksheet
+    const wb = (XLSX.utils as any).book_new();
+    const ws = (XLSX.utils as any).json_to_sheet(excelData);
+
+    // Auto-size columns
+    const colWidths = [
+      { wch: 15 }, // ID Devis
+      { wch: 20 }, // Client
+      { wch: 20 }, // Site
+      { wch: 25 }, // Objet
+      { wch: 12 }, // Date
+      { wch: 15 }, // Fournitures
+      { wch: 15 }, // Main d'Oeuvre
+      { wch: 12 }, // Total
+      { wch: 20 }, // Équipement
+      { wch: 8 },  // Version
+      { wch: 10 }  // Statut
+    ];
+    ws['!cols'] = colWidths;
+
+    // Add worksheet to workbook
+    (XLSX.utils as any).book_append_sheet(wb, ws, 'Devis Financiers');
+
+    // Generate filename with current date
+    const currentDate = new Date().toISOString().split('T')[0];
+    const filename = `devis_financiers_${currentDate}.xlsx`;
+
+    // Save file
+    (XLSX as any).writeFile(wb, filename);
+  };
+
   const handlePeriodChange = (event: SelectChangeEvent) => {
     setSelectedPeriod(event.target.value);
     if (event.target.value !== 'custom') {
@@ -408,10 +525,19 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
             <Typography variant="h6" className="section-title">
               Filtres de Recherche
             </Typography>
-                         <Button
-               variant="outlined"
-               startIcon={<RefreshIcon />}
-                               onClick={async () => {
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={exportToExcel}
+                sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' } }}
+              >
+                Exporter Excel
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={async () => {
                   setIsLoading(true);
                   try {
                     const [fetchedQuotes] = await Promise.all([
@@ -447,10 +573,11 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
                     setIsLoading(false);
                   }
                 }}
-               sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' } }}
-             >
-               Actualiser
-             </Button>
+                sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' } }}
+              >
+                Actualiser
+              </Button>
+            </Box>
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>

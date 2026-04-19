@@ -104,8 +104,15 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
         updateHBC(0);
       }
 
+      // Log the values being passed to onSave
+      const finalRemiseValue = remiseEnabled ? remiseValue : 0;
+      const finalHbcValue = hbcEnabled ? hbcValue : 0;
+      console.log('[QuoteActions] handleSaveWithRemise - Values being sent:');
+      console.log('  remiseEnabled:', remiseEnabled, 'remiseValue:', remiseValue, 'finalRemiseValue:', finalRemiseValue);
+      console.log('  hbcEnabled:', hbcEnabled, 'hbcValue:', hbcValue, 'finalHbcValue:', finalHbcValue);
+
       // Pass the remise and HBC values directly to avoid race condition
-      const success = await onSave(remiseEnabled ? remiseValue : 0, hbcEnabled ? hbcValue : 0);
+      const success = await onSave(finalRemiseValue, finalHbcValue);
 
       if (success) {
         setRemiseDialogOpen(false);

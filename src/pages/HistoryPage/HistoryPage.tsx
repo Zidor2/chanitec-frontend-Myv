@@ -35,6 +35,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CustomNumberInput from '../../components/CustomNumberInput/CustomNumberInput';
 import { calculateVAT } from '../../utils/calculations';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 interface HistoryPageProps {
   currentPath: string;
@@ -154,20 +156,27 @@ const QuoteConfirmationModal: React.FC<QuoteConfirmationModalProps> = ({
   );
 };
 
-// Helper function to calculate total TTC after discount
+// Helper function to calculate total TTC after discount and HBC
 const calculateTotalTTCAfterDiscount = (quote: Quote): number => {
-  if (!quote.remise || quote.remise <= 0) {
+  if ((!quote.remise || quote.remise <= 0) && (!quote.hbc || quote.hbc <= 0)) {
     return quote.totalTTC;
   }
 
-  // Calculate total HT after discount
-  const totalHTAfterDiscount = quote.totalHT - (quote.totalHT * quote.remise / 100);
+  // Calculate total HT after remise
+  const totalHTAfterRemise = quote.remise && quote.remise > 0
+    ? quote.totalHT - (quote.totalHT * quote.remise / 100)
+    : quote.totalHT;
 
-  // Calculate VAT on the discounted amount
-  const tvaAfterDiscount = calculateVAT(totalHTAfterDiscount);
+  // Apply HBC to the total after remise
+  const totalHTAfterRemiseAndHBC = quote.hbc && quote.hbc > 0
+    ? totalHTAfterRemise + (totalHTAfterRemise * quote.hbc / 100)
+    : totalHTAfterRemise;
 
-  // Return total TTC after discount
-  return totalHTAfterDiscount + tvaAfterDiscount;
+  // Calculate VAT on the final amount
+  const tvaAfterDiscountAndHBC = calculateVAT(totalHTAfterRemiseAndHBC);
+
+  // Return total TTC after discount and HBC
+  return totalHTAfterRemiseAndHBC + tvaAfterDiscountAndHBC;
 };
 
 const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate, onLogout }) => {
@@ -216,6 +225,9 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate, onLo
     open: false,
     quote: null
   });
+
+  // State for expanded groups (by baseId)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Fetch clients, sites, and quotes on mount
   useEffect(() => {
@@ -452,6 +464,19 @@ ${quoteDetails}`);
     }
   };
 
+  // Handler for toggling group expansion
+  const handleToggleGroup = (baseId: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(baseId)) {
+        newSet.delete(baseId);
+      } else {
+        newSet.add(baseId);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
       <Container maxWidth="lg" className="history-page">
@@ -603,26 +628,46 @@ ${quoteDetails}`);
 
         <Box sx={{ mt: 3 }}>
           {/* Render grouped quotes by base ID */}
-          {Object.entries(groupedQuotes).map(([baseId, versions]) => (
-            <Box key={baseId} sx={{ mb: 4, border: '2px solid #1976d2', borderRadius: 2, p: 2 }}>
-              <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
-                Groupe de devis: {baseId}
-              </Typography>
-              {versions.map((quote, idx) => {
-                const isOriginal = idx === 0;
-                const isLatest = idx === versions.length - 1;
-                return (
-                  <Card className="quote-card" key={quote.id} sx={{ mb: 2, background: isLatest ? '#e3f2fd' : undefined }}>
+          {Object.entries(groupedQuotes).map(([baseId, versions]) => {
+            const isExpanded = expandedGroups.has(baseId);
+            const latestQuote = versions[versions.length - 1];
+            return (
+              <Box key={baseId} sx={{ mb: 4, border: '2px solid #1976d2', borderRadius: 2, p: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    mb: isExpanded ? 2 : 0
+                  }}
+                  onClick={() => handleToggleGroup(baseId)}
+                >
+                  <Typography variant="h6" color="primary">
+                    Groupe de devis: {baseId} ({versions.length} version{versions.length > 1 ? 's' : ''})
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Dernière version: {new Date(latestQuote.createdAt).toLocaleDateString('fr-FR')}
+                    </Typography>
+                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleToggleGroup(baseId); }}>
+                      {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                    </IconButton>
+                  </Box>
+                </Box>
+                {/* Always show the latest quote card when collapsed, show all when expanded */}
+                {!isExpanded && (
+                  <Card className="quote-card" sx={{ mb: 2, background: '#e3f2fd' }}>
                     <Box className="card-header">
                       <Box className="quote-id">
                         <Typography component="span" className="id-number">
-                          {quote.id}
+                          {latestQuote.id}
                         </Typography>
                         {/* Check icon for confirmed status */}
-                        {quote.confirmed ? (
+                        {latestQuote.confirmed ? (
                           <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
                             <CheckCircleIcon sx={{ color: '#4caf50' }} titleAccess="Confirmé" />
-                            {quote.number_chanitec && (
+                            {latestQuote.number_chanitec && (
                               <Typography
                                 variant="caption"
                                 sx={{
@@ -634,7 +679,7 @@ ${quoteDetails}`);
                                   borderRadius: '4px'
                                 }}
                               >
-                                {quote.number_chanitec}
+                                {latestQuote.number_chanitec}
                               </Typography>
                             )}
                           </Box>
@@ -642,16 +687,15 @@ ${quoteDetails}`);
                           <CheckCircleOutlineIcon sx={{ color: '#bdbdbd', ml: 1 }} titleAccess="Non confirmé" />
                         )}
                         {/* Alert icon for passed reminder date */}
-                        {hasPassedReminderDate(quote) && (
+                        {hasPassedReminderDate(latestQuote) && (
                           <WarningIcon sx={{ color: '#ff9800', ml: 1 }} titleAccess="Rappel dépassé" />
                         )}
-                        <Typography component="span" className={`version-label ${isOriginal ? 'original' : 'update'}`}
-                          sx={{ ml: 1 }}>
-                          {isOriginal ? 'Version originale' : `Version ${idx}`}
+                        <Typography component="span" className="version-label latest" sx={{ ml: 1 }}>
+                          Version la plus récente
                         </Typography>
                       </Box>
                       <Typography variant="caption" color="text.secondary">
-                        {new Date(quote.createdAt).toLocaleDateString('fr-FR')}
+                        {new Date(latestQuote.createdAt).toLocaleDateString('fr-FR')}
                       </Typography>
                     </Box>
                     <Divider />
@@ -659,27 +703,27 @@ ${quoteDetails}`);
                       <Box className="info-grid">
                         <Box className="info-item">
                           <Typography className="label">Client</Typography>
-                          <Typography className="value">{quote.clientName || 'Non spécifié'}</Typography>
+                          <Typography className="value">{latestQuote.clientName || 'Non spécifié'}</Typography>
                         </Box>
                         <Box className="info-item">
                           <Typography className="label">Site</Typography>
-                          <Typography className="value">{quote.siteName || 'Non spécifié'}</Typography>
+                          <Typography className="value">{latestQuote.siteName || 'Non spécifié'}</Typography>
                         </Box>
                         <Box className="info-item">
                           <Typography className="label">Objet</Typography>
-                          <Typography className="value">{quote.object || 'Non spécifié'}</Typography>
+                          <Typography className="value">{latestQuote.object || 'Non spécifié'}</Typography>
                         </Box>
                         <Box className="info-item">
                           <Typography className="label">Date</Typography>
-                          <Typography className="value">{new Date(quote.date).toLocaleDateString('fr-FR')}</Typography>
+                          <Typography className="value">{new Date(latestQuote.date).toLocaleDateString('fr-FR')}</Typography>
                         </Box>
                         <Box className="info-item">
                           <Typography className="label">Total TTC</Typography>
                           <Typography className="value total">
-                            {quote.remise && quote.remise > 0 ? (
+                            {latestQuote.remise && latestQuote.remise > 0 ? (
                               <>
                                 {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(
-                                  calculateTotalTTCAfterDiscount(quote)
+                                  calculateTotalTTCAfterDiscount(latestQuote)
                                 )}
                                 <Typography
                                   component="span"
@@ -690,62 +734,196 @@ ${quoteDetails}`);
                                     fontWeight: 'bold'
                                   }}
                                 >
-                                  (-{quote.remise}%)
+                                  (-{latestQuote.remise}%)
                                 </Typography>
                               </>
                             ) : (
-                              new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(quote.totalTTC)
+                              new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(latestQuote.totalTTC)
                             )}
                           </Typography>
                         </Box>
                       </Box>
-                      {isLatest && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, borderTop: '1px solid rgba(0, 0, 0, 0.12)', paddingTop: 2 }}>
-                          <CustomNumberInput
-                            label="Jours de rappel"
-                            value={reminderDays[quote.id] || 0}
-                            onChange={value => handleReminderChange(quote.id, value)}
-                            min={0}
-                            fullWidth={false}
-                            displayAsInteger={true}
-                          />
-                          <IconButton color="primary" sx={{ ml: 1 }} onClick={() => handleSetReminder(quote.id)}>
-                            <AddAlarmIcon />
-                          </IconButton>
-                        </Box>
-                      )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, borderTop: '1px solid rgba(0, 0, 0, 0.12)', paddingTop: 2 }}>
+                        <CustomNumberInput
+                          label="Jours de rappel"
+                          value={reminderDays[latestQuote.id] || 0}
+                          onChange={value => handleReminderChange(latestQuote.id, value)}
+                          min={0}
+                          fullWidth={false}
+                          displayAsInteger={true}
+                        />
+                        <IconButton color="primary" sx={{ ml: 1 }} onClick={() => handleSetReminder(latestQuote.id)}>
+                          <AddAlarmIcon />
+                        </IconButton>
+                      </Box>
                     </Box>
                     <Box className="card-actions">
-                      <Button className="action-button view" size="small" startIcon={<VisibilityIcon />} onClick={() => handleLoadQuote(quote.id)}>
+                      <Button className="action-button view" size="small" startIcon={<VisibilityIcon />} onClick={() => handleLoadQuote(latestQuote.id)}>
                         Voir
                       </Button>
-                      {!quote.confirmed && isLatest && (
+                      {!latestQuote.confirmed && (
                         <Button
                           className="action-button"
                           size="small"
                           color="success"
                           startIcon={<CheckCircleOutlineIcon />}
-                          onClick={() => handleConfirmQuote(quote)}
+                          onClick={() => handleConfirmQuote(latestQuote)}
                         >
                           Confirmer
                         </Button>
                       )}
-                      {isLatest && (
-                        <>
-                          <Button className="action-button" size="small" color="primary" startIcon={<ReceiptLongOutlined />} onClick={() => handleViewPriceOffer(quote.id)}>
-                            Voir l'offre de prix
-                          </Button>
-                          <Button className="action-button delete" size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteQuote(quote.id)}>
-                            Supprimer
-                          </Button>
-                        </>
-                      )}
+                      <Button className="action-button" size="small" color="primary" startIcon={<ReceiptLongOutlined />} onClick={() => handleViewPriceOffer(latestQuote.id)}>
+                        Voir l'offre de prix
+                      </Button>
+                      <Button className="action-button delete" size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteQuote(latestQuote.id)}>
+                        Supprimer
+                      </Button>
                     </Box>
                   </Card>
-                );
-              })}
-            </Box>
-          ))}
+                )}
+                {isExpanded && (
+                  <>
+                    {versions.map((quote, idx) => {
+                      const isOriginal = idx === 0;
+                      const isLatest = idx === versions.length - 1;
+                      return (
+                        <Card className="quote-card" key={quote.id} sx={{ mb: 2, background: isLatest ? '#e3f2fd' : undefined }}>
+                          <Box className="card-header">
+                            <Box className="quote-id">
+                              <Typography component="span" className="id-number">
+                                {quote.id}
+                              </Typography>
+                              {/* Check icon for confirmed status */}
+                              {quote.confirmed ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                                  <CheckCircleIcon sx={{ color: '#4caf50' }} titleAccess="Confirmé" />
+                                  {quote.number_chanitec && (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        ml: 0.5,
+                                        color: '#4caf50',
+                                        fontWeight: 'bold',
+                                        backgroundColor: '#e8f5e8',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px'
+                                      }}
+                                    >
+                                      {quote.number_chanitec}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              ) : (
+                                <CheckCircleOutlineIcon sx={{ color: '#bdbdbd', ml: 1 }} titleAccess="Non confirmé" />
+                              )}
+                              {/* Alert icon for passed reminder date */}
+                              {hasPassedReminderDate(quote) && (
+                                <WarningIcon sx={{ color: '#ff9800', ml: 1 }} titleAccess="Rappel dépassé" />
+                              )}
+                              <Typography component="span" className={`version-label ${isOriginal ? 'original' : 'update'}`}
+                                sx={{ ml: 1 }}>
+                                {isOriginal ? 'Version originale' : `Version ${idx}`}
+                              </Typography>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary">
+                              {new Date(quote.createdAt).toLocaleDateString('fr-FR')}
+                            </Typography>
+                          </Box>
+                          <Divider />
+                          <Box className="card-content">
+                            <Box className="info-grid">
+                              <Box className="info-item">
+                                <Typography className="label">Client</Typography>
+                                <Typography className="value">{quote.clientName || 'Non spécifié'}</Typography>
+                              </Box>
+                              <Box className="info-item">
+                                <Typography className="label">Site</Typography>
+                                <Typography className="value">{quote.siteName || 'Non spécifié'}</Typography>
+                              </Box>
+                              <Box className="info-item">
+                                <Typography className="label">Objet</Typography>
+                                <Typography className="value">{quote.object || 'Non spécifié'}</Typography>
+                              </Box>
+                              <Box className="info-item">
+                                <Typography className="label">Date</Typography>
+                                <Typography className="value">{new Date(quote.date).toLocaleDateString('fr-FR')}</Typography>
+                              </Box>
+                              <Box className="info-item">
+                                <Typography className="label">Total TTC</Typography>
+                                <Typography className="value total">
+                                  {quote.remise && quote.remise > 0 ? (
+                                    <>
+                                      {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(
+                                        calculateTotalTTCAfterDiscount(quote)
+                                      )}
+                                      <Typography
+                                        component="span"
+                                        sx={{
+                                          ml: 1,
+                                          color: '#4caf50',
+                                          fontSize: '0.85em',
+                                          fontWeight: 'bold'
+                                        }}
+                                      >
+                                        (-{quote.remise}%)
+                                      </Typography>
+                                    </>
+                                  ) : (
+                                    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(quote.totalTTC)
+                                  )}
+                                </Typography>
+                              </Box>
+                            </Box>
+                            {isLatest && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, borderTop: '1px solid rgba(0, 0, 0, 0.12)', paddingTop: 2 }}>
+                                <CustomNumberInput
+                                  label="Jours de rappel"
+                                  value={reminderDays[quote.id] || 0}
+                                  onChange={value => handleReminderChange(quote.id, value)}
+                                  min={0}
+                                  fullWidth={false}
+                                  displayAsInteger={true}
+                                />
+                                <IconButton color="primary" sx={{ ml: 1 }} onClick={() => handleSetReminder(quote.id)}>
+                                  <AddAlarmIcon />
+                                </IconButton>
+                              </Box>
+                            )}
+                          </Box>
+                          <Box className="card-actions">
+                            <Button className="action-button view" size="small" startIcon={<VisibilityIcon />} onClick={() => handleLoadQuote(quote.id)}>
+                              Voir
+                            </Button>
+                            {!quote.confirmed && isLatest && (
+                              <Button
+                                className="action-button"
+                                size="small"
+                                color="success"
+                                startIcon={<CheckCircleOutlineIcon />}
+                                onClick={() => handleConfirmQuote(quote)}
+                              >
+                                Confirmer
+                              </Button>
+                            )}
+                            {isLatest && (
+                              <>
+                                <Button className="action-button" size="small" color="primary" startIcon={<ReceiptLongOutlined />} onClick={() => handleViewPriceOffer(quote.id)}>
+                                  Voir l'offre de prix
+                                </Button>
+                                <Button className="action-button delete" size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteQuote(quote.id)}>
+                                  Supprimer
+                                </Button>
+                              </>
+                            )}
+                          </Box>
+                        </Card>
+                      );
+                    })}
+                  </>
+                )}
+              </Box>
+            );
+          })}
         </Box>
         <QuoteConfirmationModal
           open={confirmationModal.open}

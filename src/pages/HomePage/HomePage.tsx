@@ -28,6 +28,7 @@ import {
 import Layout from '../../components/Layout/Layout';
 import logo from '../../assets/logo512.png';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { useAuth } from '../../contexts/AuthContext';
 import './HomePage.scss';
 
 interface HomePageProps {
@@ -41,61 +42,77 @@ const HomePage: React.FC<HomePageProps> = ({
   onNavigate,
   onLogout
 }) => {
+  const { user } = useAuth();
   const { stats, loading, error, refetch } = useDashboardStats();
 
-  const menuItems = [
-    {
-      title: 'Nouveau Devis',
-      description: 'Créer un nouveau devis et calculer les prix',
-      icon: <AddIcon />,
-      path: '/quote',
-      color: '#1976d2',
-      badge: 'Populaire'
-    },
-    {
-      title: 'Historique',
-      description: 'Consulter et gérer l\'historique des devis',
-      icon: <HistoryIcon />,
-      path: '/history',
-      color: '#2196f3',
-      badge: 'Récents'
-    },
-    {
-      title: 'Clients',
-      description: 'Gérer les clients et leurs sites',
-      icon: <PeopleIcon />,
-      path: '/clients',
-      color: '#4caf50'
-    },
-    {
-      title: 'Articles',
-      description: 'Gérer le catalogue d\'articles et services',
-      icon: <InventoryIcon />,
-      path: '/items',
-      color: '#ff9800'
-    },
-    {
-      title: 'Intervention',
-      description: 'Planifier et suivre les interventions',
-      icon: <AssignmentIcon />,
-      path: '/intervention',
-      color: '#9c27b0'
-    },
-    {
-      title: 'Organigramme',
-      description: 'Visualiser la structure organisationnelle',
-      icon: <BusinessIcon />,
-      path: '/org-chart',
-      color: '#607d8b'
-    },
-    {
-      title: 'Employés',
-      description: 'Gérer les employés et leurs informations',
-      icon: <GroupIcon />,
-      path: '/employees',
-      color: '#795548'
-    }
-  ];
+  const getMenuItems = () => {
+    const allItems = [
+      {
+        title: 'Nouveau Devis',
+        description: 'Créer un nouveau devis et calculer les prix',
+        icon: <AddIcon />,
+        path: '/quote',
+        color: '#1976d2',
+        badge: 'Populaire',
+        roles: ['admin', 'editor', 'user']
+      },
+      {
+        title: 'Historique',
+        description: 'Consulter et gérer l\'historique des devis',
+        icon: <HistoryIcon />,
+        path: '/history',
+        color: '#2196f3',
+        badge: 'Récents',
+        roles: ['admin', 'editor', 'viewer', 'user']
+      },
+      {
+        title: 'Clients',
+        description: 'Gérer les clients et leurs sites',
+        icon: <PeopleIcon />,
+        path: '/clients',
+        color: '#4caf50',
+        roles: ['admin', 'editor']
+      },
+      {
+        title: 'Articles',
+        description: 'Gérer le catalogue d\'articles et services',
+        icon: <InventoryIcon />,
+        path: '/items',
+        color: '#ff9800',
+        roles: ['admin', 'editor']
+      },
+      {
+        title: 'Intervention',
+        description: 'Planifier et suivre les interventions',
+        icon: <AssignmentIcon />,
+        path: '/intervention',
+        color: '#9c27b0',
+        roles: ['admin', 'editor']
+      },
+      {
+        title: 'Organigramme',
+        description: 'Visualiser la structure organisationnelle',
+        icon: <BusinessIcon />,
+        path: '/org-chart',
+        color: '#607d8b',
+        roles: ['admin', 'editor']
+      },
+      {
+        title: 'Employés',
+        description: 'Gérer les employés et leurs informations',
+        icon: <GroupIcon />,
+        path: '/employees',
+        color: '#795548',
+        roles: ['admin', 'editor']
+      }
+    ];
+
+    if (!user) return [];
+
+    return allItems.filter(item => item.roles.includes(user.role));
+  };
+
+  const menuItems = getMenuItems();
 
   const handleNavigate = (path: string) => {
     if (onNavigate) {

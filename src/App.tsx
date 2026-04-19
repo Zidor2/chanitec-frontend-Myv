@@ -4,6 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Snackbar, Alert } from '@mui/material';
 import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QuoteProvider } from './contexts/QuoteContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import QuotePage from './pages/QuotePage/QuotePage';
 import HistoryPage from './pages/HistoryPage/HistoryPage';
 import ClientsPage from './pages/ClientsPage/ClientsPage';
@@ -19,6 +20,12 @@ import HelpPage from './pages/HelpPage/HelpPage';
 import FinancialPage from './pages/FinancialPage/FinancialPage';
 
 import './App.scss';
+
+const authService = {
+  isAuthenticated() {
+    return !!localStorage.getItem("auth_token");
+  }
+};
 
 const theme = createTheme({
   palette: {
@@ -87,17 +94,61 @@ const theme = createTheme({
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  const isAuthenticated = authService.isAuthenticated();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 };
 
+// Login wrapper component
+const LoginWrapper = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'info' as 'info' | 'success' | 'warning' | 'error'
+  });
+
+  const handleLogin = async (username: string, password: string) => {
+    try {
+      await login(username, password);
+      navigate('/home');
+    } catch (error) {
+      setNotification({
+        open: true,
+        message: error instanceof Error ? error.message : 'Login failed',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({...notification, open: false});
+  };
+
+  return (
+    <>
+      <LoginPage onLogin={handleLogin} />
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseNotification} severity={notification.severity}>
+          {notification.message}
+        </Alert>
+      </Snackbar>
+    </>
+  );
+};
+
 // Create a wrapper component that uses useNavigate
 const AppContent = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, logout, login } = useAuth();
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -150,23 +201,13 @@ const AppContent = () => {
   }, []);
 
   // Handle login
-  const handleLogin = (username: string, password: string) => {
-    if (username && password) {
-      setIsAuthenticated(true);
-      localStorage.setItem('isAuthenticated', 'true');
-    } else {
-      setNotification({
-        open: true,
-        message: 'Veuillez remplir tous les champs',
-        severity: 'error'
-      });
-    }
+  const handleLogin = () => {
+    navigate('/home');
   };
 
   // Handle logout
   const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated');
+    logout();
     navigate('/login');
   };
 
@@ -233,7 +274,7 @@ const AppContent = () => {
               element={
                 isAuthenticated ?
                 <Navigate to="/home" replace /> :
-                <LoginPage onLogin={handleLogin} />
+                <LoginWrapper />
               }
             />
 
@@ -374,7 +415,9 @@ const AppContent = () => {
 function App() {
   return (
     <HashRouter>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </HashRouter>
   );
 }

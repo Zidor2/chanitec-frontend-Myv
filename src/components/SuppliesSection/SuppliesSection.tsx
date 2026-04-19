@@ -17,7 +17,9 @@ import {
   TableRow,
   TextField,
   Typography,
-  MenuItem
+  MenuItem,
+  Autocomplete,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -75,6 +77,11 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
   const [quantityWarningDialogOpen, setQuantityWarningDialogOpen] = useState(false);
   const [pendingItem, setPendingItem] = useState<SupplyItem | null>(null);
   const [pendingQuantity, setPendingQuantity] = useState<number>(1);
+  const [descriptions, setDescriptions] = useState<Array<{ id: number; content: string }>>([]);
+  const [descriptionSearchInput, setDescriptionSearchInput] = useState('');
+  const [newDescriptionDialogOpen, setNewDescriptionDialogOpen] = useState(false);
+  const [newDescriptionText, setNewDescriptionText] = useState('');
+  const [isCreatingDescription, setIsCreatingDescription] = useState(false);
 
   // Load catalog items on component mount
   useEffect(() => {
@@ -107,6 +114,20 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
     };
 
     loadCatalogItems();
+  }, []);
+
+  // Load descriptions from backend
+  useEffect(() => {
+    const loadDescriptions = async () => {
+      try {
+        const loadedDescriptions = await apiService.getDescriptions();
+        setDescriptions(loadedDescriptions);
+      } catch (error) {
+        console.error('Error loading descriptions:', error);
+      }
+    };
+
+    loadDescriptions();
   }, []);
 
   // Filter items based on search term
@@ -165,6 +186,14 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
   // Handle adding an item with custom price
   const handleAddItemWithCustomPrice = () => {
     if (selectedItem && customPrice > 0) {
+      // Check if selected quantity exceeds available quantity or if stock is negative
+      if ((quantity > selectedItem.quantity && selectedItem.quantity > 0) || selectedItem.quantity < 0) {
+        setPendingItem(selectedItem);
+        setPendingQuantity(quantity);
+        setQuantityWarningDialogOpen(true);
+        return;
+      }
+
       const itemWithCustomPrice = {
         ...selectedItem,
         priceEuro: customPrice
@@ -186,8 +215,8 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
   // Handle adding a regular item
   const handleAddItem = () => {
     if (selectedItem) {
-      // Check if selected quantity exceeds available quantity
-      if (quantity > selectedItem.quantity && selectedItem.quantity > 0) {
+      // Check if selected quantity exceeds available quantity or if stock is negative
+      if ((quantity > selectedItem.quantity && selectedItem.quantity > 0) || selectedItem.quantity < 0) {
         setPendingItem(selectedItem);
         setPendingQuantity(quantity);
         setQuantityWarningDialogOpen(true);
@@ -267,47 +296,84 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
     }
   };
 
+  const handleSaveNewDescription = async () => {
+    if (!newDescriptionText.trim()) {
+      return;
+    }
+
+    setIsCreatingDescription(true);
+    try {
+      const response = await apiService.createDescription({
+        content: newDescriptionText.trim()
+      });
+
+      // Add new description to the list
+      setDescriptions([...descriptions, response]);
+
+      // Update the current quote with this description
+      onUpdateDescription(newDescriptionText.trim());
+
+      // Close dialog and reset
+      setNewDescriptionDialogOpen(false);
+      setNewDescriptionText('');
+      setDescriptionSearchInput('');
+    } catch (error) {
+      console.error('Error creating description:', error);
+      alert('Failed to create description. Please try again.');
+    } finally {
+      setIsCreatingDescription(false);
+    }
+  };
+
   return (
     <Paper className="supplies-section" elevation={2}>
       <Typography variant="h6" className="section-title">
         FOURNITURES
       </Typography>
 
-      <TextField
-        select
+      <Autocomplete
+        freeSolo
         fullWidth
-        label="Description des fournitures"
+        options={descriptions.map((d) => d.content)}
         value={description}
-        onChange={(e) => onUpdateDescription(e.target.value)}
-        variant="outlined"
-        margin="none"
-        className="description-field"
-      >
-        <MenuItem value="Extension des raccordements électriques, frigorifique et condensat">
-          Extension des raccordements électriques, frigorifique et condensat
-        </MenuItem>
-        <MenuItem value="Installation complète du Split">
-          Installation complète du Split
-        </MenuItem>
-        <MenuItem value="Livraison et pose du Split avec accessoires de raccordement">
-          Livraison et pose du Split avec accessoires de raccordement
-        </MenuItem>
-        <MenuItem value="Fournitures Epa du calorifuger plus accessoires">
-          Fournitures du calorifugeur plus accessoires
-        </MenuItem>
-        <MenuItem value="Fournitures et pose des pièces électriques et frigorifique">
-          Fournitures et pose des pièces électriques et frigorifique
-        </MenuItem>
-        <MenuItem value="Fournitures et pose des pièces électriques">
-          Fournitures et pose des pièces électriques
-        </MenuItem>
-        <MenuItem value="Fournitures et pose des pièces frigorifique">
-          Fournitures et pose des pièces frigorifique
-        </MenuItem>
-        <MenuItem value="Réparation du Ventilo convecteur">
-          Réparation du Ventilo convecteur
-        </MenuItem>
-      </TextField>
+        inputValue={descriptionSearchInput}
+        onInputChange={(event, newInputValue) => {
+          setDescriptionSearchInput(newInputValue);
+        }}
+        onChange={(event, newValue) => {
+          if (newValue) {
+            onUpdateDescription(newValue);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && descriptionSearchInput.trim() !== '') {
+            // Check if the input matches any existing description
+            const exists = descriptions.some(
+              (d) => d.content.toLowerCase() === descriptionSearchInput.toLowerCase()
+            );
+
+            if (!exists) {
+              // Description doesn't exist - show dialog to create new one
+              setNewDescriptionText(descriptionSearchInput);
+              setNewDescriptionDialogOpen(true);
+            } else {
+              // Description exists - just set it
+              onUpdateDescription(descriptionSearchInput);
+            }
+            event.preventDefault();
+          }
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Description des fournitures"
+            variant="outlined"
+            margin="none"
+            className="description-field"
+            placeholder="Type or select description..."
+          />
+        )}
+      />
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }} className="rates-container">
         <Box className="rates-container-item" sx={{ flex: '1 1 50px' }}>
@@ -453,10 +519,16 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
                       key={item.id}
                       className={selectedItem?.id === item.id ? 'selected-item' : ''}
                       onClick={() => handleSelectItem(item)}
+                      sx={{
+                        backgroundColor: item.quantity < 0 ? '#ffebee' : 'inherit', // Light red background for negative quantity
+                      }}
                     >
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {item.description}
+                          {item.quantity < 0 && (
+                            <ErrorIcon fontSize="small" color="error" />
+                          )}
                           {item.quantity === 0 && (
                             <ErrorIcon fontSize="small" color="error" />
                           )}
@@ -611,13 +683,22 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <WarningIcon color="warning" />
-            Quantité insuffisante
+            {pendingItem?.quantity !== undefined && pendingItem.quantity < 0 ? 'Stock épuisé' : 'Quantité insuffisante'}
           </Box>
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Vous avez sélectionné <strong>{pendingQuantity}</strong> unités de <strong>"{pendingItem?.description}"</strong>,
-            mais seulement <strong>{pendingItem?.quantity}</strong> unités sont disponibles en stock.
+            {pendingItem?.quantity !== undefined && pendingItem.quantity < 0 ? (
+              <>
+                L'article <strong>"{pendingItem?.description}"</strong> a un stock négatif ({pendingItem?.quantity} unités).
+                Cela indique que le stock est épuisé ou qu'il y a un problème d'inventaire.
+              </>
+            ) : (
+              <>
+                Vous avez sélectionné <strong>{pendingQuantity}</strong> unités de <strong>"{pendingItem?.description}"</strong>,
+                mais seulement <strong>{pendingItem?.quantity}</strong> unités sont disponibles en stock.
+              </>
+            )}
           </DialogContentText>
           <DialogContentText sx={{ mt: 2 }}>
             Voulez-vous quand même ajouter cet article avec la quantité demandée ?
@@ -636,8 +717,62 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* New Description Dialog */}
+      <Dialog
+        open={newDescriptionDialogOpen}
+        onClose={() => {
+          if (!isCreatingDescription) {
+            setNewDescriptionDialogOpen(false);
+            setNewDescriptionText('');
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add New Description</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <DialogContentText sx={{ mb: 2 }}>
+            The description <strong>"{newDescriptionText}"</strong> does not exist yet.
+          </DialogContentText>
+          <DialogContentText sx={{ mb: 2 }}>
+            Would you like to add this description to the database?
+          </DialogContentText>
+          <TextField
+            fullWidth
+            label="Description"
+            value={newDescriptionText}
+            onChange={(e) => setNewDescriptionText(e.target.value)}
+            disabled={isCreatingDescription}
+            multiline
+            rows={3}
+            variant="outlined"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setNewDescriptionDialogOpen(false);
+              setNewDescriptionText('');
+            }}
+            disabled={isCreatingDescription}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveNewDescription}
+            color="primary"
+            variant="contained"
+            disabled={!newDescriptionText.trim() || isCreatingDescription}
+            startIcon={isCreatingDescription && <CircularProgress size={20} />}
+          >
+            {isCreatingDescription ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 };
+
 
 export default SuppliesSection;

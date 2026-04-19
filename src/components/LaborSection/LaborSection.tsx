@@ -115,7 +115,7 @@ const LaborSection: React.FC<LaborSectionProps> = ({
   };
 
   return (
-    <Paper className="labor-section" elevation={2}>s
+    <Paper className="labor-section" elevation={2}>
       <Typography variant="h6" className="section-title">
         MAIN D'OEUVRE
       </Typography>

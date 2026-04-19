@@ -254,11 +254,11 @@ const QuotePage: React.FC<QuotePageProps> = ({ currentPath, onNavigate, onLogout
         siteName={currentQuote.siteName}
         date={currentQuote.date}
         isExistingQuote={isExistingQuote}
-        onSave={async (remiseValue?: number) => {
-          return saveQuote(remiseValue);
+        onSave={async (remiseValue?: number, hbcValue?: number) => {
+          return saveQuote(remiseValue, hbcValue);
         }}
-        onUpdate={async (remiseValue?: number) => {
-          return updateQuote(remiseValue);
+        onUpdate={async (remiseValue?: number, hbcValue?: number) => {
+          return updateQuote(remiseValue, hbcValue);
         }}
         onViewHistory={() => onNavigate('/history')}
         contentRef={contentRef}

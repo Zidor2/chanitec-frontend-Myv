@@ -1,7 +1,8 @@
 import { Client, Quote, Site, SupplyItem, LaborItem } from '../models/Quote';
 import { PriceOffer } from '../models/PriceOffer';
+import { authService } from './auth-service';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
@@ -13,12 +14,20 @@ class ApiService {
         retries = MAX_RETRIES
     ): Promise<T> {
         try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                ...options.headers as Record<string, string>,
+            };
+
+            // Add authorization header if user is authenticated
+            const token = authService.getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const response = await fetch(url, {
                 ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers,
-                },
+                headers,
             });
 
             if (!response.ok) {
@@ -62,6 +71,9 @@ class ApiService {
     }
 
     async saveQuote(quote: Quote): Promise<Quote> {
+        console.log('[API SERVICE] saveQuote - === QUOTE DATA BEING SENT ===');
+        console.log(JSON.stringify(quote, null, 2));
+        console.log('[API SERVICE] saveQuote - === END QUOTE DATA ===');
         return this.fetchApi<Quote>('/quotes', {
             method: 'POST',
             body: JSON.stringify(quote),
@@ -75,11 +87,23 @@ class ApiService {
     }
 
     async updateQuote(quote: Quote): Promise<Quote> {
+        console.log('[API SERVICE] updateQuote - === QUOTE DATA BEING SENT ===');
+        console.log(JSON.stringify(quote, null, 2));
+        console.log('[API SERVICE] updateQuote - === END QUOTE DATA ===');
+
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        };
+
+        // Add authorization header if user is authenticated
+        const token = authService.getToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch(`${API_BASE_URL}/quotes/${quote.id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(quote),
         });
 
@@ -155,6 +179,18 @@ class ApiService {
     async deleteSupply(id: string): Promise<void> {
         await this.fetchApi(`/supply-items/${id}`, {
             method: 'DELETE',
+        });
+    }
+
+    // Descriptions
+    async getDescriptions(): Promise<any[]> {
+        return this.fetchApi<any[]>('/descriptions');
+    }
+
+    async createDescription(data: { content: string }): Promise<any> {
+        return this.fetchApi<any>('/descriptions', {
+            method: 'POST',
+            body: JSON.stringify(data),
         });
     }
 

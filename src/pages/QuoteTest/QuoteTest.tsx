@@ -7,7 +7,7 @@ import logo from '../../logo.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 import logo512 from '../../assets/logo512.png';
 import CHANitec from '../../assets/CHANitec.png';
-import { formatNumberWithSpaces, calculateTotalWithRemise, calculateVAT } from '../../utils/calculations';
+import { formatNumberWithSpaces, calculateTotalWithRemise, calculateTotalWithRemiseAndHBC, calculateVAT } from '../../utils/calculations';
 
 // Add a helper function for date formatting at the top level
 function formatDate(dateString: string) {
@@ -178,6 +178,14 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
     );
   }
 
+  const remiseAmount = currentQuote.remise && currentQuote.remise > 0
+    ? currentQuote.totalHT * (currentQuote.remise / 100)
+    : 0;
+  const totalAfterRemise = calculateTotalWithRemise(currentQuote.totalHT, currentQuote.remise || 0);
+  const totalAfterHBC = currentQuote.hbc && currentQuote.hbc > 0
+    ? calculateTotalWithRemiseAndHBC(currentQuote.totalHT, currentQuote.remise || 0, currentQuote.hbc)
+    : totalAfterRemise;
+
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onHomeClick={handleHomeClick}>
       <div ref={contentRef} className={`quote-test-content ${isPdfMode ? 'is-pdf-mode' : ''}`}>
@@ -249,17 +257,23 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
               {(currentQuote.remise !== undefined && currentQuote.remise !== null && currentQuote.remise > 0) && (
                 <tr>
                   <th>Remise :</th>
-                  <td>{currentQuote.remise}%</td>
+                  <td>-{formatNumberWithSpaces(remiseAmount)}</td>
                 </tr>
               )}
 
               <tr>
                 <th>TOTAL HT APRÈS REMISE:</th>
-                <td>{formatNumberWithSpaces(calculateTotalWithRemise(currentQuote.totalHT, currentQuote.remise || 0))}</td>
+                <td>{formatNumberWithSpaces(totalAfterRemise)}</td>
               </tr>
+              {currentQuote.hbc !== undefined && currentQuote.hbc !== null && currentQuote.hbc > 0 && (
+                <tr>
+                  <th>HBC ({currentQuote.hbc}%):</th>
+                  <td>{formatNumberWithSpaces(totalAfterHBC - totalAfterRemise)}</td>
+                </tr>
+              )}
               <tr>
                 <th>TVA:</th>
-                <td>{formatNumberWithSpaces(calculateVAT(calculateTotalWithRemise(currentQuote.totalHT, currentQuote.remise || 0)))}</td>
+                <td>{formatNumberWithSpaces(calculateVAT(totalAfterHBC))}</td>
               </tr>
               <tr>
                 <th>TOTAL OFFRE USD TTC:</th>

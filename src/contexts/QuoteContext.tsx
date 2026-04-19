@@ -71,13 +71,28 @@ const initialState: QuoteState = {
 // Reducer function
 const quoteReducer = (state: QuoteState, action: QuoteAction): QuoteState => {
   switch (action.type) {
-    case 'SET_QUOTE':
+    case 'SET_QUOTE': {
+      // When loading a quote, recalculate totals to ensure HBC is included in tva and totalTTC
+      const quote = action.payload;
+      const totalHT = Number(quote.totalSuppliesHT || 0) + Number(quote.totalLaborHT || 0);
+      const remise = quote.remise || 0;
+      const hbc = quote.hbc || 0;
+
+      const totalHTWithRemiseAndHBC = calculateTotalWithRemiseAndHBC(totalHT, remise, hbc);
+      const recalculatedTva = calculateVAT(totalHTWithRemiseAndHBC);
+      const recalculatedTotalTTC = calculateTotalTTCWithRemiseAndHBC(totalHT, remise, hbc);
+
       return {
         ...state,
-        currentQuote: action.payload,
+        currentQuote: {
+          ...quote,
+          tva: recalculatedTva,
+          totalTTC: recalculatedTotalTTC,
+        },
         isEditing: false,
         error: null,
       };
+    }
 
     case 'SET_EXISTING_QUOTE':
       return {
@@ -559,6 +574,12 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
   const saveQuote = async (remiseValue?: number, hbcValue?: number): Promise<boolean> => {
     if (!state.currentQuote) return false;
     try {
+      console.log('[QuoteContext] saveQuote - Received parameters:');
+      console.log('  remiseValue:', remiseValue);
+      console.log('  hbcValue:', hbcValue);
+      console.log('  currentQuote.remise:', state.currentQuote.remise);
+      console.log('  currentQuote.hbc:', state.currentQuote.hbc);
+
       dispatch({ type: 'SET_LOADING', payload: true });
 
       let quoteToSave = { ...state.currentQuote };
@@ -599,6 +620,10 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
           remise: remiseValue !== undefined ? remiseValue : state.currentQuote.remise,
           hbc: hbcValue !== undefined ? hbcValue : state.currentQuote.hbc,
         };
+        console.log('[QuoteContext] saveQuote (CREATE) - Final hbc value:', quoteToSave.hbc);
+        console.log('[FRONTEND] saveQuote - === CREATE QUOTE REQUEST BODY ===');
+        console.log(JSON.stringify(quoteToSave, null, 2));
+        console.log('[FRONTEND] saveQuote - === END REQUEST BODY ===');
         const savedQuote = await apiService.saveQuote(quoteToSave);
 
         // After saving, recalculate totals with remise for display
@@ -654,9 +679,13 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
             updatedAt: new Date().toISOString(),
           }
         };
+        console.log('[QuoteContext] saveQuote (UPDATE) - Final hbc value:', quoteToSave.hbc);
       }
 
       // Save the new quote (as a new entry)
+      console.log('[FRONTEND] saveQuote - === UPDATE QUOTE REQUEST BODY ===');
+      console.log(JSON.stringify(quoteToSave, null, 2));
+      console.log('[FRONTEND] saveQuote - === END REQUEST BODY ===');
       await apiService.saveQuote(quoteToSave);
 
       // Create new supply items
@@ -775,11 +804,13 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
 
   // Update remise and recalculate totals
   const updateRemise = (remise: number) => {
+    preservedRemiseRef.current = remise;
     dispatch({ type: 'UPDATE_REMISE', payload: remise });
   };
 
   // Update HBC and recalculate totals
   const updateHBC = (hbc: number) => {
+    preservedHbcRef.current = hbc;
     dispatch({ type: 'UPDATE_HBC', payload: hbc });
   };
 

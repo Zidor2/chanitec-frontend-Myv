@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Container, Paper, TextField, Button, Typography } from '@mui/material';
+import { Box, Container, Paper, TextField, Button, Typography, Alert } from '@mui/material';
 import logo from '../../logo.png';
 import './LoginPage.scss';
 
@@ -10,10 +10,21 @@ interface LoginPageProps {
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(username, password);
+    setError('');
+    setLoading(true);
+
+    try {
+      await onLogin(username, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,6 +43,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             Connexion
           </Typography>
 
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit} className="login-form">
             <TextField
               fullWidth
@@ -41,6 +58,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              disabled={loading}
             />
 
             <TextField
@@ -52,6 +70,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
 
             <Button
@@ -61,10 +80,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               fullWidth
               size="large"
               className="login-button"
+              disabled={loading}
             >
-              Se connecter
+              {loading ? 'Connexion...' : 'Se connecter'}
             </Button>
           </form>
+
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Utilisateur par défaut: admin / admin123
+            </Typography>
+          </Box>
         </Paper>
       </Container>
     </Box>

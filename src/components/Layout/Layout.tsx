@@ -26,8 +26,10 @@ import {
   BusinessOutlined,
   GroupOutlined,
   QuestionAnswer,
-  AccountBalance
+  AccountBalance,
+  Add as AddIcon
 } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../assets/logo512.png';
 import './Layout.scss';
 
@@ -46,22 +48,32 @@ const Layout: React.FC<LayoutProps> = ({
   onHomeClick,
   onLogout
 }) => {
+  const { user, isAdmin, isEditor, isUser } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Navigation items
-  const navItems = [
-    { path: '/home', label: 'Accueil', icon: <HomeOutlined /> },
-    { path: '/history', label: 'Historique', icon: <HistoryOutlined /> },
-    { path: '/clients', label: 'Clients', icon: <PeopleOutlineOutlined /> },
-    { path: '/items', label: 'Gérer les articles', icon: <InventoryOutlined /> },
-    { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined /> },
-    { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined /> },
-    { path: '/employees', label: 'Employés', icon: <GroupOutlined /> },
-    { path: '/financial', label: 'Financier', icon: <AccountBalance /> },
-    { path: '/help', label: 'Aide', icon: <QuestionAnswer /> }
-  ];
+  // Navigation items based on user role
+  const getNavItems = () => {
+    const allItems = [
+      { path: '/home', label: 'Accueil', icon: <HomeOutlined />, roles: ['admin', 'editor', 'viewer', 'user'] },
+      { path: '/quote', label: 'Nouveau Devis', icon: <AddIcon />, roles: ['admin', 'editor', 'user'] },
+      { path: '/history', label: 'Historique', icon: <HistoryOutlined />, roles: ['admin', 'editor', 'viewer', 'user'] },
+      { path: '/clients', label: 'Clients', icon: <PeopleOutlineOutlined />, roles: ['admin', 'editor'] },
+      { path: '/items', label: 'Gérer les articles', icon: <InventoryOutlined />, roles: ['admin', 'editor'] },
+      { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined />, roles: ['admin', 'editor'] },
+      { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined />, roles: ['admin', 'editor'] },
+      { path: '/employees', label: 'Employés', icon: <GroupOutlined />, roles: ['admin', 'editor'] },
+      { path: '/financial', label: 'Financier', icon: <AccountBalance />, roles: ['admin'] },
+      { path: '/help', label: 'Aide', icon: <QuestionAnswer />, roles: ['admin', 'editor', 'viewer', 'user'] }
+    ];
+
+    if (!user) return [];
+
+    return allItems.filter(item => item.roles.includes(user.role));
+  };
+
+  const navItems = getNavItems();
 
   // Debug: Log navigation items
   console.log('Navigation items:', navItems);

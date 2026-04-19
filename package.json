@@ -74,6 +74,7 @@
         "wait-on": "^8.0.3"
     },
     "homepage": ".",
+    "proxy": "http://localhost:5000",
     "main": "electron-main.js",
     "description": "Chanitec desktop application built with React and Electron.",
     "author": "Zidor",
