@@ -148,7 +148,7 @@ const LoginWrapper = () => {
 // Create a wrapper component that uses useNavigate
 const AppContent = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, login } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -199,11 +199,6 @@ const AppContent = () => {
       localStorage.setItem('app_just_initialized', 'true');
     }
   }, []);
-
-  // Handle login
-  const handleLogin = () => {
-    navigate('/home');
-  };
 
   // Handle logout
   const handleLogout = () => {

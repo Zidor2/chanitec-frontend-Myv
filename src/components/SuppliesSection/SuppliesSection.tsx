@@ -17,7 +17,6 @@ import {
   TableRow,
   TextField,
   Typography,
-  MenuItem,
   Autocomplete,
   CircularProgress
 } from '@mui/material';

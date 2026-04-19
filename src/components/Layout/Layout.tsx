@@ -48,7 +48,8 @@ const Layout: React.FC<LayoutProps> = ({
   onHomeClick,
   onLogout
 }) => {
-  const { user, isAdmin, isEditor, isUser } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
