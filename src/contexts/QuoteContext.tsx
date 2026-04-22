@@ -660,6 +660,7 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
           id: newId,
           parentId: parentId,
           version: 1,
+          date: new Date().toISOString().split('T')[0], // Auto-update date on save
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           supplyExchangeRate: quoteToSave.supplyExchangeRate,

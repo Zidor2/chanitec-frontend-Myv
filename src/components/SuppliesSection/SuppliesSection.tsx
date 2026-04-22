@@ -502,13 +502,14 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
                  <TableRow>
                    <TableCell>Description</TableCell>
                    <TableCell align="right">Prix €</TableCell>
+                   <TableCell align="center">Stock</TableCell>
                    <TableCell align="center">Action</TableCell>
                  </TableRow>
                </TableHead>
               <TableBody>
                                  {filteredItems.length === 0 ? (
                    <TableRow>
-                     <TableCell colSpan={3} align="center">
+                     <TableCell colSpan={4} align="center">
                        Aucun article trouvé
                      </TableCell>
                    </TableRow>
@@ -537,6 +538,19 @@ const SuppliesSection: React.FC<SuppliesSectionProps> = ({
                         </Box>
                       </TableCell>
                        <TableCell align="right">{Number(item.priceEuro || 0).toFixed(2)}</TableCell>
+                       <TableCell align="center">
+                         <Typography
+                           variant="body2"
+                           sx={{
+                             fontWeight: 'bold',
+                             color: item.quantity < 0 ? 'error.main' :
+                                   item.quantity === 0 ? 'error.main' :
+                                   item.quantity < 5 ? '#ff9800' : 'success.main'
+                           }}
+                         >
+                           {item.quantity}
+                         </Typography>
+                       </TableCell>
                       <TableCell align="center">
                         <Button
                           size="small"

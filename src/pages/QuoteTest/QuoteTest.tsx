@@ -267,7 +267,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
               </tr>
               {currentQuote.hbc !== undefined && currentQuote.hbc !== null && currentQuote.hbc > 0 && (
                 <tr>
-                  <th>HBC ({currentQuote.hbc}%):</th>
+                  <th>HBC ({currentQuote.hbc.toFixed(2)}%):</th>
                   <td>{formatNumberWithSpaces(totalAfterHBC - totalAfterRemise)}</td>
                 </tr>
               )}
@@ -368,7 +368,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           </tbody>
           <tfoot>
             <tr className="totals-row">
-              <td colSpan={6} style={{ textAlign: 'right' }}>TOTAL MO $ HT:</td>
+              <td colSpan={6} style={{ textAlign: 'left' }}>TOTAL MO $ HT:</td>
               <td colSpan={2}>{formatNumberWithSpaces(currentQuote.totalLaborHT)}</td>
             </tr>
           </tfoot>
