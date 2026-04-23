@@ -40,7 +40,7 @@ import {
 import * as XLSX from 'xlsx';
 
 import { SupplyItem } from '../../models/Quote';
-import { itemsApi } from '../../services/api';
+import { apiService } from '../../services/api-service';
 import './ItemsPage.scss';
 import CustomNumberInput from '../../components/CustomNumberInput/CustomNumberInput';
 
@@ -113,18 +113,24 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
   const loadItems = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await itemsApi.getAllItems();
+      const data = await apiService.getAllItems();
 
-      // Transform the data to match our frontend structure
+
+      // Transform the data to match our frontend SupplyItem structure
       const transformedItems = data.map((item: any) => ({
         id: item.id,
+        item_id: item.item_id || item.id || '',
         description: item.description,
-        priceEuro: item.price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        priceEuro: item.priceEuro ?? item.price ?? 0,
+        priceDollar: item.priceDollar ?? 0,
+        unitPriceDollar: item.unitPriceDollar ?? 0,
+        totalPriceDollar: item.totalPriceDollar ?? 0,
+        quote_id: item.quote_id
       }));
 
-      setItems(transformedItems);
-      setFilteredItems(transformedItems);
+      setItems(transformedItems as SupplyItem[]);
+      setFilteredItems(transformedItems as SupplyItem[]);
     } catch (error) {
       console.error('Error loading items:', error);
       showSnackbar('Erreur lors du chargement des articles', 'error');
@@ -228,9 +234,9 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
       };
 
       if (isEditing && currentItem.id) {
-        await itemsApi.updateItem(currentItem.id, itemData);
+        await apiService.updateItem(currentItem.id, itemData);
       } else {
-        await itemsApi.createItemWithCustomId(itemData);
+        await apiService.createItem(itemData);
       }
 
       showSnackbar(`Article ${isEditing ? 'mis à jour' : 'créé'} avec succès`, 'success');
@@ -248,7 +254,7 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
       try {
         setDeletingId(id);
-        await itemsApi.deleteItem(id);
+        await apiService.deleteItem(id);
         setItems(prevItems => prevItems.filter(item => item.id !== id));
         setFilteredItems(prevItems => prevItems.filter(item => item.id !== id));
         showSnackbar('Article supprimé avec succès', 'success');
@@ -354,8 +360,8 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
                   quantity: item.quantity
                 };
 
-                // Use the createItemWithCustomId method
-                await itemsApi.createItemWithCustomId(itemData);
+                // Use the createItem method (handles custom ID)
+                await apiService.createItem(itemData);
                 successCount++;
               } catch (error) {
                 console.error(`Error importing item ${item.id}:`, error);

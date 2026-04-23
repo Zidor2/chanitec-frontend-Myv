@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import Layout from '../../components/Layout/Layout';
 import { Client, Site, Split } from '../../models/Quote'; // <-- Import Split here
+import { apiService } from '../../services/api-service';
 import './ClientsPage.scss';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -178,23 +179,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const loadClients = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/clients`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch clients');
-      }
-      const clientsData = await response.json();
+      const clientsData = await apiService.getClients();
 
       // Fetch sites for each client
       const clientsWithSites = await Promise.all(
-        clientsData.map(async (client: { id: string; name: string }) => {
-          const sitesResponse = await fetch(`${API_BASE_URL}/sites/by-client?clientId=${client.id}`);
-          const sites = sitesResponse.ok ? await sitesResponse.json() : [];
+        clientsData.map(async (client) => {
+          const sites = await apiService.getSitesByClientId(client.id);
 
           // Fetch splits for each site
           const sitesWithSplits = await Promise.all(
-            sites.map(async (site: Site) => {
-              const splitsResponse = await fetch(`${API_BASE_URL}/splits/by-site/${site.id}`);
-              const splits = splitsResponse.ok ? await splitsResponse.json() : [];
+            sites.map(async (site) => {
+              const splits = await apiService.getSplitsBySiteId(site.id);
               return { ...site, splits };
             })
           );
@@ -338,56 +333,27 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       setLoading(true);
 
       // 1. Create client first
-      const clientResponse = await fetch(`${API_BASE_URL}/clients`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: (currentClient.name ?? '').trim(),
-          Taux_marge: currentClient.Taux_marge || 0
-        })
+      const newClient = await apiService.saveClient({
+        name: (currentClient.name ?? '').trim(),
+        Taux_marge: currentClient.Taux_marge || 0,
+        sites: []
       });
-
-      if (!clientResponse.ok) {
-        throw new Error('Failed to create client');
-      }
-
-      const newClient = await clientResponse.json();
 
       // 2. Create the site with the new client's ID
-      const siteResponse = await fetch(`${API_BASE_URL}/sites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: siteNameToUse,
-          client_id: newClient.id
-        })
+      const newSite = await apiService.saveSite({
+        name: siteNameToUse,
+        client_id: newClient.id
       });
-
-      if (!siteResponse.ok) {
-        await fetch(`${API_BASE_URL}/clients/${newClient.id}`, { method: 'DELETE' });
-        throw new Error('Failed to create site');
-      }
-
-      // After site creation:
-      const newSite = await siteResponse.json();
 
       // Create splits for this site
       const splits = (currentClient.sites?.[0]?.splits ?? []);
       await Promise.all(splits.map(split =>
-        fetch(`${API_BASE_URL}/splits`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: split.Code,
-            name: split.name,
-            description: split.description,
-            puissance: split.puissance,
-            site_id: newSite.id // <-- use site_id, not site
-          })
+        apiService.createSplit({
+          code: split.Code,
+          name: split.name,
+          description: split.description,
+          puissance: split.puissance,
+          site_id: newSite.id
         })
       ));
 

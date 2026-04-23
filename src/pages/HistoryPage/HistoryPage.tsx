@@ -236,13 +236,16 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate, onLo
         apiService.getClients ? apiService.getClients() : [],
         apiService.getQuotes(),
       ]);
-      // Fetch sites for each client and attach
-      const clientsWithSites = await Promise.all(
-        (allClients || []).map(async (client) => {
-          const sites = await apiService.getSitesByClientId(client.id);
-          return { ...client, sites: sites || [] };
-        })
-      );
+      // Fetch sites for all clients in a single batch request
+      const clientIds = (allClients || []).map(client => client.id);
+      const sitesByClient = clientIds.length > 0 ? await apiService.getSitesByClientIds(clientIds) : {};
+
+      // Attach sites to clients
+      const clientsWithSites = (allClients || []).map(client => ({
+        ...client,
+        sites: sitesByClient[client.id] || []
+      }));
+
       setClients(clientsWithSites);
       setQuotes(allQuotes || []);
 

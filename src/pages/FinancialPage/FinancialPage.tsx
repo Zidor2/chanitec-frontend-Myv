@@ -33,7 +33,6 @@ import {
 } from '@mui/icons-material';
 import Layout from '../../components/Layout/Layout';
 import { apiService } from '../../services/api-service';
-import { itemsApi } from '../../services/api';
 import { SupplyItem } from '../../models/Quote';
 import * as XLSX from 'xlsx';
 import './FinancialPage.scss';
@@ -100,15 +99,20 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
   // Load all items from the items API
   const loadAllItems = async () => {
     try {
-      const items = await itemsApi.getAllItems();
+      const items = await apiService.getAllItems();
       // Transform the data to match our frontend structure
       const transformedItems = items.map((item: any) => ({
         id: item.id,
+        item_id: item.item_id || item.id || '',
         description: item.description,
-        priceEuro: item.price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        priceEuro: item.priceEuro ?? item.price ?? 0,
+        priceDollar: item.priceDollar ?? 0,
+        unitPriceDollar: item.unitPriceDollar ?? 0,
+        totalPriceDollar: item.totalPriceDollar ?? 0,
+        quote_id: item.quote_id
       }));
-      setAllItems(transformedItems);
+      setAllItems(transformedItems as SupplyItem[]);
     } catch (error) {
       console.error('Error loading items:', error);
     }

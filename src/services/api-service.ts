@@ -5,8 +5,16 @@ import { authService } from './auth-service';
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry {
+    data: any;
+    timestamp: number;
+}
 
 class ApiService {
+    private cache = new Map<string, CacheEntry>();
+
     // Helper method for making API calls with retry logic
     private async fetchWithRetry<T>(
         url: string,
@@ -53,8 +61,24 @@ class ApiService {
     // Helper method for making API calls
     private async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         const url = `${API_BASE_URL}${endpoint}`;
+        const isGet = !options.method || options.method === 'GET';
+
+        if (isGet) {
+            const cached = this.cache.get(url);
+            if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+                console.log(`Returning cached data for: ${url}`);
+                return cached.data;
+            }
+        }
+
         console.log(`Making API call to: ${url}`);
-        return this.fetchWithRetry<T>(url, options);
+        const result = await this.fetchWithRetry<T>(url, options);
+
+        if (isGet) {
+            this.cache.set(url, { data: result, timestamp: Date.now() });
+        }
+
+        return result;
     }
 
     // Quotes
@@ -204,6 +228,30 @@ class ApiService {
         return this.fetchApi<any[]>('/splits');
     }
 
+    async getSplitsBySiteId(siteId: string): Promise<any[]> {
+        return this.fetchApi<any[]>(`/splits/by-site/${siteId}`);
+    }
+
+    async createSplit(split: Omit<any, 'id'>): Promise<any> {
+        return this.fetchApi<any>('/splits', {
+            method: 'POST',
+            body: JSON.stringify(split),
+        });
+    }
+
+    async updateSplit(code: string, split: Partial<any>): Promise<any> {
+        return this.fetchApi<any>(`/splits/${code}`, {
+            method: 'PUT',
+            body: JSON.stringify(split),
+        });
+    }
+
+    async deleteSplit(code: string): Promise<void> {
+        await this.fetchApi(`/splits/${code}`, {
+            method: 'DELETE',
+        });
+    }
+
     async createLaborItem(quoteId: string, item: Omit<LaborItem, 'id'>): Promise<LaborItem> {
         const response = await fetch(`${API_BASE_URL}/quotes/${quoteId}/labor-items`, {
             method: 'POST',
@@ -294,20 +342,185 @@ class ApiService {
 
     // Inventory Management
     /**
+     * Get all items/catalog
+     */
+    async getAllItems(): Promise<any[]> {
+        return this.fetchApi<any[]>('/items');
+    }
+
+    /**
      * Get catalog item by ID
      * @param itemId Catalog item ID
      * @returns Catalog item data
      */
     async getCatalogItem(itemId: string): Promise<any> {
         try {
-            const items = await this.fetchApi<any[]>('/items');
+            const items = await this.getAllItems();
             return items.find(item => item.id === itemId) || null;
         } catch (error) {
             console.error('Error fetching catalog item:', error);
             return null;
         }
     }
-}
+
+    /**
+     * Get item by ID
+     */
+    async getItemById(itemId: string): Promise<any> {
+        return this.fetchApi<any>(`/items/${itemId}`);
+    }
+
+    /**
+     * Import items from file
+     */
+    async importItems(formData: FormData): Promise<any> {
+        const url = `${API_BASE_URL}/items/import`;
+        const headers: Record<string, string> = {};
+        const token = authService.getToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Import failed: ${response.statusText}`);
+        }
+
+        return response.json();
+    }
+
+    /**
+     * Create a new catalog item
+     */
+    async createItem(item: any): Promise<any> {
+        return this.fetchApi<any>('/items', {
+            method: 'POST',
+            body: JSON.stringify(item),
+        });
+    }
+
+    /**
+     * Update a catalog item
+     */
+    async updateItem(itemId: string, item: any): Promise<any> {
+        return this.fetchApi<any>(`/items/${itemId}`, {
+            method: 'PUT',
+            body: JSON.stringify(item),
+        });
+    }
+
+    /**
+     * Delete a catalog item
+     */
+    async deleteItem(itemId: string): Promise<void> {
+        await this.fetchApi(`/items/${itemId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    // Sites - Batch Operations
+    /**
+     * Get sites for multiple clients in a single request
+     */
+    async getSitesByClientIds(clientIds: string[]): Promise<{ [clientId: string]: Site[] }> {
+        const idsParam = clientIds.join(',');
+        return this.fetchApi<{ [clientId: string]: Site[] }>(`/sites/batch?clientIds=${idsParam}`);
+    }
+
+    /**
+     * Get all sites
+     */
+    async getAllSites(): Promise<Site[]> {
+        return this.fetchApi<Site[]>('/sites');
+    }
+
+    /**
+     * Update a site
+     */
+    async updateSite(siteId: string, site: Partial<Site>): Promise<Site> {
+        return this.fetchApi<Site>(`/sites/${siteId}`, {
+            method: 'PUT',
+            body: JSON.stringify(site),
+        });
+    }
+
+    // Clients - Additional Operations
+    /**
+     * Update an existing client
+     */
+    async updateClient(clientId: string, client: Partial<Client>): Promise<Client> {
+        return this.fetchApi<Client>(`/clients/${clientId}`, {
+            method: 'PUT',
+            body: JSON.stringify(client),
+        });
+    }
+
+    // Dashboard
+    /**
+     * Get dashboard summary stats (quotes, clients, splits count)
+     */
+    async getDashboardSummary(): Promise<{
+        totalQuotes: number;
+        totalClients: number;
+        totalSplits: number;
+        timestamp: string;
+    }> {
+        return this.fetchApi('/dashboard/summary');
+    }
+
+    /**
+     * Get detailed dashboard stats
+     */
+    async getDashboardStats(): Promise<{
+        totalQuotes: number;
+        pendingQuotes: number;
+        totalClients: number;
+        totalSplits: number;
+        timestamp: string;
+    }> {
+        return this.fetchApi('/dashboard/stats');
+    }
+
+    // Quotes - Filtered retrieval
+    /**
+     * Get quotes with optional filters and pagination
+     */
+    async getQuotesFiltered(options: {
+        page?: number;
+        limit?: number;
+        clientId?: string;
+        clientName?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        confirmed?: boolean;
+    } = {}): Promise<any> {
+        const params = new URLSearchParams();
+        if (options.page) params.append('page', options.page.toString());
+        if (options.limit) params.append('limit', options.limit.toString());
+        if (options.clientId) params.append('clientId', options.clientId);
+        if (options.clientName) params.append('clientName', options.clientName);
+        if (options.dateFrom) params.append('dateFrom', options.dateFrom);
+        if (options.dateTo) params.append('dateTo', options.dateTo);
+        if (options.confirmed !== undefined) params.append('confirmed', options.confirmed.toString());
+
+        const queryString = params.toString();
+        return this.fetchApi(`/quotes${queryString ? '?' + queryString : ''}`);
+    }
+
+    /**
+     * Get quote by ID with optional included items
+     */
+    async getQuoteByIdWithItems(id: string, includeItems: boolean = true): Promise<Quote> {
+        const url = includeItems ? `/quotes/${id}?include=items` : `/quotes/${id}`;
+        return this.fetchApi<Quote>(url);
+    }
+
+} // <-- Close ApiService class
 
 // Export a singleton instance
 export const apiService = new ApiService();
