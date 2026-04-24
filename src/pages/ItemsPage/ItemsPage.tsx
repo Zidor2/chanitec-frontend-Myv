@@ -535,50 +535,58 @@ const ItemsPage: FC<ItemsPageProps> = ({ currentPath, onNavigate, onLogout }) =>
                        </TableCell>
                      </TableRow>
                   ) : (
-                                         filteredItems.map((item) => (
-                       <TableRow key={item.id} className="table-row">
-                         <TableCell className="id-cell">
-                           {item.id}
-                         </TableCell>
-                         <TableCell className="description-cell">
-                           {item.description}
-                           {item.quantity === 0 && (
-                             <Tooltip title="Quantité nulle : veuillez réapprovisionner" placement="right">
-                               <WarningAmberIcon className="warning-icon" fontSize="small" />
-                             </Tooltip>
-                           )}
-                         </TableCell>
-                         <TableCell align="right" className="price-cell">
-                           {item.priceEuro ? Number(item.priceEuro).toFixed(2) : '0.00'}
-                         </TableCell>
-                         <TableCell align="right" className="quantity-cell">
-                           {item.quantity !== undefined && item.quantity !== null ? item.quantity : 0}
-                         </TableCell>
-                         <TableCell align="center" className="actions-cell">
-                           <IconButton
-                             size="small"
-                             color="primary"
-                             onClick={() => {
-                               setCurrentItem(item);
-                               setIsEditing(true);
-                               setDialogOpen(true);
-                             }}
-                             className="edit-btn"
-                           >
-                             <EditIcon fontSize="small" />
-                           </IconButton>
-                           <IconButton
-                             size="small"
-                             color="error"
-                             onClick={() => handleDeleteItem(item.id)}
-                             disabled={deletingId === item.id}
-                             className="delete-btn"
-                           >
-                             <DeleteIcon fontSize="small" />
-                           </IconButton>
-                         </TableCell>
-                       </TableRow>
-                     ))
+                                         filteredItems.map((item) => {
+                                           const isNegative = item.quantity < 0;
+                                           return (
+                                             <TableRow key={item.id} className={`table-row${isNegative ? ' negative-row' : ''}`} style={isNegative ? { backgroundColor: '#ffebee' } : {}}>
+                                               <TableCell className="id-cell">
+                                                 {item.id}
+                                               </TableCell>
+                                               <TableCell className="description-cell">
+                                                 {item.description}
+                                                 {item.quantity === 0 && (
+                                                   <Tooltip title="Quantité nulle : veuillez réapprovisionner" placement="right">
+                                                     <WarningAmberIcon className="warning-icon" fontSize="small" />
+                                                   </Tooltip>
+                                                 )}
+                                                 {isNegative && (
+                                                   <Tooltip title="Quantité négative : alerte stock" placement="right">
+                                                     <WarningAmberIcon className="negative-warning-icon" fontSize="small" />
+                                                   </Tooltip>
+                                                 )}
+                                               </TableCell>
+                                               <TableCell align="right" className="price-cell">
+                                                 {item.priceEuro ? Number(item.priceEuro).toFixed(2) : '0.00'}
+                                               </TableCell>
+                                               <TableCell align="right" className="quantity-cell">
+                                                 {item.quantity !== undefined && item.quantity !== null ? item.quantity : 0}
+                                               </TableCell>
+                                               <TableCell align="center" className="actions-cell">
+                                                 <IconButton
+                                                   size="small"
+                                                   color="primary"
+                                                   onClick={() => {
+                                                     setCurrentItem(item);
+                                                     setIsEditing(true);
+                                                     setDialogOpen(true);
+                                                   }}
+                                                   className="edit-btn"
+                                                 >
+                                                   <EditIcon fontSize="small" />
+                                                 </IconButton>
+                                                 <IconButton
+                                                   size="small"
+                                                   color="error"
+                                                   onClick={() => handleDeleteItem(item.id)}
+                                                   disabled={deletingId === item.id}
+                                                   className="delete-btn"
+                                                 >
+                                                   <DeleteIcon fontSize="small" />
+                                                 </IconButton>
+                                               </TableCell>
+                                             </TableRow>
+                                           );
+                                         })
                   )}
                 </TableBody>
               </Table>

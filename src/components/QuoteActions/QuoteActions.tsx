@@ -300,7 +300,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
       </Snackbar>
 
       {/* Remise Dialog */}
-      <Dialog open={remiseDialogOpen} onClose={handleCloseRemiseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={remiseDialogOpen} onClose={handleCloseRemiseDialog} maxWidth="sm" fullWidth >
         <DialogTitle>
           {afterRemiseAction === 'print'
             ? 'Configuration de la Remise - Mise à jour avant impression'
@@ -309,7 +309,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({
               : 'Configuration de la Remise - Nouveau devis'}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ mt: 2 }}>
+          <Box sx={{ mt: 1, display: 'grid', flexDirection: 'column'   }}>
             <FormControlLabel
               control={
                 <Checkbox

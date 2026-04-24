@@ -874,6 +874,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       <MenuItem value="GP">GP</MenuItem>
                       <MenuItem value="ROOFTOP">ROOFTOP</MenuItem>
                       <MenuItem value="Split Gainable">Split Gainable</MenuItem>
+                      <MenuItem value="Split Gainable">Mono-bloc</MenuItem>
+                      <MenuItem value="Split Gainable">Clim Console</MenuItem>
                     </TextField>
                     <TextField
                       label="Marque"

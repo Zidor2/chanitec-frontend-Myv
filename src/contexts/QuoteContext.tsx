@@ -545,7 +545,8 @@ export const QuoteProvider: React.FC<QuoteProviderProps> = ({ children }) => {
   const loadQuote = async (id: string, createdAt: string, fromHistory: boolean = false) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const quote = await apiService.getQuoteById(id);
+      // Always fetch quote with items
+      const quote = await apiService.getQuoteByIdWithItems(id, true);
       if (!quote) {
         throw new Error('Quote not found');
       }
