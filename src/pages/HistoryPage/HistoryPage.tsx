@@ -278,9 +278,9 @@ ${quoteDetails}`);
   useEffect(() => {
     if (filters.client) {
       const client = clients.find(c => c.id === filters.client);
-      setSites(client ? client.sites : []);
+      setSites(client ? client.sites || [] : []);
       // If the selected site does not belong to the new client, reset it
-      if (filters.site && !(client && client.sites.some(s => s.id === filters.site))) {
+      if (filters.site && !(client && client.sites && client.sites.some(s => s.id === filters.site))) {
         setFilters(prev => ({ ...prev, site: '' }));
       }
     } else {

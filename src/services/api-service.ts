@@ -143,6 +143,10 @@ class ApiService {
         return this.fetchApi<Client[]>('/clients');
     }
 
+    async getClientsWithCounts(): Promise<Client[]> {
+        return this.fetchApi<Client[]>('/clients/with-counts');
+    }
+
     async getClientById(id: string): Promise<Client> {
         return this.fetchApi<Client>(`/clients/${id}`);
     }
