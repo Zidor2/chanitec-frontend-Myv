@@ -97,6 +97,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   // State for clients data
   const [clients, setClients] = useState<Client[]>([]); // Only client info initially
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [allSites, setAllSites] = useState<Site[]>([]); // All sites for filtering
   const [clientSitesLoading, setClientSitesLoading] = useState<{[clientId: string]: boolean}>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSite, setSelectedSite] = useState('all');
@@ -143,24 +144,16 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     // Site filter
     if (selectedSite !== 'all') {
       filtered = filtered.filter(client =>
-        client.sites?.some(site => site.id === selectedSite)
+        allSites.some(site => site.id === selectedSite && site.client_id === client.id)
       );
     }
 
     setFilteredClients(filtered);
-  }, [clients, searchTerm, selectedSite]);
+  }, [clients, searchTerm, selectedSite, allSites]);
 
   // Get all unique sites for the dropdown
   const getAllSites = () => {
-    const allSites: { id: string; name: string }[] = [];
-    clients.forEach(client => {
-      client.sites?.forEach(site => {
-        if (!allSites.find(s => s.id === site.id)) {
-          allSites.push({ id: site.id, name: site.name });
-        }
-      });
-    });
-    return allSites;
+    return allSites.map(site => ({ id: site.id, name: site.name }));
   };
 
   // Clear all filters
@@ -176,13 +169,29 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     setSnackbarOpen(true);
   }, []);
 
-  // Load only clients (no sites/splits)
+  // Load clients with site counts (fetch all sites to count per client)
   const loadClients = useCallback(async () => {
     try {
       setLoading(true);
-      const clientsData = await apiService.getClients();
-      setClients(clientsData);
-      setFilteredClients(clientsData);
+      const [clientsData, allSites] = await Promise.all([
+        apiService.getClients(),
+        apiService.getSites()
+      ]);
+
+      // Group sites by client_id and set siteCount
+      const siteCountByClient: { [clientId: string]: number } = {};
+      allSites.forEach(site => {
+        siteCountByClient[site.client_id] = (siteCountByClient[site.client_id] || 0) + 1;
+      });
+
+      const clientsWithCounts = clientsData.map(client => ({
+        ...client,
+        siteCount: siteCountByClient[client.id] || 0
+      }));
+
+      setClients(clientsWithCounts);
+      setFilteredClients(clientsWithCounts);
+      setAllSites(allSites);
     } catch (error) {
       console.error('Error loading clients:', error);
       showSnackbar('Erreur lors du chargement des clients', 'error');
@@ -641,7 +650,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   >
                     <Box className="client-header-left">
                       <Typography className="client-title">
-                        Client: {client.name} ({client.sites?.length || 0} sites)
+                        Client: {client.name} ({client.siteCount || 0} sites)
                       </Typography>
                     </Box>
                     <Box className="client-header-right">

@@ -35,7 +35,8 @@ export interface LaborItem {
 export interface Client {
   id: string;
   name: string;
-  sites: Site[];
+  sites?: Site[]; // Optional, loaded lazily
+  siteCount?: number; // Number of sites, loaded initially
   Taux_marge?: number; // Margin rate for the client
 }
 
