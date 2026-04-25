@@ -95,8 +95,9 @@ interface ClientsPageProps {
 
 const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLogout }) => {
   // State for clients data
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<Client[]>([]); // Only client info initially
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [clientSitesLoading, setClientSitesLoading] = useState<{[clientId: string]: boolean}>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSite, setSelectedSite] = useState('all');
   const [loading, setLoading] = useState(false);
@@ -175,31 +176,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     setSnackbarOpen(true);
   }, []);
 
-  // Load all clients with their sites
+  // Load only clients (no sites/splits)
   const loadClients = useCallback(async () => {
     try {
       setLoading(true);
       const clientsData = await apiService.getClients();
-
-      // Fetch sites for each client
-      const clientsWithSites = await Promise.all(
-        clientsData.map(async (client) => {
-          const sites = await apiService.getSitesByClientId(client.id);
-
-          // Fetch splits for each site
-          const sitesWithSplits = await Promise.all(
-            sites.map(async (site) => {
-              const splits = await apiService.getSplitsBySiteId(site.id);
-              return { ...site, splits };
-            })
-          );
-
-          return { ...client, sites: sitesWithSplits };
-        })
-      );
-
-      setClients(clientsWithSites);
-      setFilteredClients(clientsWithSites);
+      setClients(clientsData);
+      setFilteredClients(clientsData);
     } catch (error) {
       console.error('Error loading clients:', error);
       showSnackbar('Erreur lors du chargement des clients', 'error');
@@ -207,6 +190,30 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       setLoading(false);
     }
   }, [showSnackbar]);
+
+  // Lazy load sites and splits for a client
+  const loadSitesAndSplitsForClient = async (clientId: string) => {
+    setClientSitesLoading(prev => ({ ...prev, [clientId]: true }));
+    try {
+      const sites = await apiService.getSitesByClientId(clientId);
+      const sitesWithSplits = await Promise.all(
+        sites.map(async (site) => {
+          const splits = await apiService.getSplitsBySiteId(site.id);
+          return { ...site, splits };
+        })
+      );
+      setClients(prevClients => prevClients.map(c =>
+        c.id === clientId ? { ...c, sites: sitesWithSplits } : c
+      ));
+      setFilteredClients(prevClients => prevClients.map(c =>
+        c.id === clientId ? { ...c, sites: sitesWithSplits } : c
+      ));
+    } catch (error) {
+      showSnackbar('Erreur lors du chargement des sites/splits', 'error');
+    } finally {
+      setClientSitesLoading(prev => ({ ...prev, [clientId]: false }));
+    }
+  };
 
   // Load clients on component mount
   useEffect(() => {
@@ -620,7 +627,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   {/* Client Header */}
                   <Box
                     className={`client-header ${expandedClient === client.id ? 'expanded' : 'collapsed'}`}
-                    onClick={() => setExpandedClient(expandedClient === client.id ? null : client.id)}
+                    onClick={async () => {
+                      if (expandedClient !== client.id) {
+                        // Only load if not already loaded
+                        if (!client.sites) {
+                          await loadSitesAndSplitsForClient(client.id);
+                        }
+                        setExpandedClient(client.id);
+                      } else {
+                        setExpandedClient(null);
+                      }
+                    }}
                   >
                     <Box className="client-header-left">
                       <Typography className="client-title">
@@ -640,41 +657,44 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   {/* Client Content */}
                   <Collapse in={expandedClient === client.id}>
                     <Box className="client-content">
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                        {client.sites?.map((site) => (
-                          <Box key={site.id}>
-                            <Card className="site-card">
-                              <CardContent>
-                                <Box className="site-header">
-                                  <BusinessIcon className="site-icon" />
-                                  <Typography className="site-title">
-                                    Site: {site.name}
-                                  </Typography>
-                                </Box>
-
-                                                                 <Box className="splits-section">
-                                   {site.splits && site.splits.length > 0 ? (
-                                     site.splits.map((split, splitIdx) => (
-                                       <Box key={splitIdx} className="split-item">
-                                         <Box className="split-info">
-                                           <AcUnitIcon className="split-icon" />
-                                           <Typography className="split-text">
-                                             {split.Code || 'N/A'} - {split.name || 'N/A'} - {split.puissance || 0} BTU/KW
-                                           </Typography>
-                                         </Box>
-                                       </Box>
-                                     ))
-                                   ) : (
-                                     <Typography className="no-splits">
-                                       Aucun équipement frigorifique
-                                     </Typography>
-                                   )}
-                                 </Box>
-                               </CardContent>
-                             </Card>
-                           </Box>
-                         ))}
-                       </Box>
+                      {clientSitesLoading[client.id] ? (
+                        <Box className="loading-container"><Typography>Chargement des sites...</Typography></Box>
+                      ) : (
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                          {client.sites?.map((site) => (
+                            <Box key={site.id}>
+                              <Card className="site-card">
+                                <CardContent>
+                                  <Box className="site-header">
+                                    <BusinessIcon className="site-icon" />
+                                    <Typography className="site-title">
+                                      Site: {site.name}
+                                    </Typography>
+                                  </Box>
+                                  <Box className="splits-section">
+                                    {site.splits && site.splits.length > 0 ? (
+                                      site.splits.map((split, splitIdx) => (
+                                        <Box key={splitIdx} className="split-item">
+                                          <Box className="split-info">
+                                            <AcUnitIcon className="split-icon" />
+                                            <Typography className="split-text">
+                                              {split.Code || 'N/A'} - {split.name || 'N/A'} - {split.puissance || 0} BTU/KW
+                                            </Typography>
+                                          </Box>
+                                        </Box>
+                                      ))
+                                    ) : (
+                                      <Typography className="no-splits">
+                                        Aucun équipement frigorifique
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </CardContent>
+                              </Card>
+                            </Box>
+                          ))}
+                        </Box>
+                      )}
 
                       {/* Client Actions */}
                       <Box className="client-actions">
