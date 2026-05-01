@@ -125,7 +125,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
 
   const [originalClientSites, setOriginalClientSites] = useState<Site[]>([]); // Store original sites when editing
-  const [deletedSplits, setDeletedSplits] = useState<string[]>([]); // Track split codes to delete
+  const [deletedSplits, setDeletedSplits] = useState<number[]>([]); // Track split IDs to delete
   const [puissanceInputs, setPuissanceInputs] = useState<{[key: string]: string}>({}); // Store raw input values for puissance fields
 
   // Filter clients based on search term and site filter
@@ -439,22 +439,50 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
         ))
       ));
 
-      // Always use POST for splits of updated sites
-      await Promise.all(sitesToUpdate.map(site =>
-        Promise.all((site.splits ?? []).map(split =>
-          fetch(`${API_BASE_URL}/splits`, {
+      // Create or update splits for existing sites
+      await Promise.all(sitesToUpdate.map(async site => {
+        const originalSite = originalSites.find(os => os.id === site.id);
+        const originalSplitIds = new Set(
+          (originalSite?.splits ?? [])
+            .map(sp => sp.id)
+            .filter((id): id is number => id !== undefined)
+        );
+
+        await Promise.all((site.splits ?? []).map(split => {
+          // Ensure puissance is properly typed
+          const cleanSplit = {
+            ...split,
+            puissance: split.puissance === null ? null : (typeof split.puissance === 'string' && split.puissance === '' ? null : parseFloat(String(split.puissance)) || 0)
+          };
+
+          if (split.id !== null && split.id !== undefined && typeof split.id === 'number' && originalSplitIds.has(split.id)) {
+            // Update existing split - include code in the update
+            return fetch(`${API_BASE_URL}/splits/${split.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                code: cleanSplit.Code,
+                name: cleanSplit.name,
+                description: cleanSplit.description,
+                puissance: cleanSplit.puissance,
+                site_id: site.id
+              })
+            });
+          }
+          // Create new split
+          return fetch(`${API_BASE_URL}/splits`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              code: split.Code,
-              name: split.name,
-              description: split.description,
-              puissance: split.puissance,
+              code: cleanSplit.Code,
+              name: cleanSplit.name,
+              description: cleanSplit.description,
+              puissance: cleanSplit.puissance,
               site_id: site.id
             })
-          })
-        ))
-      ));
+          });
+        }));
+      }));
 
       // Delete removed sites
       await Promise.all(sitesToDelete.map(site =>
@@ -463,9 +491,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
         })
       ));
 
-      // Delete removed splits
-      await Promise.all(deletedSplits.map(code =>
-        fetch(`${API_BASE_URL}/splits/${code}`, {
+      // Delete removed splits (by id)
+      await Promise.all(deletedSplits.map(id =>
+        fetch(`${API_BASE_URL}/splits/${id}`, {
           method: 'DELETE'
         })
       ));
@@ -963,9 +991,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     <IconButton
                       size="small"
                       onClick={() => {
-                        // If split has a Code, mark for deletion
-                        if (split.Code) {
-                          setDeletedSplits(prev => [...prev, split.Code]);
+                        // If split has an id, mark for deletion
+                        if (split.id !== undefined && typeof split.id === 'number') {
+                          setDeletedSplits(prev => [...prev, split.id as number]);
                         }
                         const newSites = (currentClient.sites || []).map((s, idx) =>
                           idx === siteIdx
@@ -993,7 +1021,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       name: '',
                       description: '',
                       puissance: 0,
-                      site: site.id       // associate with the current site
+                      site_id: site.id       // associate with the current site
                     };
                     const newSites = (currentClient.sites || []).map((s, idx) =>
                       idx === siteIdx

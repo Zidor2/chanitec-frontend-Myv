@@ -40,11 +40,12 @@ export interface Client {
 }
 
 export interface Split {
-  Code:string
+  id?: number;
+  Code: string;
   name: string;
   description: string;
-  puissance: number;
-  site:string
+  puissance: number | null;
+  site_id?: string;
 }
 /**
  * Represents a site belonging to a client

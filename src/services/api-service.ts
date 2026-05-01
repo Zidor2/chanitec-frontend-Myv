@@ -239,15 +239,15 @@ class ApiService {
         });
     }
 
-    async updateSplit(code: string, split: Partial<any>): Promise<any> {
-        return this.fetchApi<any>(`/splits/${code}`, {
+    async updateSplit(id: number, split: Partial<any>): Promise<any> {
+        return this.fetchApi<any>(`/splits/${id}`, {
             method: 'PUT',
             body: JSON.stringify(split),
         });
     }
 
-    async deleteSplit(code: string): Promise<void> {
-        await this.fetchApi(`/splits/${code}`, {
+    async deleteSplit(id: number): Promise<void> {
+        await this.fetchApi(`/splits/${id}`, {
             method: 'DELETE',
         });
     }
