@@ -81,6 +81,12 @@ class ApiService {
         return result;
     }
 
+    // Clear cache method to force fresh data after updates
+    clearCache(): void {
+        this.cache.clear();
+        console.log('API cache cleared');
+    }
+
     // Quotes
     async getQuotes(): Promise<Quote[]> {
         return this.fetchApi<Quote[]>('/quotes');
@@ -98,16 +104,24 @@ class ApiService {
         console.log('[API SERVICE] saveQuote - === QUOTE DATA BEING SENT ===');
         console.log(JSON.stringify(quote, null, 2));
         console.log('[API SERVICE] saveQuote - === END QUOTE DATA ===');
-        return this.fetchApi<Quote>('/quotes', {
+        const result = await this.fetchApi<Quote>('/quotes', {
             method: 'POST',
             body: JSON.stringify(quote),
         });
+
+        // Clear cache after save to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     async deleteQuote(id: string): Promise<void> {
         await this.fetchApi(`/quotes/${id}`, {
             method: 'DELETE',
         });
+
+        // Clear cache after delete to ensure fresh data on next fetch
+        this.clearCache();
     }
 
     async updateQuote(quote: Quote): Promise<Quote> {
@@ -135,6 +149,9 @@ class ApiService {
             throw new Error(`Failed to update quote: ${response.statusText}`);
         }
 
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
         return await response.json();
     }
 
@@ -148,16 +165,24 @@ class ApiService {
     }
 
     async saveClient(client: Omit<Client, 'id'> & { id?: string }): Promise<Client> {
-        return this.fetchApi<Client>('/clients', {
+        const result = await this.fetchApi<Client>('/clients', {
             method: 'POST',
             body: JSON.stringify(client),
         });
+
+        // Clear cache after save to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     async deleteClient(id: string): Promise<void> {
         await this.fetchApi(`/clients/${id}`, {
             method: 'DELETE',
         });
+
+        // Clear cache after delete to ensure fresh data on next fetch
+        this.clearCache();
     }
 
     // Sites
@@ -166,16 +191,24 @@ class ApiService {
     }
 
     async saveSite(site: Omit<Site, 'id'> & { id?: string }): Promise<Site> {
-        return this.fetchApi<Site>('/sites', {
+        const result = await this.fetchApi<Site>('/sites', {
             method: 'POST',
             body: JSON.stringify(site),
         });
+
+        // Clear cache after save to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     async deleteSite(id: string): Promise<void> {
         await this.fetchApi(`/sites/${id}`, {
             method: 'DELETE',
         });
+
+        // Clear cache after delete to ensure fresh data on next fetch
+        this.clearCache();
     }
 
     // Supply Items
@@ -188,22 +221,35 @@ class ApiService {
     }
 
     async saveSupply(supply: Omit<SupplyItem, 'id'> & { id?: string }, quoteId: string): Promise<SupplyItem> {
-        return this.fetchApi<SupplyItem>(`/supply-items/${quoteId}`, {
+        const result = await this.fetchApi<SupplyItem>(`/supply-items/${quoteId}`, {
             method: 'POST',
             body: JSON.stringify(supply),
         });
+
+        // Clear cache after save to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     async clearItems(): Promise<{ message: string; deletedCount: number }> {
-        return this.fetchApi('/items/clear', {
+        const result = await this.fetchApi<{ message: string; deletedCount: number }>('/items/clear', {
             method: 'DELETE'
         });
+
+        // Clear cache after clear operation to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     async deleteSupply(id: string): Promise<void> {
         await this.fetchApi(`/supply-items/${id}`, {
             method: 'DELETE',
         });
+
+        // Clear cache after delete to ensure fresh data on next fetch
+        this.clearCache();
     }
 
     // Descriptions
@@ -212,10 +258,15 @@ class ApiService {
     }
 
     async createDescription(data: { content: string }): Promise<any> {
-        return this.fetchApi<any>('/descriptions', {
+        const result = await this.fetchApi<any>('/descriptions', {
             method: 'POST',
             body: JSON.stringify(data),
         });
+
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     // Labor Items
@@ -233,23 +284,36 @@ class ApiService {
     }
 
     async createSplit(split: Omit<any, 'id'>): Promise<any> {
-        return this.fetchApi<any>('/splits', {
+        const result = await this.fetchApi<any>('/splits', {
             method: 'POST',
             body: JSON.stringify(split),
         });
+
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     async updateSplit(id: number, split: Partial<any>): Promise<any> {
-        return this.fetchApi<any>(`/splits/${id}`, {
+        const result = await this.fetchApi<any>(`/splits/${id}`, {
             method: 'PUT',
             body: JSON.stringify(split),
         });
+
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     async deleteSplit(id: number): Promise<void> {
         await this.fetchApi(`/splits/${id}`, {
             method: 'DELETE',
         });
+
+        // Clear cache after delete to ensure fresh data on next fetch
+        this.clearCache();
     }
 
     async createLaborItem(quoteId: string, item: Omit<LaborItem, 'id'>): Promise<LaborItem> {
@@ -265,6 +329,9 @@ class ApiService {
             throw new Error(`Failed to create labor item: ${response.statusText}`);
         }
 
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
         return await response.json();
     }
 
@@ -274,10 +341,15 @@ class ApiService {
     }
 
     async createPriceOffer(offer: Omit<PriceOffer, 'createdAt' | 'updatedAt'>): Promise<PriceOffer> {
-        return this.fetchApi<PriceOffer>('/price-offers', {
+        const result = await this.fetchApi<PriceOffer>('/price-offers', {
             method: 'POST',
             body: JSON.stringify(offer)
         });
+
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     async createSupplyItem(quoteId: string, item: Omit<SupplyItem, 'id'>): Promise<SupplyItem> {
@@ -293,6 +365,9 @@ class ApiService {
             throw new Error(`Failed to create supply item: ${response.statusText}`);
         }
 
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
         return await response.json();
     }
 
@@ -305,10 +380,15 @@ class ApiService {
      * @returns { message: string }
      */
     async confirmQuote(id: string, confirmed: boolean = true, number_chanitec: string): Promise<{ message: string }> {
-        return this.fetchApi<{ message: string }>(`/quotes/${id}/confirm`, {
+        const result = await this.fetchApi<{ message: string }>(`/quotes/${id}/confirm`, {
             method: 'PATCH',
             body: JSON.stringify({ confirmed, number_chanitec }),
         });
+
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     // Set reminder date for a quote
@@ -319,10 +399,15 @@ class ApiService {
      * @returns Quote object with updated reminder date
      */
     async setReminderDate(id: string, reminderDate: string): Promise<Quote> {
-        return this.fetchApi<Quote>(`/quotes/${id}/reminder`, {
+        const result = await this.fetchApi<Quote>(`/quotes/${id}/reminder`, {
             method: 'PATCH',
             body: JSON.stringify({ reminderDate }),
         });
+
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     // Exchange Rate
@@ -391,6 +476,9 @@ class ApiService {
             throw new Error(`Import failed: ${response.statusText}`);
         }
 
+        // Clear cache after import to ensure fresh data on next fetch
+        this.clearCache();
+
         return response.json();
     }
 
@@ -398,20 +486,30 @@ class ApiService {
      * Create a new catalog item
      */
     async createItem(item: any): Promise<any> {
-        return this.fetchApi<any>('/items', {
+        const result = await this.fetchApi<any>('/items', {
             method: 'POST',
             body: JSON.stringify(item),
         });
+
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     /**
      * Update a catalog item
      */
     async updateItem(itemId: string, item: any): Promise<any> {
-        return this.fetchApi<any>(`/items/${itemId}`, {
+        const result = await this.fetchApi<any>(`/items/${itemId}`, {
             method: 'PUT',
             body: JSON.stringify(item),
         });
+
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     /**
@@ -421,6 +519,9 @@ class ApiService {
         await this.fetchApi(`/items/${itemId}`, {
             method: 'DELETE',
         });
+
+        // Clear cache after delete to ensure fresh data on next fetch
+        this.clearCache();
     }
 
     // Sites - Batch Operations
@@ -443,10 +544,15 @@ class ApiService {
      * Update a site
      */
     async updateSite(siteId: string, site: Partial<Site>): Promise<Site> {
-        return this.fetchApi<Site>(`/sites/${siteId}`, {
+        const result = await this.fetchApi<Site>(`/sites/${siteId}`, {
             method: 'PUT',
             body: JSON.stringify(site),
         });
+
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     // Clients - Additional Operations
@@ -454,10 +560,15 @@ class ApiService {
      * Update an existing client
      */
     async updateClient(clientId: string, client: Partial<Client>): Promise<Client> {
-        return this.fetchApi<Client>(`/clients/${clientId}`, {
+        const result = await this.fetchApi<Client>(`/clients/${clientId}`, {
             method: 'PUT',
             body: JSON.stringify(client),
         });
+
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
     }
 
     // Dashboard

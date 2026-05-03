@@ -35,6 +35,7 @@ import Layout from '../../components/Layout/Layout';
 import { apiService } from '../../services/api-service';
 import { SupplyItem } from '../../models/Quote';
 import * as XLSX from 'xlsx';
+import { extractVersion, extractBaseId } from '../../utils/id-generator';
 import './FinancialPage.scss';
 
 interface FinancialPageProps {
@@ -120,25 +121,48 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
 
   // Function to get only the latest version of each quote group
   const getLatestQuoteVersions = (allQuotes: any[]) => {
-    const quoteGroups = new Map();
+    const quoteGroups = new Map<string, { quote: any; version: number; timestamp: Date }>();
 
-    console.log('Filtering to latest versions from', allQuotes.length, 'total quotes');
+    console.log('=== Starting latest version filtering ===');
+    console.log('Total quotes to process:', allQuotes.length);
 
     allQuotes.forEach(quote => {
-      const key = quote.parentId || quote.id; // Use parentId if exists, otherwise use id
+      // Prefer explicit parentId grouping; otherwise fallback to baseId or the full quote ID.
+      const parentKey = quote.parentId && quote.parentId !== '0' ? quote.parentId : null;
+      const baseId = extractBaseId(quote.id);
+      const key = parentKey || baseId || quote.id;
+      const version = extractVersion(quote.id) || 0;
+      const timestamp = new Date(quote.updatedAt || quote.createdAt || 0);
 
       const current = quoteGroups.get(key);
-      const shouldReplace = !current ||
-        (quote.version > (current.version || 0)) ||
-        (quote.version === (current.version || 0) && new Date(quote.updatedAt || 0) > new Date(current.updatedAt || 0));
+
+      // Determine if this quote should replace the current one
+      const isNewerVersion = !current || version > current.version;
+      const isSameVersionButNewer = !isNewerVersion && version === current.version && timestamp > current.timestamp;
+      const shouldReplace = isNewerVersion || isSameVersionButNewer;
 
       if (shouldReplace) {
-        quoteGroups.set(key, quote);
+        console.log(`Quote ${quote.id} (v${version}) - Keeping as latest for group "${key}"`);
+        if (current) {
+          console.log(`  (Replacing previous version: ${current.quote.id} v${current.version})`);
+        }
+        quoteGroups.set(key, {
+          quote,
+          version,
+          timestamp
+        });
+      } else {
+        console.log(`Quote ${quote.id} (v${version}) - Filtered out (not latest for group "${key}")`);
       }
     });
 
-    const result = Array.from(quoteGroups.values());
-    console.log('Filtered to', result.length, 'latest version quotes');
+    const result = Array.from(quoteGroups.values()).map(item => item.quote);
+    console.log('=== Filtering complete ===');
+    console.log('Final quotes to display:', result.length);
+    result.forEach(q => {
+      const v = extractVersion(q.id) || 0;
+      console.log(`  - ${q.id} (v${v}) | Client: ${q.clientName} | Updated: ${q.updatedAt}`);
+    });
 
     return result;
   };
@@ -406,6 +430,42 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
       averageQuoteValue
     });
   };
+
+  const visibleQuoteChartData = React.useMemo(() => {
+    const data = filteredQuotes.map((quote: any) => {
+      let suppliesTotal = 0;
+      const convertedSuppliesTotal = Number(quote.totalSuppliesHT);
+      if (quote.totalSuppliesHT && !isNaN(convertedSuppliesTotal) && convertedSuppliesTotal > 0) {
+        suppliesTotal = convertedSuppliesTotal;
+      } else if (quote.supplyItems && Array.isArray(quote.supplyItems) && quote.supplyItems.length > 0) {
+        suppliesTotal = quote.supplyItems.reduce((sum: number, item: any) => sum + (Number(item.totalPriceDollar) || 0), 0);
+      }
+
+      let laborTotal = 0;
+      const convertedLaborTotal = Number(quote.totalLaborHT);
+      if (quote.totalLaborHT && !isNaN(convertedLaborTotal) && convertedLaborTotal > 0) {
+        laborTotal = convertedLaborTotal;
+      } else if (quote.laborItems && Array.isArray(quote.laborItems) && quote.laborItems.length > 0) {
+        laborTotal = quote.laborItems.reduce((sum: number, item: any) => sum + (Number(item.totalPriceDollar) || 0), 0);
+      }
+
+      const total = suppliesTotal + laborTotal;
+      const shortLabel = quote.id?.length > 12 ? `${quote.id.slice(0, 10)}...` : quote.id;
+
+      return {
+        id: quote.id,
+        label: shortLabel,
+        clientName: quote.clientName || 'Sans client',
+        total,
+        rawDate: quote.date
+      };
+    });
+
+    const sorted = data.sort((a, b) => b.total - a.total);
+    return sorted.slice(0, 20);
+  }, [filteredQuotes]);
+
+  const chartMaxValue = visibleQuoteChartData.reduce((max, item) => Math.max(max, item.total), 1);
 
   const exportToExcel = () => {
     if (filteredQuotes.length === 0) {
@@ -871,6 +931,42 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
             </Card>
           </Box>
         </Box>
+
+        {/* Visible Quotes Bar Chart */}
+        <Paper className="chart-section" elevation={2}>
+          <Typography variant="h6" className="section-title">
+            Graphique des devis visibles
+          </Typography>
+          {filteredQuotes.length === 0 ? (
+            <Box display="flex" justifyContent="center" alignItems="center" padding={4}>
+              <Typography variant="body1" color="textSecondary">
+                Aucun devis visible pour afficher le graphique.
+              </Typography>
+            </Box>
+          ) : (
+            <Box className="chart-wrapper">
+              {visibleQuoteChartData.map((point) => {
+                const widthPercent = chartMaxValue > 0 ? Math.round((point.total / chartMaxValue) * 100) : 0;
+                return (
+                  <Box key={point.id} className="chart-row">
+                    <Box className="chart-label">
+                      {point.label}
+                    </Box>
+                    <Box className="chart-bar-container">
+                      <Box
+                        className="chart-bar"
+                        sx={{ width: `${widthPercent}%` }}
+                      />
+                    </Box>
+                    <Box className="chart-value">
+                      {formatCurrency(point.total)}
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </Paper>
 
                 {/* Quotes Table */}
         <Paper className="quotes-table-section" elevation={2}>
