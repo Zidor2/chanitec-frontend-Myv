@@ -46,6 +46,7 @@ export interface Split {
   description: string;
   puissance: number | null;
   site_id?: string;
+  freon?: string | null;
 }
 /**
  * Represents a site belonging to a client

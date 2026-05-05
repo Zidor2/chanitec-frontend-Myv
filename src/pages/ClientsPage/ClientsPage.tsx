@@ -465,7 +465,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                 name: cleanSplit.name,
                 description: cleanSplit.description,
                 puissance: cleanSplit.puissance,
-                site_id: site.id
+                site_id: site.id,
+                freon: cleanSplit.freon || null
               })
             });
           }
@@ -478,7 +479,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
               name: cleanSplit.name,
               description: cleanSplit.description,
               puissance: cleanSplit.puissance,
-              site_id: site.id
+              site_id: site.id,
+              freon: cleanSplit.freon || null
             })
           });
         }));
@@ -706,7 +708,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                                           <Box className="split-info">
                                             <AcUnitIcon className="split-icon" />
                                             <Typography className="split-text">
-                                              {split.Code || 'N/A'} - {split.name || 'N/A'} - {split.puissance || 0} BTU/KW
+                                              {split.Code || 'N/A'} - {split.name || 'N/A'} - {split.puissance || 0} BTU/KW{split.freon ? ` - ${split.freon}` : ''}
                                             </Typography>
                                           </Box>
                                         </Box>
@@ -988,6 +990,30 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       }}
                       sx={{ minWidth: 180 }}
                     />
+                    <TextField
+                      select
+                      label="Fluide Frigorigène"
+                      size="small"
+                      value={split.freon || ''}
+                      onChange={e => {
+                        const newSites = (currentClient.sites || []).map((s, idx) =>
+                          idx === siteIdx
+                            ? {
+                                ...s,
+                                splits: (s.splits ?? []).map((sp, spIdx) =>
+                                  spIdx === splitIdx ? { ...sp, freon: e.target.value || null } : sp
+                                )
+                              }
+                            : s
+                        );
+                        setCurrentClient({ ...currentClient, sites: newSites });
+                      }}
+                      sx={{ minWidth: 120 }}
+                    >
+                      <MenuItem value="">-- Sélectionner --</MenuItem>
+                      <MenuItem value="R22">R22</MenuItem>
+                      <MenuItem value="R410a">R410a</MenuItem>
+                    </TextField>
                     <IconButton
                       size="small"
                       onClick={() => {
@@ -1021,7 +1047,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       name: '',
                       description: '',
                       puissance: 0,
-                      site_id: site.id       // associate with the current site
+                      site_id: site.id,       // associate with the current site
+                      freon: null       // Initialize freon as null
                     };
                     const newSites = (currentClient.sites || []).map((s, idx) =>
                       idx === siteIdx
