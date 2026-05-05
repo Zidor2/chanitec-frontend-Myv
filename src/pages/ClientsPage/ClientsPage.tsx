@@ -681,7 +681,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   disabled={loading}
                   className="create-client-btn"
                 >
-                  + Create Client
+                  + Créer un client
                 </Button>
               </Box>
             </Box>
@@ -692,7 +692,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
           {/* All Clients List Section */}
           {!selectedClientId ? (
             <Box>
-              <Typography variant="h6" sx={{ mb: 2 }}>Select a Client</Typography>
+              <Typography variant="h6" sx={{ mb: 2 }}>Sélectionnez un client</Typography>
               {loading ? (
                 <Box className="loading-container">
                   <Typography>Chargement...</Typography>
@@ -721,10 +721,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                           {client.name}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                          Sites: {client.sites?.length || 0}
+                          Sites : {client.sites?.length || 0}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                          Taux: {client.Taux_marge || 0}%
+                          Taux de marge : {client.Taux_marge || 0}%
                         </Typography>
                       </CardContent>
                     </Card>
@@ -750,7 +750,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     startIcon={<EditIcon />}
                     onClick={() => handleEditClient(selectedClient)}
                   >
-                    Edit
+                    Modifier
                   </Button>
                   <Button
                     variant="contained"
@@ -758,7 +758,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     startIcon={<DeleteIcon />}
                     onClick={() => handleDeleteClient(selectedClient)}
                   >
-                    Delete
+                    Supprimer
                   </Button>
                   <Button
                     variant="outlined"
@@ -767,7 +767,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       clearFilters();
                     }}
                   >
-                    Back to Clients
+                    Retour aux clients
                   </Button>
                 </Box>
               </Box>
@@ -775,10 +775,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
               {/* Filter Section */}
               <Box className="filter-section" sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
                 <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold' }}>
-                  Filters
+                  Filtres
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2, mb: 2 }}>
-                  {/* Site Filter */}
+                  {/* Filtre site */}
                   <TextField
                     select
                     label="Site"
@@ -787,7 +787,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     variant="outlined"
                     size="small"
                   >
-                    <MenuItem value="all">All Sites</MenuItem>
+                    <MenuItem value="all">Tous les sites</MenuItem>
                     {getAvailableSites().map((site) => (
                       <MenuItem key={site.id} value={site.id}>
                         {site.name}
@@ -798,13 +798,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   {/* Split Type Filter */}
                   <TextField
                     select
-                    label="Split Type"
+                    label="Type de split"
                     value={filterSplitType}
                     onChange={(e) => setFilterSplitType(e.target.value)}
                     variant="outlined"
                     size="small"
                   >
-                    <MenuItem value="all">All Types</MenuItem>
+                    <MenuItem value="all">Tous les types</MenuItem>
                     {getUniqueSplitTypes().map((type) => (
                       <MenuItem key={type} value={type}>
                         {type}
@@ -815,13 +815,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   {/* Freon Filter */}
                   <TextField
                     select
-                    label="Freon"
+                    label="Fluide frigorigène"
                     value={filterFreon}
                     onChange={(e) => setFilterFreon(e.target.value)}
                     variant="outlined"
                     size="small"
                   >
-                    <MenuItem value="all">All Freons</MenuItem>
+                    <MenuItem value="all">Tous les fluides</MenuItem>
                     {getUniqueFreonTypes().map((freon) => (
                       <MenuItem key={freon} value={freon}>
                         {freon}
@@ -831,7 +831,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
 
                   {/* Puissance Filter */}
                   <TextField
-                    label="Min Puissance (BTU/KW)"
+                    label="Puissance min (BTU/KW)"
                     type="number"
                     value={filterPuissance}
                     onChange={(e) => setFilterPuissance(e.target.value)}
@@ -845,7 +845,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   startIcon={<ClearIcon />}
                   onClick={clearFilters}
                 >
-                  Clear Filters
+                  Réinitialiser
                 </Button>
               </Box>
 
@@ -854,20 +854,20 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                      Visualization
+                      Visualisation
                     </Typography>
                     <TextField
                       select
-                      label="Chart"
+                      label="Graphique"
                       value={selectedChartType}
                       onChange={(e) => setSelectedChartType(e.target.value as 'site' | 'freon' | 'puissance')}
                       variant="outlined"
                       size="small"
                       sx={{ minWidth: 180 }}
                     >
-                      <MenuItem value="site">Number of splits per site</MenuItem>
-                      <MenuItem value="freon">Freon distribution</MenuItem>
-                      <MenuItem value="puissance">Puissance distribution</MenuItem>
+                      <MenuItem value="site">Nombre d'équipements par site</MenuItem>
+                      <MenuItem value="freon">Répartition des fluides</MenuItem>
+                      <MenuItem value="puissance">Répartition de la puissance</MenuItem>
                     </TextField>
                   </Box>
                   <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'stretch', md: 'center' }, gap: 2 }}>
@@ -881,7 +881,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     <Box sx={{ flex: 1 }}>
                       {filteredChartData.length === 0 ? (
                         <Typography variant="body2" color="textSecondary">
-                          No data available for the selected chart and filters.
+                          Aucune donnée disponible pour le graphique et les filtres sélectionnés.
                         </Typography>
                       ) : (
                         chartSegments.map((segment) => (
@@ -936,7 +936,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                                   </Typography>
                                   {split.freon && (
                                     <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
-                                      Freon: {split.freon}
+                                      Fluide : {split.freon}
                                     </Typography>
                                   )}
                                   {split.description && (
