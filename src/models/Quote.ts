@@ -44,7 +44,7 @@ export interface Split {
   Code: string;
   name: string;
   description: string;
-  puissance: number | null;
+  puissance: number | string | null;
   site_id?: string;
   freon?: string | null;
 }

@@ -96,7 +96,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const [filterSite, setFilterSite] = useState('all');
   const [filterSplitType, setFilterSplitType] = useState('all');
   const [filterFreon, setFilterFreon] = useState('all');
-  const [filterPuissance, setFilterPuissance] = useState('');
+  const [filterPuissance, setFilterPuissance] = useState('all');
   const [selectedChartType, setSelectedChartType] = useState<'site' | 'freon' | 'puissance'>('site');
 
   // State for dialog
@@ -147,10 +147,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
         if (filterFreon !== 'all' && split.freon !== filterFreon) {
           return false;
         }
-        // Filter by puissance (min value)
-        if (filterPuissance && split.puissance) {
-          const minPuissance = parseFloat(filterPuissance);
-          if (split.puissance < minPuissance) {
+        // Filter by selected puissance value
+        if (filterPuissance !== 'all') {
+          const selectedPuissance = parseFloat(filterPuissance);
+          if (split.puissance !== selectedPuissance) {
             return false;
           }
         }
@@ -181,6 +181,22 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       });
     });
     return Array.from(freons).sort();
+  };
+
+  const getUniquePuissanceValues = (): number[] => {
+    const sites = getAvailableSites();
+    const values = new Set<number>();
+    sites.forEach(site => {
+      (site.splits || []).forEach(split => {
+        if (typeof split.puissance === 'number' && !Number.isNaN(split.puissance)) {
+          values.add(split.puissance);
+        } else if (typeof split.puissance === 'string' && split.puissance.trim() !== '') {
+          const parsed = parseFloat(split.puissance);
+          if (!Number.isNaN(parsed)) values.add(parsed);
+        }
+      });
+    });
+    return Array.from(values).sort((a, b) => a - b);
   };
 
   const getFilteredChartData = () => {
@@ -263,7 +279,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     setFilterSite('all');
     setFilterSplitType('all');
     setFilterFreon('all');
-    setFilterPuissance('');
+    setFilterPuissance('all');
   };
 
   // Show snackbar with message
@@ -601,6 +617,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       showSnackbar('Client mis à jour avec succès', 'success');
       handleCloseDialog();
       await loadClients();
+
+      const updatedClientId = currentClient.id ?? selectedClientId;
+      if (updatedClientId) {
+        setSelectedClientId(updatedClientId);
+        await loadSitesAndSplitsForSelectedClient(updatedClientId);
+      }
+
       setDeletedSplits([]); // Reset after update
 
     } catch (error) {
@@ -831,13 +854,20 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
 
                   {/* Puissance Filter */}
                   <TextField
-                    label="Puissance min (BTU/KW)"
-                    type="number"
+                    select
+                    label="Puissance"
                     value={filterPuissance}
                     onChange={(e) => setFilterPuissance(e.target.value)}
                     variant="outlined"
                     size="small"
-                  />
+                  >
+                    <MenuItem value="all">Toutes les puissances</MenuItem>
+                    {getUniquePuissanceValues().map((value) => (
+                      <MenuItem key={value} value={value.toString()}>
+                        {value}
+                      </MenuItem>
+                    ))}
+                  </TextField>
                 </Box>
                 <Button
                   variant="outlined"
@@ -1089,7 +1119,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       select
                       label="Type"
                       size="small"
-                      value={split.name}
+                      value={split.name || ''}
                       onChange={e => {
                         const newSites = (currentClient.sites || []).map((s, idx) =>
                           idx === siteIdx
@@ -1105,6 +1135,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       }}
                       sx={{ minWidth: 200, flex: '1 1 220px' }}
                     >
+                      {/* Show current value if not in the list */}
+                      {split.name && !['Split', 'Ventilo-convecteur', 'Injecto', 'K7 détente direct', 'K7 à eau', 'GF', 'Mini centrale', 'Armoire de clim', 'GP', 'ROOFTOP', 'Split Gainable', 'Mono-bloc', 'Clim Console'].includes(split.name) && (
+                        <MenuItem value={split.name}>{split.name}</MenuItem>
+                      )}
                       <MenuItem value="Split">Split</MenuItem>
                       <MenuItem value="Ventilo-convecteur">Ventilo-convecteur</MenuItem>
                       <MenuItem value="Injecto">Injecto</MenuItem>
@@ -1116,8 +1150,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       <MenuItem value="GP">GP</MenuItem>
                       <MenuItem value="ROOFTOP">ROOFTOP</MenuItem>
                       <MenuItem value="Split Gainable">Split Gainable</MenuItem>
-                      <MenuItem value="Split Gainable">Mono-bloc</MenuItem>
-                      <MenuItem value="Split Gainable">Clim Console</MenuItem>
+                      <MenuItem value="Mono-bloc">Mono-bloc</MenuItem>
+                      <MenuItem value="Clim Console">Clim Console</MenuItem>
                     </TextField>
                     <TextField
                       label="Marque"
