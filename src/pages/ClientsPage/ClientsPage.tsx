@@ -13,7 +13,6 @@ import {
   Typography,
   List,
   ListItem,
-  ListItemText,
   Card,
   CardContent,
   Snackbar,
@@ -119,6 +118,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const [originalClientSites, setOriginalClientSites] = useState<Site[]>([]);
   const [deletedSplits, setDeletedSplits] = useState<number[]>([]);
   const [puissanceInputs, setPuissanceInputs] = useState<{[key: string]: string}>({});
+  const [editingSite, setEditingSite] = useState<Site | null>(null);
+  const [originalEditingSite, setOriginalEditingSite] = useState<Site | null>(null);
 
   // Get unique sites for selected client
   const getAvailableSites = (): Site[] => {
@@ -239,6 +240,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   };
 
+  const getDialogSites = (): Site[] => {
+    return currentClient.sites || [];
+  };
+
   const getChartSegmentPaths = (data: { name: string; value: number }[]) => {
     const total = data.reduce((sum, item) => sum + item.value, 0);
     if (total === 0) return [];
@@ -348,6 +353,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     });
     setNewSiteName('');
     setIsEditing(false);
+    setEditingSite(null);
     setDialogOpen(true);
   };
 
@@ -392,7 +398,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   };
 
   const validateSplitCodesWithServer = async (): Promise<string | null> => {
-    const sites = currentClient.sites || [];
+    const sites = getDialogSites();
     for (const site of sites) {
       for (const split of site.splits || []) {
         const code = (split.Code || '').trim();
@@ -415,11 +421,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
 
   // Save client (either create new or update existing)
   const handleSave = async () => {
-    if (!currentClient.name?.trim()) {
+    if (!editingSite && !currentClient.name?.trim()) {
       showSnackbar('Le nom du client est requis', 'error');
       return;
     }
-    const dupCode = findDuplicateSplitCodesInForm(currentClient.sites);
+    const dialogSites = getDialogSites();
+    const dupCode = findDuplicateSplitCodesInForm(dialogSites);
     if (dupCode) {
       showSnackbar(
         `Le code split "${dupCode}" est utilisé plusieurs fois dans le formulaire.`,
@@ -430,6 +437,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     const serverErr = await validateSplitCodesWithServer();
     if (serverErr) {
       showSnackbar(serverErr, 'error');
+      return;
+    }
+    if (editingSite) {
+      await handleUpdateSiteOnly();
       return;
     }
     if (isEditing) {
@@ -634,6 +645,72 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     }
   };
 
+  const handleUpdateSiteOnly = async () => {
+    const siteToSave = currentClient.sites?.[0];
+    if (!editingSite || !siteToSave || !selectedClient) {
+      showSnackbar('Impossible de mettre à jour le site', 'error');
+      return;
+    }
+    if (!siteToSave.name?.trim()) {
+      showSnackbar('Le nom du site est requis', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (siteToSave.id && siteToSave.name !== editingSite.name) {
+        await apiService.updateSite(siteToSave.id, { name: siteToSave.name });
+      }
+
+      const originalSplitIds = new Set(
+        (originalEditingSite?.splits ?? [])
+          .map(split => split.id)
+          .filter((id): id is number => typeof id === 'number')
+      );
+      const currentSplitIds = new Set(
+        (siteToSave.splits ?? [])
+          .map(split => split.id)
+          .filter((id): id is number => typeof id === 'number')
+      );
+
+      await Promise.all((siteToSave.splits ?? []).map(async split => {
+        const splitData = {
+          code: split.Code,
+          name: split.name,
+          description: split.description,
+          puissance: split.puissance,
+          freon: split.freon || null,
+          site_id: siteToSave.id
+        };
+
+        if (split.id !== undefined && split.id !== null && typeof split.id === 'number' && originalSplitIds.has(split.id)) {
+          await apiService.updateSplit(split.id, splitData);
+        } else {
+          await apiService.createSplit(splitData);
+        }
+      }));
+
+      const splitsToDelete = [
+        ...deletedSplits,
+        ...((originalEditingSite?.splits ?? []).filter(split =>
+          split.id !== undefined && split.id !== null && typeof split.id === 'number' && !currentSplitIds.has(split.id)
+        ).map(split => split.id as number))
+      ];
+
+      await Promise.all(splitsToDelete.map(id => apiService.deleteSplit(id)));
+
+      showSnackbar('Site mis à jour avec succès', 'success');
+      handleCloseDialog();
+      await loadSitesAndSplitsForSelectedClient(selectedClient.id);
+      setDeletedSplits([]);
+    } catch (error) {
+      console.error('Error updating site:', error);
+      showSnackbar('Erreur lors de la mise à jour du site', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Close dialog and reset form
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -644,6 +721,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     });
     setNewSiteName('');
     setIsEditing(false);
+    setEditingSite(null);
+    setOriginalEditingSite(null);
+    setDeletedSplits([]);
     setPuissanceInputs({}); // Clear puissance inputs
   };
 
@@ -656,6 +736,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     setCurrentClient(client); // Load current data
     setOriginalClientSites(client.sites || []); // Store original sites for comparison
     setIsEditing(true);
+    setEditingSite(null);
     setNewSiteName(''); // Clear new site name field
     setDialogOpen(true);
     setPuissanceInputs({}); // Clear puissance inputs when editing starts
@@ -676,6 +757,27 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditSite = (site: Site) => {
+    if (!selectedClient) return;
+    const editableSite = {
+      ...site,
+      splits: (site.splits ?? []).map(split => ({ ...split }))
+    };
+    setEditingSite(site);
+    setOriginalEditingSite(site);
+    setCurrentClient({
+      id: selectedClient.id,
+      name: selectedClient.name,
+      Taux_marge: selectedClient.Taux_marge,
+      sites: [editableSite]
+    });
+    setIsEditing(false);
+    setNewSiteName('');
+    setDialogOpen(true);
+    setDeletedSplits([]);
+    setPuissanceInputs({});
   };
 
   const selectedClient = selectedClientId ? clients.find(c => c.id === selectedClientId) : null;
@@ -945,11 +1047,16 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   {filteredSites.map((site) => (
                     <Card key={site.id}>
                       <CardContent>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <BusinessIcon sx={{ mr: 1 }} />
-                          <Typography variant="h6">
-                            {site.name}
-                          </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <BusinessIcon sx={{ mr: 1 }} />
+                            <Typography variant="h6">
+                              {site.name}
+                            </Typography>
+                          </Box>
+                          <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleEditSite(site); }}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
                         </Box>
 
                         <Box className="splits-section">
@@ -1003,7 +1110,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
         PaperProps={{ sx: { width: '95vw', maxWidth: '1200px' } }}
       >
         <DialogTitle>
-          {isEditing ? 'Modifier le client' : 'Nouveau Client'}
+          {editingSite ? `Modifier le site ${editingSite.name}` : isEditing ? 'Modifier le client' : 'Nouveau Client'}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, minHeight: '60vh' }}>
                      <TextField
@@ -1015,8 +1122,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
              value={currentClient.name}
              onChange={(e) => setCurrentClient({ ...currentClient, name: e.target.value })}
            />
-          {/* Show site name field if no sites have been added yet, or if user wants to add another site */}
-          {(currentClient.sites?.length || 0) === 0 && (
+          {/* Show site name field when creating or editing a client, not when editing a single site */}
+          {!editingSite && (currentClient.sites?.length || 0) === 0 && (
             <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
               <TextField
                 label="Nom du site"
@@ -1035,8 +1142,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
             </Box>
           )}
 
-          {/* Show option to add another site if sites already exist */}
-          {(currentClient.sites?.length || 0) > 0 && (
+          {/* Show option to add another site when creating or editing a client */}
+          {!editingSite && (currentClient.sites?.length || 0) > 0 && (
             <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
               <TextField
                 label="Nom du site (optionnel)"
@@ -1059,233 +1166,239 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
             {currentClient.sites?.map((site, siteIdx) => (
               <Box key={site.id} sx={{ mb: 2, border: '1px solid #eee', borderRadius: 1, p: 1 }}>
                 <ListItem
-                  secondaryAction={
+                  secondaryAction={!editingSite ? (
                     <IconButton edge="end" onClick={() => handleRemoveSite(site.id)}>
                       <DeleteIcon />
                     </IconButton>
-                  }
+                  ) : undefined}
                 >
-                  <ListItemText primary={site.name} />
+                  <TextField
+                    label="Nom du site"
+                    size="small"
+                    fullWidth
+                    value={site.name}
+                    onChange={(e) => {
+                      const newSites = (currentClient.sites || []).map((s, idx) =>
+                        idx === siteIdx
+                          ? { ...s, name: e.target.value }
+                          : s
+                      );
+                      setCurrentClient({ ...currentClient, sites: newSites });
+                    }}
+                  />
                 </ListItem>
-                {/* Splits for this site */}
-                <Typography variant="subtitle2" sx={{ mt: 1 }}>Équipement frigorifique</Typography>
-                {(site.splits ?? []).map((split, splitIdx) => (
-                  <Box key={splitIdx} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'flex-start', mb: 1 }}>
-                    <TextField
-                      label="Code"
-                      size="small"
-                      value={split.Code}
-                      sx={{ minWidth: 120, flex: '1 1 140px' }}
-                      onChange={e => {
-                        const newSites = (currentClient.sites || []).map((s, idx) =>
-                          idx === siteIdx
-                            ? {
-                                ...s,
-                                splits: (s.splits ?? []).map((sp, spIdx) =>
-                                  spIdx === splitIdx ? { ...sp, Code: e.target.value } : sp
-                                )
+                {!isEditing || editingSite ? (
+                  <>
+                    <Typography variant="subtitle2" sx={{ mt: 1 }}>Équipement frigorifique</Typography>
+                    {(site.splits ?? []).map((split, splitIdx) => (
+                      <Box key={splitIdx} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'flex-start', mb: 1 }}>
+                        <TextField
+                          label="Code"
+                          size="small"
+                          value={split.Code}
+                          sx={{ minWidth: 120, flex: '1 1 140px' }}
+                          onChange={e => {
+                            const newSites = (currentClient.sites || []).map((s, idx) =>
+                              idx === siteIdx
+                                ? {
+                                    ...s,
+                                    splits: (s.splits ?? []).map((sp, spIdx) =>
+                                      spIdx === splitIdx ? { ...sp, Code: e.target.value } : sp
+                                    )
+                                  }
+                                : s
+                            );
+                            setCurrentClient({ ...currentClient, sites: newSites });
+                          }}
+                          onBlur={async (e) => {
+                            const code = e.target.value.trim();
+                            if (!code) return;
+                            try {
+                              const lookup = await fetchSplitCodeLookup(code);
+                              if (isSplitCodeConflictForCurrentSite(lookup, site.id)) {
+                                if (lookup.exists && lookup.clientName && lookup.siteName) {
+                                  showSnackbar(
+                                    `Ce code split existe déjà : ${lookup.clientName} > ${lookup.siteName}`,
+                                    'error'
+                                  );
+                                } else {
+                                  showSnackbar(
+                                    'Ce code split existe déjà pour un autre emplacement.',
+                                    'error'
+                                  );
+                                }
                               }
-                            : s
-                        );
-                        setCurrentClient({ ...currentClient, sites: newSites });
-                      }}
-                      onBlur={async (e) => {
-                        const code = e.target.value.trim();
-                        if (!code) return;
-                        try {
-                          const lookup = await fetchSplitCodeLookup(code);
-                          if (isSplitCodeConflictForCurrentSite(lookup, site.id)) {
-                            if (lookup.exists && lookup.clientName && lookup.siteName) {
+                            } catch {
                               showSnackbar(
-                                `Ce code split existe déjà : ${lookup.clientName} > ${lookup.siteName}`,
-                                'error'
-                              );
-                            } else {
-                              showSnackbar(
-                                'Ce code split existe déjà pour un autre emplacement.',
+                                'Impossible de vérifier le code split. Réessayez.',
                                 'error'
                               );
                             }
-                          }
-                        } catch {
-                          showSnackbar(
-                            'Impossible de vérifier le code split. Réessayez.',
-                            'error'
-                          );
-                        }
-                      }}
-                    />
-                    <TextField
-                      select
-                      label="Type"
+                          }}
+                        />
+                        <TextField
+                          select
+                          label="Type"
+                          size="small"
+                          value={split.name || ''}
+                          onChange={e => {
+                            const newSites = (currentClient.sites || []).map((s, idx) =>
+                              idx === siteIdx
+                                ? {
+                                    ...s,
+                                    splits: (s.splits ?? []).map((sp, spIdx) =>
+                                      spIdx === splitIdx ? { ...sp, name: e.target.value } : sp
+                                    )
+                                  }
+                                : s
+                            );
+                            setCurrentClient({ ...currentClient, sites: newSites });
+                          }}
+                          sx={{ minWidth: 200, flex: '1 1 220px' }}
+                        >
+                          {split.name && !['Split', 'Ventilo-convecteur', 'Injecto', 'K7 détente direct', 'K7 à eau', 'GF', 'Mini centrale', 'Armoire de clim', 'GP', 'ROOFTOP', 'Split Gainable', 'Mono-bloc', 'Clim Console'].includes(split.name) && (
+                            <MenuItem value={split.name}>{split.name}</MenuItem>
+                          )}
+                          <MenuItem value="Split">Split</MenuItem>
+                          <MenuItem value="Ventilo-convecteur">Ventilo-convecteur</MenuItem>
+                          <MenuItem value="Injecto">Injecto</MenuItem>
+                          <MenuItem value="K7 détente direct">K7 détente direct</MenuItem>
+                          <MenuItem value="K7 à eau">K7 à eau</MenuItem>
+                          <MenuItem value="GF">GF</MenuItem>
+                          <MenuItem value="Mini centrale">Mini centrale</MenuItem>
+                          <MenuItem value="Armoire de clim">Armoire de clim</MenuItem>
+                          <MenuItem value="GP">GP</MenuItem>
+                          <MenuItem value="ROOFTOP">ROOFTOP</MenuItem>
+                          <MenuItem value="Split Gainable">Split Gainable</MenuItem>
+                          <MenuItem value="Mono-bloc">Mono-bloc</MenuItem>
+                          <MenuItem value="Clim Console">Clim Console</MenuItem>
+                        </TextField>
+                        <TextField
+                          label="Marque"
+                          size="small"
+                          value={split.description}
+                          onChange={e => {
+                            const newSites = (currentClient.sites || []).map((s, idx) =>
+                              idx === siteIdx
+                                ? {
+                                    ...s,
+                                    splits: (s.splits ?? []).map((sp, spIdx) =>
+                                      spIdx === splitIdx ? { ...sp, description: e.target.value } : sp
+                                    )
+                                  }
+                                : s
+                            );
+                            setCurrentClient({ ...currentClient, sites: newSites });
+                          }}
+                          sx={{ minWidth: 200, flex: '1 1 220px' }}
+                        />
+                        <TextField
+                          label="Puissance en BTU/Kw "
+                          size="small"
+                          value={puissanceInputs[`${site.id}-${splitIdx}`] ?? (split.puissance || '')}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const inputKey = `${site.id}-${splitIdx}`;
+                            setPuissanceInputs(prev => ({
+                              ...prev,
+                              [inputKey]: value
+                            }));
+                            if (value === '' || !isNaN(parseFloat(value))) {
+                              const newSites = (currentClient.sites || []).map((s, idx) =>
+                                idx === siteIdx
+                                  ? {
+                                      ...s,
+                                      splits: (s.splits ?? []).map((sp, spIdx) =>
+                                        spIdx === splitIdx ? { ...sp, puissance: value === '' ? 0 : parseFloat(value) || 0 } : sp
+                                      )
+                                    }
+                                  : s
+                              );
+                              setCurrentClient({ ...currentClient, sites: newSites });
+                            }
+                          }}
+                          sx={{ minWidth: 180, flex: '1 1 180px' }}
+                          onBlur={(e) => {
+                            const value = e.target.value;
+                            const inputKey = `${site.id}-${splitIdx}`;
+                            if (value === '' || isNaN(parseFloat(value))) {
+                              setPuissanceInputs(prev => ({
+                                ...prev,
+                                [inputKey]: String(split.puissance || '')
+                              }));
+                            }
+                          }}
+                        />
+                        <TextField
+                          select
+                          label="Fluide Frigorigène"
+                          size="small"
+                          value={split.freon || ''}
+                          onChange={e => {
+                            const newSites = (currentClient.sites || []).map((s, idx) =>
+                              idx === siteIdx
+                                ? {
+                                    ...s,
+                                    splits: (s.splits ?? []).map((sp, spIdx) =>
+                                      spIdx === splitIdx ? { ...sp, freon: e.target.value || null } : sp
+                                    )
+                                  }
+                                : s
+                            );
+                            setCurrentClient({ ...currentClient, sites: newSites });
+                          }}
+                          sx={{ minWidth: 120, flex: '1 1 140px' }}
+                        >
+                          <MenuItem value="">-- Sélectionner --</MenuItem>
+                          <MenuItem value="R22">R22</MenuItem>
+                          <MenuItem value="R410a">R410a</MenuItem>
+                        </TextField>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            if (split.id !== undefined && typeof split.id === 'number') {
+                              setDeletedSplits(prev => [...prev, split.id as number]);
+                            }
+                            const newSites = (currentClient.sites || []).map((s, idx) =>
+                              idx === siteIdx
+                                ? {
+                                    ...s,
+                                    splits: (s.splits ?? []).filter((_, spIdx) => spIdx !== splitIdx)
+                                  }
+                                : s
+                            );
+                            setCurrentClient({ ...currentClient, sites: newSites });
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ))}
+                    <Button
                       size="small"
-                      value={split.name || ''}
-                      onChange={e => {
-                        const newSites = (currentClient.sites || []).map((s, idx) =>
-                          idx === siteIdx
-                            ? {
-                                ...s,
-                                splits: (s.splits ?? []).map((sp, spIdx) =>
-                                  spIdx === splitIdx ? { ...sp, name: e.target.value } : sp
-                                )
-                              }
-                            : s
-                        );
-                        setCurrentClient({ ...currentClient, sites: newSites });
-                      }}
-                      sx={{ minWidth: 200, flex: '1 1 220px' }}
-                    >
-                      {/* Show current value if not in the list */}
-                      {split.name && !['Split', 'Ventilo-convecteur', 'Injecto', 'K7 détente direct', 'K7 à eau', 'GF', 'Mini centrale', 'Armoire de clim', 'GP', 'ROOFTOP', 'Split Gainable', 'Mono-bloc', 'Clim Console'].includes(split.name) && (
-                        <MenuItem value={split.name}>{split.name}</MenuItem>
-                      )}
-                      <MenuItem value="Split">Split</MenuItem>
-                      <MenuItem value="Ventilo-convecteur">Ventilo-convecteur</MenuItem>
-                      <MenuItem value="Injecto">Injecto</MenuItem>
-                      <MenuItem value="K7 détente direct">K7 détente direct</MenuItem>
-                      <MenuItem value="K7 à eau">K7 à eau</MenuItem>
-                      <MenuItem value="GF">GF</MenuItem>
-                      <MenuItem value="Mini centrale">Mini centrale</MenuItem>
-                      <MenuItem value="Armoire de clim">Armoire de clim</MenuItem>
-                      <MenuItem value="GP">GP</MenuItem>
-                      <MenuItem value="ROOFTOP">ROOFTOP</MenuItem>
-                      <MenuItem value="Split Gainable">Split Gainable</MenuItem>
-                      <MenuItem value="Mono-bloc">Mono-bloc</MenuItem>
-                      <MenuItem value="Clim Console">Clim Console</MenuItem>
-                    </TextField>
-                    <TextField
-                      label="Marque"
-                      size="small"
-                      value={split.description}
-                      onChange={e => {
-                        const newSites = (currentClient.sites || []).map((s, idx) =>
-                          idx === siteIdx
-                            ? {
-                                ...s,
-                                splits: (s.splits ?? []).map((sp, spIdx) =>
-                                  spIdx === splitIdx ? { ...sp, description: e.target.value } : sp
-                                )
-                              }
-                            : s
-                        );
-                        setCurrentClient({ ...currentClient, sites: newSites });
-                      }}
-                      sx={{ minWidth: 200, flex: '1 1 220px' }}
-                    />
-                                        <TextField
-
-                      label="Puissance en BTU/Kw "
-                      size="small"
-                      value={puissanceInputs[`${site.id}-${splitIdx}`] ?? (split.puissance || '')}
-                      onChange={e => {
-                        const value = e.target.value;
-                        const inputKey = `${site.id}-${splitIdx}`;
-
-                        // Update the raw input state
-                        setPuissanceInputs(prev => ({
-                          ...prev,
-                          [inputKey]: value
-                        }));
-
-                        // Only update the actual split data if it's a valid number
-                        if (value === '' || !isNaN(parseFloat(value))) {
-                          const newSites = (currentClient.sites || []).map((s, idx) =>
-                            idx === siteIdx
-                              ? {
-                                  ...s,
-                                  splits: (s.splits ?? []).map((sp, spIdx) =>
-                                    spIdx === splitIdx ? { ...sp, puissance: value === '' ? 0 : parseFloat(value) || 0 } : sp
-                                  )
-                                }
-                              : s
-                          );
-                          setCurrentClient({ ...currentClient, sites: newSites });
-                        }
-                      }}
-                      sx={{ minWidth: 180, flex: '1 1 180px' }}
-                      onBlur={(e) => {
-                        const value = e.target.value;
-                        const inputKey = `${site.id}-${splitIdx}`;
-
-                        // On blur, ensure we have a valid number
-                        if (value === '' || isNaN(parseFloat(value))) {
-                          setPuissanceInputs(prev => ({
-                            ...prev,
-                            [inputKey]: String(split.puissance || '')
-                          }));
-                        }
-                      }}
-                    />
-                    <TextField
-                      select
-                      label="Fluide Frigorigène"
-                      size="small"
-                      value={split.freon || ''}
-                      onChange={e => {
-                        const newSites = (currentClient.sites || []).map((s, idx) =>
-                          idx === siteIdx
-                            ? {
-                                ...s,
-                                splits: (s.splits ?? []).map((sp, spIdx) =>
-                                  spIdx === splitIdx ? { ...sp, freon: e.target.value || null } : sp
-                                )
-                              }
-                            : s
-                        );
-                        setCurrentClient({ ...currentClient, sites: newSites });
-                      }}
-                      sx={{ minWidth: 120, flex: '1 1 140px' }}
-                    >
-                      <MenuItem value="">-- Sélectionner --</MenuItem>
-                      <MenuItem value="R22">R22</MenuItem>
-                      <MenuItem value="R410a">R410a</MenuItem>
-                    </TextField>
-                    <IconButton
-                      size="small"
+                      variant="outlined"
+                      sx={{ mt: 1 }}
                       onClick={() => {
-                        // If split has an id, mark for deletion
-                        if (split.id !== undefined && typeof split.id === 'number') {
-                          setDeletedSplits(prev => [...prev, split.id as number]);
-                        }
+                        const newSplit: Split = {
+                          Code: '',
+                          name: '',
+                          description: '',
+                          puissance: 0,
+                          site_id: site.id,
+                          freon: null
+                        };
                         const newSites = (currentClient.sites || []).map((s, idx) =>
                           idx === siteIdx
-                            ? {
-                                ...s,
-                                splits: (s.splits ?? []).filter((_, spIdx) => spIdx !== splitIdx)
-                              }
+                            ? { ...s, splits: [...(s.splits ?? []), newSplit] }
                             : s
                         );
                         setCurrentClient({ ...currentClient, sites: newSites });
                       }}
                     >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                ))}
-                {/* Add Split Button */}
-                <Button
-                  size="small"
-                  variant="outlined"
-                  sx={{ mt: 1 }}
-                  onClick={() => {
-                    const newSplit: Split = {
-                      Code: '',           // or generate a code if needed
-                      name: '',
-                      description: '',
-                      puissance: 0,
-                      site_id: site.id,       // associate with the current site
-                      freon: null       // Initialize freon as null
-                    };
-                    const newSites = (currentClient.sites || []).map((s, idx) =>
-                      idx === siteIdx
-                        ? { ...s, splits: [...(s.splits ?? []), newSplit] }
-                        : s
-                    );
-                    setCurrentClient({ ...currentClient, sites: newSites });
-                  }}
-                >
-                  Ajouter un équipement
-                </Button>
+                      Ajouter un équipement
+                    </Button>
+                  </>
+                ) : null}
               </Box>
             ))}
           </List>

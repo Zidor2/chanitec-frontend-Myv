@@ -27,6 +27,7 @@ import {
   GroupOutlined,
   QuestionAnswer,
   AccountBalance,
+  Schedule as ScheduleIcon,
   Add as AddIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
@@ -63,6 +64,7 @@ const Layout: React.FC<LayoutProps> = ({
       { path: '/clients', label: 'Clients', icon: <PeopleOutlineOutlined />, roles: ['admin', 'editor'] },
       { path: '/items', label: 'Gérer les articles', icon: <InventoryOutlined />, roles: ['admin', 'editor'] },
       { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined />, roles: ['admin', 'editor'] },
+      { path: '/planning', label: 'Planning', icon: <ScheduleIcon />, roles: ['admin', 'editor', 'viewer', 'user'] },
       { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined />, roles: ['admin', 'editor'] },
       { path: '/employees', label: 'Employés', icon: <GroupOutlined />, roles: ['admin', 'editor'] },
       { path: '/financial', label: 'Financier', icon: <AccountBalance />, roles: ['admin'] },

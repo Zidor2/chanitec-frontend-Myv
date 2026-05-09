@@ -18,6 +18,7 @@ import OrgChartPage from './pages/orgChartPage';
 import EmployeesPage from './pages/employeesPage';
 import HelpPage from './pages/HelpPage/HelpPage';
 import FinancialPage from './pages/FinancialPage/FinancialPage';
+import PlanningPage from './pages/PlanningPage/PlanningPage';
 
 import './App.scss';
 
@@ -314,6 +315,15 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <ClientsPage currentPath="/clients" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/planning"
+              element={
+                <ProtectedRoute>
+                  <PlanningPage currentPath="/planning" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
