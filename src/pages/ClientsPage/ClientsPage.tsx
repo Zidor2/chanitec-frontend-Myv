@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import html2pdf from 'html2pdf.js';
 
 import {
   Box,
@@ -151,7 +152,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
         // Filter by selected puissance value
         if (filterPuissance !== 'all') {
           const selectedPuissance = parseFloat(filterPuissance);
-          if (split.puissance !== selectedPuissance) {
+          const splitPuissance = typeof split.puissance === 'number'
+            ? split.puissance
+            : parseFloat(String(split.puissance || ''));
+          if (Number.isNaN(splitPuissance) || splitPuissance !== selectedPuissance) {
             return false;
           }
         }
@@ -215,29 +219,27 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     if (selectedChartType === 'freon') {
       const counts: Record<string, number> = {};
       allSplits.forEach(split => {
-        const key = split.freon || 'Unknown';
+        const key = split.freon || 'Inconnu';
         counts[key] = (counts[key] || 0) + 1;
       });
       return Object.entries(counts).map(([name, value]) => ({ name, value }));
     }
 
-    const ranges: { name: string; min: number; max: number | null }[] = [
-      { name: '0-4', min: 0, max: 4 },
-      { name: '5-9', min: 5, max: 9 },
-      { name: '10-14', min: 10, max: 14 },
-      { name: '15-19', min: 15, max: 19 },
-      { name: '20+', min: 20, max: null }
-    ];
     const counts: Record<string, number> = {};
     allSplits.forEach(split => {
-      const puissance = typeof split.puissance === 'number' ? split.puissance : parseFloat(String(split.puissance || '0'));
-      const bucket = ranges.find(range => range.max === null
-        ? puissance >= range.min
-        : puissance >= range.min && puissance <= range.max);
-      const name = bucket ? bucket.name : 'Unknown';
+      const puissance = typeof split.puissance === 'number'
+        ? split.puissance
+        : parseFloat(String(split.puissance || ''));
+      const name = Number.isNaN(puissance) ? 'Inconnu' : String(puissance);
       counts[name] = (counts[name] || 0) + 1;
     });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => {
+        if (a.name === 'Inconnu') return 1;
+        if (b.name === 'Inconnu') return -1;
+        return parseFloat(a.name) - parseFloat(b.name);
+      });
   };
 
   const getDialogSites = (): Site[] => {
@@ -253,7 +255,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     const r = 80;
     let startAngle = 0;
 
-    const colors = ['#1976d2', '#9c27b0', '#ff9800', '#4caf50', '#f44336', '#03a9f4', '#00bcd4'];
+    const colors = data.map((_, index) => {
+      const hue = Math.round((360 / data.length) * index);
+      return `hsl(${hue}, 75%, 55%)`;
+    });
 
     return data.map((entry, index) => {
       const angle = (entry.value / total) * 360;
@@ -267,10 +272,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
         y: cy + r * Math.sin((Math.PI / 180) * endAngle)
       };
       const largeArcFlag = angle > 180 ? 1 : 0;
-      const path = `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+      const path = angle >= 359.999
+        ? `M ${cx} ${cy} m -${r} 0 a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 -${2 * r} 0`
+        : `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
       const segment = {
         path,
-        color: colors[index % colors.length],
+        color: colors[index],
         name: entry.name,
         value: entry.value
       };
@@ -285,6 +292,14 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     setFilterSplitType('all');
     setFilterFreon('all');
     setFilterPuissance('all');
+  };
+
+  // Save chart to PDF
+  const handleSavePDF = () => {
+    const element = document.getElementById('chart-section');
+    if (element) {
+      html2pdf().set({ filename: 'chart.pdf' }).from(element).save();
+    }
   };
 
   // Show snackbar with message
@@ -982,25 +997,34 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
               </Box>
 
               {/* Chart Panel */}
-              <Card sx={{ mb: 3 }}>
+              <Card id="chart-section" sx={{ mb: 3 }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                       Visualisation
                     </Typography>
-                    <TextField
-                      select
-                      label="Graphique"
-                      value={selectedChartType}
-                      onChange={(e) => setSelectedChartType(e.target.value as 'site' | 'freon' | 'puissance')}
-                      variant="outlined"
-                      size="small"
-                      sx={{ minWidth: 180 }}
-                    >
-                      <MenuItem value="site">Nombre d'équipements par site</MenuItem>
-                      <MenuItem value="freon">Répartition des fluides</MenuItem>
-                      <MenuItem value="puissance">Répartition de la puissance</MenuItem>
-                    </TextField>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <TextField
+                        select
+                        label="Graphique"
+                        value={selectedChartType}
+                        onChange={(e) => setSelectedChartType(e.target.value as 'site' | 'freon' | 'puissance')}
+                        variant="outlined"
+                        size="small"
+                        sx={{ minWidth: 180 }}
+                      >
+                        <MenuItem value="site">Nombre d'équipements par site</MenuItem>
+                        <MenuItem value="freon">Répartition des fluides</MenuItem>
+                        <MenuItem value="puissance">Répartition de la puissance</MenuItem>
+                      </TextField>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={handleSavePDF}
+                      >
+                        Sauvegarder PDF
+                      </Button>
+                    </Box>
                   </Box>
                   <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'stretch', md: 'center' }, gap: 2 }}>
                     <Box sx={{ minWidth: 220, flex: 1, display: 'flex', justifyContent: 'center' }}>
@@ -1063,7 +1087,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                           {site.splits && site.splits.length > 0 ? (
                             site.splits.map((split, idx) => (
                               <Box key={idx} sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5, p: 1, bgcolor: '#f5f5f5', borderRadius: 0.5 }}>
-                                <AcUnitIcon sx={{ mr: 1, mt: 0.5 }} />
+                                <AcUnitIcon sx={{ mr: 1, mt: 0.5, color: '#81d4fa' }} />
                                 <Box sx={{ flex: 1 }}>
                                   <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
                                     {split.Code || 'N/A'} - {split.name || 'N/A'}

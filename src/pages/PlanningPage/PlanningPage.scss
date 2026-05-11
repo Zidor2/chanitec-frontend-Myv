@@ -6,6 +6,21 @@
   margin-bottom: 24px;
 }
 
-.planning-card {
-  min-height: 180px;
+.client-card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.client-card.selected {
+  border: 2px solid #1976d2;
+}
+
+.planning-details {
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
 }
