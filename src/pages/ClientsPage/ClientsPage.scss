@@ -367,3 +367,54 @@
     display: none;
   }
 }
+
+/* PDF export tweaks */
+#chart-section.pdf-export {
+  .chart-actions {
+    display: none !important;
+  }
+
+  .MuiTextField-root,
+  .MuiButton-root {
+    display: none !important;
+  }
+
+  /* More aggressive hiding for MUI and native controls inside the export area */
+  button,
+  input,
+  select,
+  .MuiFormControl-root,
+  .MuiOutlinedInput-root,
+  .MuiInputBase-root,
+  [role="button"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .pdf-header,
+  .pdf-legend {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  /* hide the on-screen legend during PDF export to avoid duplicates */
+  .on-screen-legend { display: none !important; }
+
+  .pdf-header {
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+
+  .pdf-legend > div {
+    text-align: left;
+    margin: 4px 0;
+  }
+
+  svg {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 1100px !important;
+  }
+}

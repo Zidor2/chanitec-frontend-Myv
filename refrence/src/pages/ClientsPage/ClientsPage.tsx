@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import html2pdf from 'html2pdf.js';
 
 import logo from '../../logo.png';
 import {
@@ -76,6 +77,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate }) =>
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSiteFilter, setSelectedSiteFilter] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [selectedChartType, setSelectedChartType] = useState<'site' | 'freon' | 'puissance'>('site');
 
   // State for dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -142,6 +144,80 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate }) =>
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedSiteFilter('all');
+  };
+
+  const getFilteredChartData = () => {
+    // aggregate across currently loaded clients
+    const sites = clients.flatMap(c => c.sites || []);
+    const allSplits = sites.flatMap(s => s.splits || []);
+
+    if (selectedChartType === 'site') {
+      const counts = sites.map(site => ({ name: site.name, value: (site.splits || []).length })).filter(i => i.value > 0);
+      return counts;
+    }
+
+    if (selectedChartType === 'freon') {
+      const counts: Record<string, number> = {};
+      allSplits.forEach(split => {
+        const key = (split.freon || 'Inconnu');
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    }
+
+    const counts: Record<string, number> = {};
+    allSplits.forEach(split => {
+      const puissance = typeof split.puissance === 'number' ? split.puissance : parseFloat(String(split.puissance || ''));
+      const name = Number.isNaN(puissance) ? 'Inconnu' : String(puissance);
+      counts[name] = (counts[name] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  };
+
+  const getChartSegmentPaths = (data: { name: string; value: number }[]) => {
+    const total = data.reduce((s, it) => s + it.value, 0);
+    if (total === 0) return [];
+    const cx = 100;
+    const cy = 100;
+    const r = 80;
+    let startAngle = 0;
+    // Generate visually distinct colors using the golden angle to avoid repeats
+    const goldenAngle = 137.50776405003785; // degrees
+    const colors = data.map((_, index) => {
+      const hue = (index * goldenAngle) % 360;
+      return `hsl(${Math.round(hue)}, 70%, 50%)`;
+    });
+    return data.map((entry, index) => {
+      const angle = (entry.value / total) * 360;
+      const endAngle = startAngle + angle;
+      const start = { x: cx + r * Math.cos((Math.PI / 180) * startAngle), y: cy + r * Math.sin((Math.PI / 180) * startAngle) };
+      const end = { x: cx + r * Math.cos((Math.PI / 180) * endAngle), y: cy + r * Math.sin((Math.PI / 180) * endAngle) };
+      const largeArcFlag = angle > 180 ? 1 : 0;
+      const path = angle >= 359.999 ? `M ${cx} ${cy} m -${r} 0 a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 -${2 * r} 0` : `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+      startAngle = endAngle;
+      return { path, color: colors[index], name: entry.name, value: entry.value };
+    });
+  };
+
+  const handleSavePDF = () => {
+    const element = document.getElementById('chart-section');
+    if (!element) return;
+    const opt = {
+      margin: 10,
+      filename: 'chart.pdf',
+      html2canvas: { scale: 3 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+    element.classList.add('pdf-export');
+    const controls = Array.from(element.querySelectorAll('button, input, select, .MuiFormControl-root, .MuiOutlinedInput-root, .MuiButton-root, [role="button"]')) as HTMLElement[];
+    const prevStyles = controls.map(el => el.getAttribute('style') || '');
+    controls.forEach(el => {
+      try { el.style.setProperty('display', 'none', 'important'); el.style.setProperty('visibility', 'hidden', 'important'); } catch (e) {}
+    });
+    html2pdf().set(opt).from(element).save().finally(() => {
+      controls.forEach((el, i) => { try { el.setAttribute('style', prevStyles[i] || ''); } catch (e) {} });
+      element.classList.remove('pdf-export');
+    });
   };
 
   // Load all clients with their sites
@@ -560,6 +636,67 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate }) =>
                 >
                   Clear Filters
                 </Button>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Chart Panel */}
+          <Card id="chart-section" sx={{ mb: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Visualisation</Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    select
+                    label="Graphique"
+                    value={selectedChartType}
+                    onChange={(e) => setSelectedChartType(e.target.value as 'site' | 'freon' | 'puissance')}
+                    variant="outlined"
+                    size="small"
+                    sx={{ minWidth: 220 }}
+                  >
+                    <MenuItem value="site">Nombre d'équipements par site</MenuItem>
+                    <MenuItem value="freon">Répartition des fluides</MenuItem>
+                    <MenuItem value="puissance">Répartition de la puissance</MenuItem>
+                  </TextField>
+                  <Button variant="outlined" size="small" onClick={handleSavePDF}>Sauvegarder PDF</Button>
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'stretch', md: 'center' }, gap: 2 }}>
+                <Box className="pdf-header" sx={{ display: 'none', width: '100%' }}>
+                  <Typography variant="h6" sx={{ fontWeight: '700', textAlign: 'center' }}>
+                    {selectedChartType === 'site' ? "Nombre d'équipements par site" : selectedChartType === 'freon' ? 'Répartition des fluides' : 'Répartition de la puissance'}
+                  </Typography>
+                </Box>
+                <Box sx={{ minWidth: 220, flex: 1, display: 'flex', justifyContent: 'center' }}>
+                  <svg width="220" height="220" viewBox="0 0 200 200">
+                    {getChartSegmentPaths(getFilteredChartData()).map((segment, index) => (
+                      <path key={index} d={segment.path} fill={segment.color} />
+                    ))}
+                  </svg>
+                </Box>
+                <Box className="on-screen-legend" sx={{ flex: 1 }}>
+                  {getFilteredChartData().length === 0 ? (
+                    <Typography variant="body2" color="textSecondary">Aucune donnée disponible pour le graphique et les filtres sélectionnés.</Typography>
+                  ) : (
+                    getChartSegmentPaths(getFilteredChartData()).map((segment) => (
+                      <Box key={segment.name} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <Box sx={{ width: 14, height: 14, mr: 1, bgcolor: segment.color, borderRadius: '50%' }} />
+                        <Typography variant="body2" sx={{ mr: 1, fontWeight: 'bold' }}>{segment.name}</Typography>
+                        <Typography variant="body2" color="textSecondary">{segment.value}</Typography>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+                <Box className="pdf-legend" sx={{ display: 'none', width: '100%' }}>
+                  {getChartSegmentPaths(getFilteredChartData()).map((segment) => (
+                    <Box key={segment.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
+                      <Box sx={{ width: 14, height: 14, bgcolor: segment.color, borderRadius: '50%' }} />
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{segment.name}</Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>({segment.value})</Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Box>
             </CardContent>
           </Card>

@@ -255,9 +255,11 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     const r = 80;
     let startAngle = 0;
 
+    // Generate visually distinct colors using the golden angle to avoid repeats
+    const goldenAngle = 137.50776405003785; // degrees
     const colors = data.map((_, index) => {
-      const hue = Math.round((360 / data.length) * index);
-      return `hsl(${hue}, 75%, 55%)`;
+      const hue = (index * goldenAngle) % 360;
+      return `hsl(${Math.round(hue)}, 70%, 50%)`;
     });
 
     return data.map((entry, index) => {
@@ -297,9 +299,27 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   // Save chart to PDF
   const handleSavePDF = () => {
     const element = document.getElementById('chart-section');
-    if (element) {
-      html2pdf().set({ filename: 'chart.pdf' }).from(element).save();
-    }
+    if (!element) return;
+    const options = {
+      margin: 10,
+      filename: 'chart.pdf',
+      html2canvas: { scale: 3 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+    element.classList.add('pdf-export');
+    // Temporarily hide interactive controls via inline styles for robust export
+    const controls = Array.from(element.querySelectorAll('button, input, select, .MuiFormControl-root, .MuiOutlinedInput-root, .MuiButton-root, [role="button"]')) as HTMLElement[];
+    const prevStyles = controls.map(el => el.getAttribute('style') || '');
+    controls.forEach(el => {
+      try { el.style.setProperty('display', 'none', 'important'); el.style.setProperty('visibility', 'hidden', 'important'); } catch (e) {}
+    });
+
+    html2pdf().set(options).from(element).save().finally(() => {
+      controls.forEach((el, i) => {
+        try { el.setAttribute('style', prevStyles[i] || ''); } catch (e) {}
+      });
+      element.classList.remove('pdf-export');
+    });
   };
 
   // Show snackbar with message
@@ -1027,6 +1047,11 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     </Box>
                   </Box>
                   <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'stretch', md: 'center' }, gap: 2 }}>
+                    <Box className="pdf-header" sx={{ display: 'none', width: '100%' }}>
+                      <Typography variant="h6" sx={{ fontWeight: '700', textAlign: 'center' }}>
+                        {selectedChartType === 'site' ? "Nombre d'équipements par site" : selectedChartType === 'freon' ? 'Répartition des fluides' : 'Répartition de la puissance'}
+                      </Typography>
+                    </Box>
                     <Box sx={{ minWidth: 220, flex: 1, display: 'flex', justifyContent: 'center' }}>
                       <svg width="220" height="220" viewBox="0 0 200 200">
                         {chartSegments.map((segment, index) => (
@@ -1034,7 +1059,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                         ))}
                       </svg>
                     </Box>
-                    <Box sx={{ flex: 1 }}>
+                    <Box className="on-screen-legend" sx={{ flex: 1 }}>
                       {filteredChartData.length === 0 ? (
                         <Typography variant="body2" color="textSecondary">
                           Aucune donnée disponible pour le graphique et les filtres sélectionnés.
@@ -1052,6 +1077,15 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                           </Box>
                         ))
                       )}
+                    </Box>
+                    <Box className="pdf-legend" sx={{ display: 'none', width: '100%' }}>
+                      {chartSegments.map((segment) => (
+                        <Box key={segment.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
+                          <Box sx={{ width: 14, height: 14, bgcolor: segment.color, borderRadius: '50%' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{segment.name}</Typography>
+                          <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>({segment.value})</Typography>
+                        </Box>
+                      ))}
                     </Box>
                   </Box>
                 </CardContent>
