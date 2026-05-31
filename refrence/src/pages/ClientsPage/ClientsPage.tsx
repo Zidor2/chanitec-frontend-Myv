@@ -644,7 +644,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate }) =>
           <Card id="chart-section" sx={{ mb: 3 }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Visualisation</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{'Total équipements : ' + getFilteredChartData().reduce((s,i) => s + (i?.value || 0), 0)}</Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <TextField
                     select

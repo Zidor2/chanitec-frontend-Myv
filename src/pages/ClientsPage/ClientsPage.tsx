@@ -93,10 +93,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const [loading, setLoading] = useState(false);
 
   // State for filters
-  const [filterSite, setFilterSite] = useState('all');
-  const [filterSplitType, setFilterSplitType] = useState('all');
-  const [filterFreon, setFilterFreon] = useState('all');
-  const [filterPuissance, setFilterPuissance] = useState('all');
+  const [filterSite, setFilterSite] = useState<string[]>([]);
+  const [filterSplitType, setFilterSplitType] = useState<string[]>([]);
+  const [filterFreon, setFilterFreon] = useState<string[]>([]);
+  const [filterPuissance, setFilterPuissance] = useState<string[]>([]);
   const [selectedChartType, setSelectedChartType] = useState<'site' | 'freon' | 'puissance'>('site');
 
   // State for dialog
@@ -133,8 +133,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const getFilteredSites = () => {
     let sites = getAvailableSites();
 
-    if (filterSite !== 'all') {
-      sites = sites.filter(site => site.id === filterSite);
+    if (filterSite.length > 0) {
+      sites = sites.filter(site => filterSite.includes(site.id));
     }
 
     // Apply split filters to each site, but keep every site so all sites are still shown
@@ -142,20 +142,19 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       ...site,
       splits: (site.splits || []).filter(split => {
         // Filter by split type (name)
-        if (filterSplitType !== 'all' && split.name !== filterSplitType) {
+        if (filterSplitType.length > 0 && !filterSplitType.includes(split.name || '')) {
           return false;
         }
         // Filter by freon
-        if (filterFreon !== 'all' && split.freon !== filterFreon) {
+        if (filterFreon.length > 0 && !filterFreon.includes(split.freon || '')) {
           return false;
         }
-        // Filter by selected puissance value
-        if (filterPuissance !== 'all') {
-          const selectedPuissance = parseFloat(filterPuissance);
+        // Filter by selected puissance values
+        if (filterPuissance.length > 0) {
           const splitPuissance = typeof split.puissance === 'number'
             ? split.puissance
             : parseFloat(String(split.puissance || ''));
-          if (Number.isNaN(splitPuissance) || splitPuissance !== selectedPuissance) {
+          if (Number.isNaN(splitPuissance) || !filterPuissance.includes(String(splitPuissance))) {
             return false;
           }
         }
@@ -202,6 +201,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       });
     });
     return Array.from(values).sort((a, b) => a - b);
+  };
+
+  const getSelectedFilterSummary = () => {
+    const siteLabels = filterSite.length
+      ? filterSite.map(id => getAvailableSites().find(site => site.id === id)?.name || id).join(', ')
+      : 'Tous';
+    const splitTypeLabels = filterSplitType.length ? filterSplitType.join(', ') : 'Tous';
+    const freonLabels = filterFreon.length ? filterFreon.join(', ') : 'Tous';
+    const puissanceLabels = filterPuissance.length ? filterPuissance.join(', ') : 'Tous';
+
+    return `Sites: ${siteLabels} · Types: ${splitTypeLabels} · Fluide: ${freonLabels} · Puissances: ${puissanceLabels}`;
   };
 
   const getFilteredChartData = () => {
@@ -290,10 +300,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
 
   // Clear all filters
   const clearFilters = () => {
-    setFilterSite('all');
-    setFilterSplitType('all');
-    setFilterFreon('all');
-    setFilterPuissance('all');
+    setFilterSite([]);
+    setFilterSplitType([]);
+    setFilterFreon([]);
+    setFilterPuissance([]);
   };
 
   // Save chart to PDF
@@ -819,6 +829,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const filteredSites = getFilteredSites();
   const filteredChartData = getFilteredChartData();
   const chartSegments = getChartSegmentPaths(filteredChartData);
+  const chartTotal = filteredChartData.reduce((sum, item) => sum + (item?.value || 0), 0);
 
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
@@ -943,11 +954,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     select
                     label="Site"
                     value={filterSite}
-                    onChange={(e) => setFilterSite(e.target.value)}
                     variant="outlined"
                     size="small"
+                    SelectProps={{
+                      multiple: true,
+                      renderValue: (selected) =>
+                        (selected as string[]).length > 0
+                          ? (selected as string[]).map(id => getAvailableSites().find(site => site.id === id)?.name || id).join(', ')
+                          : 'Tous les sites',
+                      onChange: (e: any) => setFilterSite(e.target.value as string[])
+                    }}
                   >
-                    <MenuItem value="all">Tous les sites</MenuItem>
                     {getAvailableSites().map((site) => (
                       <MenuItem key={site.id} value={site.id}>
                         {site.name}
@@ -960,11 +977,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     select
                     label="Type de split"
                     value={filterSplitType}
-                    onChange={(e) => setFilterSplitType(e.target.value)}
                     variant="outlined"
                     size="small"
+                    SelectProps={{
+                      multiple: true,
+                      renderValue: (selected) =>
+                        (selected as string[]).length > 0
+                          ? (selected as string[]).join(', ')
+                          : 'Tous les types',
+                      onChange: (e: any) => setFilterSplitType(e.target.value as string[])
+                    }}
                   >
-                    <MenuItem value="all">Tous les types</MenuItem>
                     {getUniqueSplitTypes().map((type) => (
                       <MenuItem key={type} value={type}>
                         {type}
@@ -977,11 +1000,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     select
                     label="Fluide frigorigène"
                     value={filterFreon}
-                    onChange={(e) => setFilterFreon(e.target.value)}
                     variant="outlined"
                     size="small"
+                    SelectProps={{
+                      multiple: true,
+                      renderValue: (selected) =>
+                        (selected as string[]).length > 0
+                          ? (selected as string[]).join(', ')
+                          : 'Tous les fluides',
+                      onChange: (e: any) => setFilterFreon(e.target.value as string[])
+                    }}
                   >
-                    <MenuItem value="all">Tous les fluides</MenuItem>
                     {getUniqueFreonTypes().map((freon) => (
                       <MenuItem key={freon} value={freon}>
                         {freon}
@@ -994,11 +1023,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     select
                     label="Puissance"
                     value={filterPuissance}
-                    onChange={(e) => setFilterPuissance(e.target.value)}
                     variant="outlined"
                     size="small"
+                    SelectProps={{
+                      multiple: true,
+                      renderValue: (selected) =>
+                        (selected as string[]).length > 0
+                          ? (selected as string[]).join(', ')
+                          : 'Toutes les puissances',
+                      onChange: (e: any) => setFilterPuissance(e.target.value as string[])
+                    }}
                   >
-                    <MenuItem value="all">Toutes les puissances</MenuItem>
                     {getUniquePuissanceValues().map((value) => (
                       <MenuItem key={value} value={value.toString()}>
                         {value}
@@ -1021,7 +1056,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                      Visualisation
+                      {'Total équipements : ' + chartTotal}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <TextField
@@ -1050,6 +1085,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                     <Box className="pdf-header" sx={{ display: 'none', width: '100%' }}>
                       <Typography variant="h6" sx={{ fontWeight: '700', textAlign: 'center' }}>
                         {selectedChartType === 'site' ? "Nombre d'équipements par site" : selectedChartType === 'freon' ? 'Répartition des fluides' : 'Répartition de la puissance'}
+                      </Typography>
+                      <Typography variant="subtitle2" sx={{ textAlign: 'center', mt: 1 }}>
+                        {getSelectedFilterSummary()}
                       </Typography>
                     </Box>
                     <Box sx={{ minWidth: 220, flex: 1, display: 'flex', justifyContent: 'center' }}>
