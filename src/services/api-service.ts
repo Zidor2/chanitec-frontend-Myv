@@ -631,6 +631,157 @@ class ApiService {
         return this.fetchApi<Quote>(url);
     }
 
+    // Planning
+    /**
+     * Get all planning records
+     */
+    async getPlanning(): Promise<any[]> {
+        return this.fetchApi<any[]>('/planning');
+    }
+
+    /**
+     * Get planning by ID
+     */
+    async getPlanningById(id: string): Promise<any> {
+        return this.fetchApi<any>(`/planning/${id}`);
+    }
+
+    /**
+     * Get planning by client ID
+     */
+    async getPlanningByClientId(clientId: string): Promise<any[]> {
+        return this.fetchApi<any[]>(`/planning/client/${clientId}`);
+    }
+
+    /**
+     * Create new planning
+     */
+    async createPlanning(planning: Omit<any, 'id' | 'created_at' | 'updated_at'>): Promise<any> {
+        const result = await this.fetchApi<any>('/planning', {
+            method: 'POST',
+            body: JSON.stringify(planning),
+        });
+
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
+    }
+
+    /**
+     * Update planning
+     */
+    async updatePlanning(id: string, planning: Partial<any>): Promise<any> {
+        const result = await this.fetchApi<any>(`/planning/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(planning),
+        });
+
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
+    }
+
+    /**
+     * Delete planning
+     */
+    async deletePlanning(id: string): Promise<void> {
+        await this.fetchApi(`/planning/${id}`, {
+            method: 'DELETE',
+        });
+
+        // Clear cache after delete to ensure fresh data on next fetch
+        this.clearCache();
+    }
+
+    // Planning Sites
+    /**
+     * Get all planning sites
+     */
+    async getPlanningSites(): Promise<any[]> {
+        return this.fetchApi<any[]>('/planning-sites');
+    }
+
+    /**
+     * Get planning site by ID
+     */
+    async getPlanningSiteById(id: string): Promise<any> {
+        return this.fetchApi<any>(`/planning-sites/${id}`);
+    }
+
+    /**
+     * Get planning sites by planning ID
+     */
+    async getPlanningSitesByPlanningId(planningId: string): Promise<any[]> {
+        return this.fetchApi<any[]>(`/planning-sites/planning/${planningId}`);
+    }
+
+    /**
+     * Get planning sites by site ID
+     */
+    async getPlanningSitesBySiteId(siteId: string): Promise<any[]> {
+        return this.fetchApi<any[]>(`/planning-sites/site/${siteId}`);
+    }
+
+    /**
+     * Create new planning site
+     */
+    async createPlanningSite(planningSite: Omit<any, 'id' | 'created_at' | 'updated_at'>): Promise<any> {
+        const result = await this.fetchApi<any>('/planning-sites', {
+            method: 'POST',
+            body: JSON.stringify(planningSite),
+        });
+
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
+    }
+
+    /**
+     * Create multiple planning sites in a single batch
+     */
+    async createPlanningSitesBatch(planningId: string, sites: Array<any>): Promise<any[]> {
+        const payload = { planning_id: planningId, sites };
+        const result = await this.fetchApi<any[]>('/planning-sites/batch', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+
+        // Clear cache after create to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
+    }
+
+    /**
+     * Update planning site
+     */
+    async updatePlanningSite(id: string, planningSite: Partial<any>): Promise<any> {
+        const result = await this.fetchApi<any>(`/planning-sites/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(planningSite),
+        });
+
+        // Clear cache after update to ensure fresh data on next fetch
+        this.clearCache();
+
+        return result;
+    }
+
+    /**
+     * Delete planning site
+     */
+    async deletePlanningSite(id: string): Promise<void> {
+        await this.fetchApi(`/planning-sites/${id}`, {
+            method: 'DELETE',
+        });
+
+        // Clear cache after delete to ensure fresh data on next fetch
+        this.clearCache();
+    }
+
 } // <-- Close ApiService class
 
 // Export a singleton instance

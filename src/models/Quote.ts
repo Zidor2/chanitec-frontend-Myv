@@ -124,3 +124,42 @@ export type QuoteCreationDTO = Omit<
   Quote,
   'id' | 'totalSuppliesHT' | 'totalLaborHT' | 'totalHT' | 'tva' | 'totalTTC' | 'createdAt' | 'updatedAt'
 >;
+
+/**
+ * Represents a planning record
+ */
+export interface Planning {
+  id: string;
+  client_id: string;
+  name: string;
+  description?: string;
+  status: 'planned' | 'active' | 'finished';
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Planning creation DTO
+ */
+export type PlanningCreationDTO = Omit<Planning, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Represents a planning site link
+ */
+export interface PlanningSite {
+  id: string;
+  planning_id: string;
+  site_id: string;
+  planned_date?: string;
+  effective_date?: string;
+  status: 'planned' | 'active' | 'finished';
+  is_delayed: number;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Planning site creation DTO
+ */
+export type PlanningSiteCreationDTO = Omit<PlanningSite, 'id' | 'created_at' | 'updated_at'>;
