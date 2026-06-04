@@ -25,7 +25,6 @@ import {
   Paper,
   IconButton,
   Chip,
-  Grid,
   Checkbox,
   FormControlLabel
 } from '@mui/material';
@@ -37,7 +36,7 @@ import {
   Add as AddIcon
 } from '@mui/icons-material';
 import Layout from '../../components/Layout/Layout';
-import { Client, Planning, Site } from '../../models/Quote';
+import { Client, Planning } from '../../models/Quote';
 import { apiService } from '../../services/api-service';
 import './PlanningPage.scss';
 
