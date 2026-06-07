@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -33,11 +33,14 @@ import {
   ArrowBack as ArrowBackIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import Layout from '../../components/Layout/Layout';
 import { Client, Planning } from '../../models/Quote';
 import { apiService } from '../../services/api-service';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import './PlanningPage.scss';
 
 interface PlanningPageProps {
@@ -60,6 +63,22 @@ interface PlanningSite {
   updated_at: string;
 }
 
+interface Split {
+  id: string;
+  name: string;
+  site_id: string;
+  [key: string]: any;
+}
+
+interface SelectedSiteWithSplits {
+  planned_date?: string;
+  effective_date?: string;
+  status: 'planned' | 'active' | 'finished';
+  is_delayed: number;
+  description?: string;
+  selectedSplits?: { [splitId: string]: boolean };
+}
+
 const PlanningPage: React.FC<PlanningPageProps> = ({
   currentPath = '/planning',
   onNavigate,
@@ -71,20 +90,21 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
   const [planning, setPlanning] = useState<Planning[]>([]);
   const [selectedPlanning, setSelectedPlanning] = useState<Planning | null>(null);
   const [planningSites, setPlanningSites] = useState<PlanningSite[]>([]);
+  const [planningSiteSplitCodes, setPlanningSiteSplitCodes] = useState<{ [planningSiteId: string]: string[] }>({});
   const [loading, setLoading] = useState(true);
+  const planningPdfRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [openSiteDialog, setOpenSiteDialog] = useState(false);
+  const [openEditSiteDialog, setOpenEditSiteDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [selectedSitesForPlanning, setSelectedSitesForPlanning] = useState<{
-    [siteId: string]: {
-      planned_date?: string;
-      effective_date?: string;
-      status: 'planned' | 'active' | 'finished';
-      is_delayed: number;
-      description?: string;
-    };
+    [siteId: string]: SelectedSiteWithSplits;
   }>({});
+  const [siteSplits, setSiteSplits] = useState<{ [siteId: string]: Split[] }>({});
+  const [loadingSplits, setLoadingSplits] = useState<{ [siteId: string]: boolean }>({});
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -93,6 +113,19 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     name: '',
     description: '',
     status: 'planned'
+  });
+  const [editSiteFormData, setEditSiteFormData] = useState<{
+    planned_date?: string;
+    effective_date?: string;
+    status: 'planned' | 'active' | 'finished';
+    is_delayed: number;
+    description?: string;
+  }>({
+    planned_date: '',
+    effective_date: '',
+    status: 'planned',
+    is_delayed: 0,
+    description: ''
   });
 
   // Get clientId from URL params if not provided as prop
@@ -303,16 +336,40 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
   };
 
   // Fetch planning sites when a planning is selected
+  const loadPlanningSiteSplitCodes = async (planningSiteRecords: PlanningSite[]) => {
+    try {
+      const results = await Promise.all(planningSiteRecords.map(async (ps) => {
+        try {
+          const splits = await apiService.getPlanningSplitsByPlanningSiteId(ps.id);
+          const codes = splits
+            .map((split: any) => split.split_code || split.Code || split.code || split.name)
+            .filter(Boolean);
+          return [ps.id, codes];
+        } catch (err) {
+          console.warn(`Failed to load splits for planning site ${ps.id}:`, err);
+          return [ps.id, []];
+        }
+      }));
+
+      setPlanningSiteSplitCodes(Object.fromEntries(results));
+    } catch (err) {
+      console.warn('Failed to load planning site split codes:', err);
+      setPlanningSiteSplitCodes({});
+    }
+  };
+
   useEffect(() => {
     const fetchPlanningSites = async () => {
       if (!selectedPlanning) {
         setPlanningSites([]);
+        setPlanningSiteSplitCodes({});
         return;
       }
 
       try {
         const sites = await apiService.getPlanningSitesByPlanningId(selectedPlanning.id);
         setPlanningSites(sites);
+        await loadPlanningSiteSplitCodes(sites);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load planning sites');
       }
@@ -324,6 +381,55 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
   const handlePlanningClick = (plan: Planning) => {
     setSelectedPlanning(plan);
     setSelectedSitesForPlanning({});
+  };
+
+  const handleDownloadPlanningPdf = async () => {
+    if (!planningPdfRef.current || !selectedPlanning) return;
+
+    try {
+      setExportingPdf(true);
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const canvas = await html2canvas(planningPdfRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        width: planningPdfRef.current.scrollWidth,
+        height: planningPdfRef.current.scrollHeight,
+        windowWidth: planningPdfRef.current.scrollWidth,
+        windowHeight: planningPdfRef.current.scrollHeight
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 10;
+      const availableWidth = pageWidth - margin * 2;
+      const availableHeight = pageHeight - margin * 2;
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(availableWidth / imgWidth, availableHeight / imgHeight);
+      const finalWidth = imgWidth * ratio;
+      const finalHeight = imgHeight * ratio;
+      const xOffset = margin + (availableWidth - finalWidth) / 2;
+      const yOffset = margin + (availableHeight - finalHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+      const fileName = `${selectedPlanning.name?.replace(/[^a-z0-9]+/gi, '_').toLowerCase() || 'planning'}_export.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating planning PDF:', error);
+      setError('Impossible de générer le PDF. Veuillez réessayer.');
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   const handleBackFromPlanningSites = () => {
@@ -350,13 +456,47 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
           effective_date: '',
           status: 'planned',
           is_delayed: 0,
-          description: ''
+          description: '',
+          selectedSplits: {}
         }
       });
+
+      // Fetch splits for this site if not already loaded
+      if (!siteSplits[siteId] && !loadingSplits[siteId]) {
+        fetchSplitsForSite(siteId);
+      }
     } else {
       const newSelection = { ...selectedSitesForPlanning };
       delete newSelection[siteId];
       setSelectedSitesForPlanning(newSelection);
+    }
+  };
+
+  // Fetch splits for a specific site
+  const fetchSplitsForSite = async (siteId: string) => {
+    try {
+      setLoadingSplits(prev => ({ ...prev, [siteId]: true }));
+      const splits = await apiService.getSplitsBySiteId(siteId);
+
+      setSiteSplits(prev => ({ ...prev, [siteId]: splits }));
+
+      // Initialize all splits as selected by default (ensure we set state regardless of previous state timing)
+      const defaultSelectedSplits: { [splitId: string]: boolean } = {};
+      splits.forEach(split => {
+        defaultSelectedSplits[split.id] = true;
+      });
+
+      setSelectedSitesForPlanning(prev => ({
+        ...prev,
+        [siteId]: {
+          ...(prev[siteId] || { planned_date: '', effective_date: '', status: 'planned', is_delayed: 0, description: '' }),
+          selectedSplits: defaultSelectedSplits
+        }
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load splits for site');
+    } finally {
+      setLoadingSplits(prev => ({ ...prev, [siteId]: false }));
     }
   };
 
@@ -366,6 +506,19 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
       [siteId]: {
         ...selectedSitesForPlanning[siteId],
         [field]: value
+      }
+    });
+  };
+
+  const handleSplitToggle = (siteId: string, splitId: string, checked: boolean) => {
+    setSelectedSitesForPlanning({
+      ...selectedSitesForPlanning,
+      [siteId]: {
+        ...selectedSitesForPlanning[siteId],
+        selectedSplits: {
+          ...selectedSitesForPlanning[siteId].selectedSplits,
+          [splitId]: checked
+        }
       }
     });
   };
@@ -388,12 +541,28 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
       });
 
       if (sitesPayload.length > 0) {
-        await apiService.createPlanningSitesBatch(selectedPlanning.id, sitesPayload);
+        const createdPlanningSites = await apiService.createPlanningSitesBatch(selectedPlanning.id, sitesPayload);
+
+        // Now create planning splits for each selected site and its selected splits
+        for (const planningSite of createdPlanningSites) {
+          const siteId = planningSite.site_id;
+          const selectedSplitsForSite = selectedSitesForPlanning[siteId]?.selectedSplits || {};
+
+          // Create splits array with only selected splits (use split_id key expected by API)
+          const splitsToCreate = Object.keys(selectedSplitsForSite)
+            .filter(splitId => selectedSplitsForSite[splitId])
+            .map(splitId => ({ split_id: splitId, status: 'pending' }));
+
+          if (splitsToCreate.length > 0) {
+            await apiService.createPlanningSplitsBatch(planningSite.id, splitsToCreate);
+          }
+        }
       }
 
       // Refresh planning sites
       const sites = await apiService.getPlanningSitesByPlanningId(selectedPlanning.id);
       setPlanningSites(sites);
+      await loadPlanningSiteSplitCodes(sites);
 
       handleCloseSiteDialog();
       setError(null);
@@ -414,9 +583,54 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
       if (selectedPlanning) {
         const sites = await apiService.getPlanningSitesByPlanningId(selectedPlanning.id);
         setPlanningSites(sites);
+        await loadPlanningSiteSplitCodes(sites);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete planning site');
+    }
+  };
+
+  const handleOpenEditSiteDialog = (planningSite: PlanningSite) => {
+    setEditingSiteId(planningSite.id);
+    setEditSiteFormData({
+      planned_date: planningSite.planned_date || '',
+      effective_date: planningSite.effective_date || '',
+      status: planningSite.status,
+      is_delayed: planningSite.is_delayed,
+      description: planningSite.description || ''
+    });
+    setOpenEditSiteDialog(true);
+  };
+
+  const handleCloseEditSiteDialog = () => {
+    setOpenEditSiteDialog(false);
+    setEditingSiteId(null);
+    setEditSiteFormData({
+      planned_date: '',
+      effective_date: '',
+      status: 'planned',
+      is_delayed: 0,
+      description: ''
+    });
+  };
+
+  const handleSaveEditedPlanningSite = async () => {
+    if (!editingSiteId) return;
+
+    try {
+      await apiService.updatePlanningSite(editingSiteId, editSiteFormData);
+
+      // Refresh planning sites
+      if (selectedPlanning) {
+        const sites = await apiService.getPlanningSitesByPlanningId(selectedPlanning.id);
+        setPlanningSites(sites);
+        await loadPlanningSiteSplitCodes(sites);
+      }
+
+      handleCloseEditSiteDialog();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update planning site');
     }
   };
 
@@ -644,65 +858,107 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
               </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
               <Typography variant="h6">
                 Sites assignés ({planningSites.length})
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleOpenSiteDialog}
-              >
-                Ajouter des sites
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  startIcon={<DownloadIcon />}
+                  onClick={handleDownloadPlanningPdf}
+                  disabled={!selectedPlanning}
+                >
+                  Télécharger PDF
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleOpenSiteDialog}
+                >
+                  Ajouter des sites
+                </Button>
+              </Box>
             </Box>
 
-            {planningSites.length === 0 ? (
+            <Box
+              ref={planningPdfRef}
+              sx={{
+                width: exportingPdf ? '210mm' : '100%',
+                minHeight: exportingPdf ? '297mm' : 'auto',
+                maxWidth: exportingPdf ? '210mm' : '100%',
+                p: 2,
+                mx: 'auto',
+                bgcolor: '#fff',
+                color: '#000',
+                boxSizing: 'border-box',
+                overflow: 'visible'
+              }}
+            >
+              <Box sx={{ mb: 2, pb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  {selectedPlanning?.name}
+                </Typography>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  {selectedPlanning?.description}
+                </Typography>
+                {selectedClient?.name && (
+                  <Typography variant="body2" color="textSecondary">
+                    Client : {selectedClient.name}
+                  </Typography>
+                )}
+              </Box>
+              {planningSites.length === 0 ? (
               <Typography variant="body1" color="textSecondary" sx={{ mb: 2 }}>
                 Aucun site assigné à ce planning. Cliquez sur "Ajouter des sites" pour commencer.
               </Typography>
             ) : (
-              <TableContainer component={Paper}>
-                <Table>
+              <TableContainer component={Paper} sx={{ width: '100%', boxShadow: 'none', border: '1px solid rgba(0,0,0,0.12)' }}>
+                <Table sx={{ width: '100%', borderCollapse: 'collapse' }}>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                      <TableCell>Site</TableCell>
-                      <TableCell>Date Planifiée</TableCell>
-                      <TableCell>Date Effective</TableCell>
-                      <TableCell>Statut</TableCell>
-                      <TableCell>Délai</TableCell>
-                      <TableCell>Description</TableCell>
-                      <TableCell align="right">Actions</TableCell>
+                    <TableRow>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700, width: 60 }}>N°</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Site</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Date Planifiée</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Date Effective</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Statut</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Délai</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Splits</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Description</TableCell>
+                      <TableCell align="right" sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700, display: exportingPdf ? 'none' : 'table-cell' }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {planningSites.map((ps) => {
+                    {planningSites.map((ps, index) => {
                       const site = selectedClient?.sites?.find(s => s.id === ps.site_id);
                       return (
-                        <TableRow key={ps.id} hover>
-                          <TableCell sx={{ fontWeight: 500 }}>{site?.name || ps.site_id}</TableCell>
-                          <TableCell>
+                        <TableRow key={ps.id} sx={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                          <TableCell sx={{ fontWeight: 500, p: '8px 16px' }}>{index + 1}</TableCell>
+                          <TableCell sx={{ fontWeight: 500, p: '8px 16px' }}>{site?.name || ps.site_id}</TableCell>
+                          <TableCell sx={{ p: '8px 16px' }}>
                             {ps.planned_date ? new Date(ps.planned_date).toLocaleDateString('fr-FR') : '-'}
                           </TableCell>
-                          <TableCell>
+                          <TableCell sx={{ p: '8px 16px' }}>
                             {ps.effective_date ? new Date(ps.effective_date).toLocaleDateString('fr-FR') : '-'}
                           </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={getStatusLabel(ps.status)}
-                              color={getStatusColor(ps.status) as any}
+                          <TableCell sx={{ p: '8px 16px' }}>
+                            {getStatusLabel(ps.status)}
+                          </TableCell>
+                          <TableCell sx={{ p: '8px 16px' }}>
+                            {ps.is_delayed ? 'Oui' : 'Non'}
+                          </TableCell>
+                          <TableCell sx={{ p: '8px 16px' }}>
+                            {planningSiteSplitCodes[ps.id] && planningSiteSplitCodes[ps.id].length > 0 ? planningSiteSplitCodes[ps.id].join(', ') : '-'}
+                          </TableCell>
+                          <TableCell sx={{ p: '8px 16px' }}>{ps.description || '-'}</TableCell>
+                          <TableCell align="right" sx={{ p: '8px 16px', display: exportingPdf ? 'none' : 'table-cell' }}>
+                            <IconButton
                               size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {ps.is_delayed ? (
-                              <Chip label="Oui" color="error" size="small" />
-                            ) : (
-                              <Chip label="Non" color="success" size="small" />
-                            )}
-                          </TableCell>
-                          <TableCell>{ps.description || '-'}</TableCell>
-                          <TableCell align="right">
+                              onClick={() => handleOpenEditSiteDialog(ps)}
+                              title="Modifier"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
                             <IconButton
                               size="small"
                               onClick={() => handleDeletePlanningSite(ps.id)}
@@ -719,6 +975,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                 </Table>
               </TableContainer>
             )}
+            </Box>
           </Box>
         )}
 
@@ -873,6 +1130,83 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                           onChange={(e) => handleSiteDataChange(site.id, 'description', e.target.value)}
                           size="small"
                         />
+
+                        {/* Splits section */}
+                        <Box sx={{ gridColumn: '1 / -1', mt: 2 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                            Divisions/Splits du site:
+                          </Typography>
+
+                          {loadingSplits[site.id] ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                              <CircularProgress size={20} />
+                            </Box>
+                          ) : siteSplits[site.id] && siteSplits[site.id].length > 0 ? (
+                            <Box
+                              sx={{
+                                border: '1px solid #e0e0e0',
+                                borderRadius: 1,
+                                p: 1.5,
+                                backgroundColor: '#fafafa',
+                                maxHeight: '200px',
+                                overflowY: 'auto'
+                              }}
+                            >
+                              {siteSplits[site.id].map(split => (
+                                <FormControlLabel
+                                  key={split.id}
+                                  control={
+                                    <Checkbox
+                                      checked={
+                                        // if selectedSplits not initialized yet, treat as checked by default
+                                        selectedSitesForPlanning[site.id]?.selectedSplits
+                                          ? !!selectedSitesForPlanning[site.id]?.selectedSplits?.[split.id]
+                                          : true
+                                      }
+                                      onChange={(e) =>
+                                        handleSplitToggle(site.id, split.id, e.target.checked)
+                                      }
+                                    />
+                                  }
+                                  sx={{ display: 'block', mb: 0.5 }}
+                                  label={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                      <Box sx={{ minWidth: 140 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                          {split.Code || split.code || split.name}
+                                        </Typography>
+                                        <Typography variant="caption" color="textSecondary">
+                                          {split.name}
+                                        </Typography>
+                                      </Box>
+                                      <Box sx={{ minWidth: 120 }}>
+                                        <Typography variant="caption" color="textSecondary">
+                                          Puissance: {split.puissance || '-'}
+                                        </Typography>
+                                        {split.freon && (
+                                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                                            Fluide: {split.freon}
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                      <Box sx={{ flex: 1 }}>
+                                        {split.description && (
+                                          <Typography variant="caption" color="textSecondary">
+                                            Marque: {split.description}
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                    </Box>
+                                  }
+                                />
+                              ))}
+                            </Box>
+                          ) : (
+                            <Typography variant="body2" color="textSecondary">
+                              Aucune division disponible pour ce site.
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                     )}
                   </Box>
@@ -889,6 +1223,70 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
           <Button onClick={handleCloseSiteDialog}>Annuler</Button>
           <Button onClick={handleSavePlanningSites} variant="contained" disabled={Object.keys(selectedSitesForPlanning).length === 0}>
             Ajouter les sites
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Planning Site Dialog */}
+      <Dialog open={openEditSiteDialog} onClose={handleCloseEditSiteDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Modifier le site du planning
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <TextField
+            fullWidth
+            label="Date Planifiée"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={editSiteFormData.planned_date || ''}
+            onChange={(e) => setEditSiteFormData({ ...editSiteFormData, planned_date: e.target.value })}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Date Effective"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={editSiteFormData.effective_date || ''}
+            onChange={(e) => setEditSiteFormData({ ...editSiteFormData, effective_date: e.target.value })}
+            margin="normal"
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Statut</InputLabel>
+            <Select
+              value={editSiteFormData.status}
+              label="Statut"
+              onChange={(e) => setEditSiteFormData({ ...editSiteFormData, status: e.target.value as any })}
+            >
+              <MenuItem value="planned">Planifié</MenuItem>
+              <MenuItem value="active">Actif</MenuItem>
+              <MenuItem value="finished">Terminé</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!!editSiteFormData.is_delayed}
+                onChange={(e) => setEditSiteFormData({ ...editSiteFormData, is_delayed: e.target.checked ? 1 : 0 })}
+              />
+            }
+            label="Délai"
+            sx={{ mt: 2, display: 'block' }}
+          />
+          <TextField
+            fullWidth
+            label="Description"
+            multiline
+            rows={3}
+            value={editSiteFormData.description || ''}
+            onChange={(e) => setEditSiteFormData({ ...editSiteFormData, description: e.target.value })}
+            margin="normal"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditSiteDialog}>Annuler</Button>
+          <Button onClick={handleSaveEditedPlanningSite} variant="contained">
+            Mettre à jour
           </Button>
         </DialogActions>
       </Dialog>
