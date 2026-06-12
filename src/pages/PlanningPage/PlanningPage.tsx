@@ -342,7 +342,15 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
         try {
           const splits = await apiService.getPlanningSplitsByPlanningSiteId(ps.id);
           const codes = splits
-            .map((split: any) => split.split_code || split.Code || split.code || split.name)
+            .map((split: any) => {
+              const label = (split.split_code || split.Code || split.code || split.name) || '';
+              const puissance = (split.puissance !== undefined && split.puissance !== null && split.puissance !== '') ? String(split.puissance) : null;
+              const freon = split.freon || null;
+              const details = [] as string[];
+              if (puissance) details.push(`${puissance}`);
+              if (freon) details.push(`${freon}`);
+              return details.length > 0 ? `${label} (${details.join(' · ')})` : label;
+            })
             .filter(Boolean);
           return [ps.id, codes];
         } catch (err) {
@@ -501,11 +509,21 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
   };
 
   const handleSiteDataChange = (siteId: string, field: string, value: any) => {
+    const siteData = {
+      ...(selectedSitesForPlanning[siteId] || {}),
+      [field]: value
+    };
+
+    // compute is_delayed: true if both dates present and effective_date > planned_date
+    const planned = siteData.planned_date;
+    const effective = siteData.effective_date;
+    const isDelayed = planned && effective ? (new Date(effective) > new Date(planned)) : false;
+
     setSelectedSitesForPlanning({
       ...selectedSitesForPlanning,
       [siteId]: {
-        ...selectedSitesForPlanning[siteId],
-        [field]: value
+        ...siteData,
+        is_delayed: isDelayed ? 1 : 0
       }
     });
   };
@@ -923,7 +941,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Date Effective</TableCell>
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Statut</TableCell>
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Délai</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Splits</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Splits (Puissance · Fluide)</TableCell>
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Description</TableCell>
                       <TableCell align="right" sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700, display: exportingPdf ? 'none' : 'table-cell' }}>Actions</TableCell>
                     </TableRow>
@@ -1115,7 +1133,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                           control={
                             <Checkbox
                               checked={!!selectedSitesForPlanning[site.id]?.is_delayed}
-                              onChange={(e) => handleSiteDataChange(site.id, 'is_delayed', e.target.checked ? 1 : 0)}
+                              disabled
                             />
                           }
                           label="Délai"
@@ -1239,7 +1257,13 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
             type="date"
             InputLabelProps={{ shrink: true }}
             value={editSiteFormData.planned_date || ''}
-            onChange={(e) => setEditSiteFormData({ ...editSiteFormData, planned_date: e.target.value })}
+            onChange={(e) => {
+              const newData = { ...editSiteFormData, planned_date: e.target.value };
+              const planned = newData.planned_date;
+              const effective = newData.effective_date;
+              const isDelayed = planned && effective ? (new Date(effective) > new Date(planned)) : false;
+              setEditSiteFormData({ ...newData, is_delayed: isDelayed ? 1 : 0 });
+            }}
             margin="normal"
           />
           <TextField
@@ -1248,7 +1272,13 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
             type="date"
             InputLabelProps={{ shrink: true }}
             value={editSiteFormData.effective_date || ''}
-            onChange={(e) => setEditSiteFormData({ ...editSiteFormData, effective_date: e.target.value })}
+            onChange={(e) => {
+              const newData = { ...editSiteFormData, effective_date: e.target.value };
+              const planned = newData.planned_date;
+              const effective = newData.effective_date;
+              const isDelayed = planned && effective ? (new Date(effective) > new Date(planned)) : false;
+              setEditSiteFormData({ ...newData, is_delayed: isDelayed ? 1 : 0 });
+            }}
             margin="normal"
           />
           <FormControl fullWidth margin="normal">
@@ -1267,7 +1297,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
             control={
               <Checkbox
                 checked={!!editSiteFormData.is_delayed}
-                onChange={(e) => setEditSiteFormData({ ...editSiteFormData, is_delayed: e.target.checked ? 1 : 0 })}
+                disabled
               />
             }
             label="Délai"

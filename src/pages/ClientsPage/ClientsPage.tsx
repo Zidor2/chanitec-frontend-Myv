@@ -1448,6 +1448,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                           <MenuItem value="">-- Sélectionner --</MenuItem>
                           <MenuItem value="R22">R22</MenuItem>
                           <MenuItem value="R410a">R410a</MenuItem>
+                          <MenuItem value="R134a">R134a</MenuItem>
+                          <MenuItem value="R32">R32</MenuItem>
+                          <MenuItem value="R404">R404</MenuItem>
                         </TextField>
                         <IconButton
                           size="small"
