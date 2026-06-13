@@ -426,11 +426,7 @@
     display: none !important;
   }
 
-  // Hide background logos in print mode
-  .background-logo,
-  .background-logo-second {
-    display: none !important;
-  }
+  /* Allow background logos to be controlled later so they can appear on every page */
 
   // Ensure the page prints with current layout
   body, .main-content, .quote-test-root, #root {
@@ -684,6 +680,10 @@
     transform: translate(-50%, -50%);
     width: 60%;
     max-width: 400px;
+  }
+
+  body, .main-content, .quote-test-root, #root {
+    background: transparent !important;
   }
 
   body, .main-content, .quote-test-root, #root {

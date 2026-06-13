@@ -41,6 +41,8 @@ import { Client, Planning } from '../../models/Quote';
 import { apiService } from '../../services/api-service';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import logo512 from '../../assets/logo512.png';
+import CHANitec from '../../assets/CHANitec.png';
 import './PlanningPage.scss';
 
 interface PlanningPageProps {
@@ -79,6 +81,14 @@ interface SelectedSiteWithSplits {
   selectedSplits?: { [splitId: string]: boolean };
 }
 
+interface PlanningSiteSplitDetails {
+  split_code?: string;
+  split_name?: string;
+  split_marque?: string;
+  puissance?: string | number | null;
+  freon?: string | null;
+}
+
 const PlanningPage: React.FC<PlanningPageProps> = ({
   currentPath = '/planning',
   onNavigate,
@@ -90,7 +100,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
   const [planning, setPlanning] = useState<Planning[]>([]);
   const [selectedPlanning, setSelectedPlanning] = useState<Planning | null>(null);
   const [planningSites, setPlanningSites] = useState<PlanningSite[]>([]);
-  const [planningSiteSplitCodes, setPlanningSiteSplitCodes] = useState<{ [planningSiteId: string]: string[] }>({});
+  const [planningSiteSplits, setPlanningSiteSplits] = useState<{ [planningSiteId: string]: PlanningSiteSplitDetails[] }>({});
   const [loading, setLoading] = useState(true);
   const planningPdfRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -341,28 +351,24 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
       const results = await Promise.all(planningSiteRecords.map(async (ps) => {
         try {
           const splits = await apiService.getPlanningSplitsByPlanningSiteId(ps.id);
-          const codes = splits
-            .map((split: any) => {
-              const label = (split.split_code || split.Code || split.code || split.name) || '';
-              const puissance = (split.puissance !== undefined && split.puissance !== null && split.puissance !== '') ? String(split.puissance) : null;
-              const freon = split.freon || null;
-              const details = [] as string[];
-              if (puissance) details.push(`${puissance}`);
-              if (freon) details.push(`${freon}`);
-              return details.length > 0 ? `${label} (${details.join(' · ')})` : label;
-            })
-            .filter(Boolean);
-          return [ps.id, codes];
+          const details = splits.map((split: any) => ({
+            split_code: split.split_code || split.Code || split.code || split.name || '',
+            split_name: split.split_name || split.name || '',
+            split_marque: split.split_marque || split.description || '',
+            puissance: split.puissance !== undefined && split.puissance !== null && split.puissance !== '' ? split.puissance : null,
+            freon: split.freon || null
+          }));
+          return [ps.id, details];
         } catch (err) {
           console.warn(`Failed to load splits for planning site ${ps.id}:`, err);
           return [ps.id, []];
         }
       }));
 
-      setPlanningSiteSplitCodes(Object.fromEntries(results));
+      setPlanningSiteSplits(Object.fromEntries(results));
     } catch (err) {
-      console.warn('Failed to load planning site split codes:', err);
-      setPlanningSiteSplitCodes({});
+      console.warn('Failed to load planning site split details:', err);
+      setPlanningSiteSplits({});
     }
   };
 
@@ -370,7 +376,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     const fetchPlanningSites = async () => {
       if (!selectedPlanning) {
         setPlanningSites([]);
-        setPlanningSiteSplitCodes({});
+        setPlanningSiteSplits({});
         return;
       }
 
@@ -409,27 +415,33 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
         windowHeight: planningPdfRef.current.scrollHeight
       });
 
+      // Create image and build a multi-page PDF with no margins
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 10;
-      const availableWidth = pageWidth - margin * 2;
-      const availableHeight = pageHeight - margin * 2;
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(availableWidth / imgWidth, availableHeight / imgHeight);
-      const finalWidth = imgWidth * ratio;
-      const finalHeight = imgHeight * ratio;
-      const xOffset = margin + (availableWidth - finalWidth) / 2;
-      const yOffset = margin + (availableHeight - finalHeight) / 2;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+      // Calculate image height in mm for the PDF width
+      const imgProps = pdf.getImageProperties(imgData);
+      const imgWidthMm = pdfWidth;
+      const imgHeightMm = (imgProps.height * imgWidthMm) / imgProps.width;
+
+      let heightLeft = imgHeightMm;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidthMm, imgHeightMm);
+      heightLeft -= pdfHeight;
+
+      // Add additional pages if content is taller than one page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeightMm;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidthMm, imgHeightMm);
+        heightLeft -= pdfHeight;
+      }
+
       const fileName = `${selectedPlanning.name?.replace(/[^a-z0-9]+/gi, '_').toLowerCase() || 'planning'}_export.pdf`;
       pdf.save(fileName);
     } catch (error) {
@@ -678,6 +690,41 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     }
   };
 
+  // Group splits by marque/type/puissance/freon to compute quantity and codes
+  const groupSplitsByCharacteristics = (splits: PlanningSiteSplitDetails[]) => {
+    const map = new Map<string, { quantity: number; marque?: string; type?: string; puissance?: string | number | null; freon?: string | null; codes: string[] }>();
+    splits.forEach(sp => {
+      const key = `${sp.split_marque || ''}||${sp.split_name || ''}||${sp.puissance ?? ''}||${sp.freon || ''}`;
+      const existing = map.get(key);
+      const code = (sp.split_code || '').toString();
+      if (existing) {
+        existing.quantity += 1;
+        if (code) existing.codes.push(code);
+      } else {
+        map.set(key, {
+          quantity: 1,
+          marque: sp.split_marque,
+          type: sp.split_name,
+          puissance: sp.puissance,
+          freon: sp.freon,
+          codes: code ? [code] : []
+        });
+      }
+    });
+    return Array.from(map.values());
+  };
+
+  // Resolve a human-readable site name from available client/site data; fall back to the id
+  const findSiteName = (siteId: string) => {
+    const s1 = selectedClient?.sites?.find(s => s.id === siteId);
+    if (s1 && s1.name) return s1.name;
+    for (const c of clients) {
+      const s = c.sites?.find(si => si.id === siteId);
+      if (s && s.name) return s.name;
+    }
+    return siteId;
+  };
+
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
       <Box className="planning-page-container">
@@ -910,9 +957,13 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                 bgcolor: '#fff',
                 color: '#000',
                 boxSizing: 'border-box',
-                overflow: 'visible'
+                overflow: 'visible',
+                position: 'relative'
               }}
             >
+              {/* Background Logos for PDF */}
+              <img src={logo512} alt="Background Logo" className="planning-background-logo" style={{ display: exportingPdf ? 'block' : 'none' }} />
+              <img src={CHANitec} alt="Chanitec Logo" className="planning-background-logo-second" style={{ display: exportingPdf ? 'block' : 'none' }} />
               <Box sx={{ mb: 2, pb: 1 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   {selectedPlanning?.name}
@@ -937,22 +988,63 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                     <TableRow>
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700, width: 60 }}>N°</TableCell>
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Site</TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Splits assignés</TableCell>
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Date Planifiée</TableCell>
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Date Effective</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Statut</TableCell>
                       <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Délai</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Splits (Puissance · Fluide)</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Description</TableCell>
                       <TableCell align="right" sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700, display: exportingPdf ? 'none' : 'table-cell' }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {planningSites.map((ps, index) => {
-                      const site = selectedClient?.sites?.find(s => s.id === ps.site_id);
+                      const splitDetails = planningSiteSplits[ps.id] || [];
+                      const isDelayed = ps.planned_date && ps.effective_date ? (new Date(ps.effective_date) > new Date(ps.planned_date)) : false;
                       return (
                         <TableRow key={ps.id} sx={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
                           <TableCell sx={{ fontWeight: 500, p: '8px 16px' }}>{index + 1}</TableCell>
-                          <TableCell sx={{ fontWeight: 500, p: '8px 16px' }}>{site?.name || ps.site_id}</TableCell>
+                          <TableCell sx={{ fontWeight: 500, p: '8px 16px' }}>{findSiteName(ps.site_id)}</TableCell>
+                          <TableCell sx={{ p: '8px 16px' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
+                              {splitDetails.length} split{splitDetails.length !== 1 ? 's' : ''}
+                            </Typography>
+                            {splitDetails.length > 0 ? (
+                              (() => {
+                                const groups = groupSplitsByCharacteristics(splitDetails);
+                                return (
+                                  <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 140px 200px', gap: 1, bgcolor: 'transparent', p: 0.5, fontWeight: 700 }}>
+                                      <Box>Quantité</Box>
+                                      <Box>Marque</Box>
+                                      <Box>Type</Box>
+                                      <Box>Puissance</Box>
+                                      <Box>Codes</Box>
+                                    </Box>
+                                    {groups.map((g, gi) => (
+                                      <Box key={gi} sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 140px 200px', gap: 1, alignItems: 'start', p: 0.5, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                                        <Box sx={{ fontWeight: 600 }}>{g.quantity}</Box>
+                                        <Box>{g.marque || '-'}</Box>
+                                        <Box>{g.type || '-'}</Box>
+                                        <Box>{g.puissance ?? '-'}</Box>
+                                        <Box>
+                                          {g.codes.length > 0 ? (
+                                            <Box>
+                                              {g.codes.join(', ')}
+                                            </Box>
+                                          ) : (
+                                            <Typography variant="caption" color="textSecondary">-</Typography>
+                                          )}
+                                        </Box>
+                                      </Box>
+                                    ))}
+                                  </Box>
+                                );
+                              })()
+                            ) : (
+                              <Typography variant="body2" color="textSecondary">
+                                Aucun split assigné
+                              </Typography>
+                            )}
+                          </TableCell>
                           <TableCell sx={{ p: '8px 16px' }}>
                             {ps.planned_date ? new Date(ps.planned_date).toLocaleDateString('fr-FR') : '-'}
                           </TableCell>
@@ -960,15 +1052,8 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                             {ps.effective_date ? new Date(ps.effective_date).toLocaleDateString('fr-FR') : '-'}
                           </TableCell>
                           <TableCell sx={{ p: '8px 16px' }}>
-                            {getStatusLabel(ps.status)}
+                            <Checkbox checked={isDelayed} disabled inputProps={{ 'aria-label': 'Délai' }} />
                           </TableCell>
-                          <TableCell sx={{ p: '8px 16px' }}>
-                            {ps.is_delayed ? 'Oui' : 'Non'}
-                          </TableCell>
-                          <TableCell sx={{ p: '8px 16px' }}>
-                            {planningSiteSplitCodes[ps.id] && planningSiteSplitCodes[ps.id].length > 0 ? planningSiteSplitCodes[ps.id].join(', ') : '-'}
-                          </TableCell>
-                          <TableCell sx={{ p: '8px 16px' }}>{ps.description || '-'}</TableCell>
                           <TableCell align="right" sx={{ p: '8px 16px', display: exportingPdf ? 'none' : 'table-cell' }}>
                             <IconButton
                               size="small"

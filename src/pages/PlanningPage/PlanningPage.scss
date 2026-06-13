@@ -24,3 +24,41 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
 }
+
+/* Background Logo Styles for Planning PDF Export */
+.planning-background-logo,
+.planning-background-logo-second {
+  position: absolute;
+  opacity: 0.15;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.planning-background-logo {
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  height: auto;
+}
+
+.planning-background-logo-second {
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  max-width: 400px;
+  height: auto;
+}
+
+/* Ensure logos are rendered properly in PDF export */
+@media print {
+  .planning-background-logo,
+  .planning-background-logo-second {
+    display: block !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

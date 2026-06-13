@@ -6,6 +6,8 @@ import { Button, Box } from '@mui/material';
 import PrintIcon from '@mui/icons-material/Print';
 import DownloadIcon from '@mui/icons-material/Download';
 import Layout from '../components/Layout/Layout';
+import logo512 from '../assets/logo512.png';
+import CHANitec from '../assets/CHANitec.png';
 
 // Correct logo imports for React (public folder)
 const logoChanic = process.env.PUBLIC_URL + '/CHANitec.png';
@@ -180,6 +182,10 @@ export default function InterventionPage({
         </Box>
 
         <div ref={interventionRef} className="intervention-a4-container">
+          {/* Background Logos */}
+          <img src={logo512} alt="Background Logo" className="intervention-background-logo" />
+          <img src={CHANitec} alt="Chanitec Logo" className="intervention-background-logo-second" />
+
           {/* Header Section */}
           <div className="intervention-header-logos">
             <img src={logoChanic} alt="GROUPE CHANIC" className="logo-chanic" />

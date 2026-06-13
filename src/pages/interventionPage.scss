@@ -14,6 +14,35 @@
   top: 50%;
   transform: translate(-50%, -50%) scale(.8);
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+/* Background Logo Styles for Intervention PDF Export */
+.intervention-background-logo,
+.intervention-background-logo-second {
+  position: absolute;
+  opacity: 0.15;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.intervention-background-logo {
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  height: auto;
+}
+
+.intervention-background-logo-second {
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  max-width: 400px;
+  height: auto;
 }
 
 body {

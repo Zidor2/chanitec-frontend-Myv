@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import html2pdf from 'html2pdf.js';
+import logo512 from '../../assets/logo512.png';
+import CHANitec from '../../assets/CHANitec.png';
 
 import {
   Box,
@@ -317,6 +319,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
     };
     element.classList.add('pdf-export');
+
+    // Show background logos during export
+    const logos = Array.from(element.querySelectorAll('.clients-background-logo, .clients-background-logo-second')) as HTMLElement[];
+    logos.forEach(logo => {
+      logo.style.display = 'block';
+    });
+
     // Temporarily hide interactive controls via inline styles for robust export
     const controls = Array.from(element.querySelectorAll('button, input, select, .MuiFormControl-root, .MuiOutlinedInput-root, .MuiButton-root, [role="button"]')) as HTMLElement[];
     const prevStyles = controls.map(el => el.getAttribute('style') || '');
@@ -328,6 +337,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
       controls.forEach((el, i) => {
         try { el.setAttribute('style', prevStyles[i] || ''); } catch (e) {}
       });
+
+      // Hide logos after export
+      logos.forEach(logo => {
+        logo.style.display = 'none';
+      });
+
       element.classList.remove('pdf-export');
     });
   };
@@ -1052,8 +1067,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
               </Box>
 
               {/* Chart Panel */}
-              <Card id="chart-section" sx={{ mb: 3 }}>
-                <CardContent>
+              <Card id="chart-section" sx={{ mb: 3, position: 'relative' }}>
+                <CardContent sx={{ position: 'relative' }}>
+                  {/* Background Logos */}
+                  <img src={logo512} alt="Background Logo" className="clients-background-logo" style={{ display: 'none', opacity: 0.15 }} />
+                  <img src={CHANitec} alt="Chanitec Logo" className="clients-background-logo-second" style={{ display: 'none', opacity: 0.15 }} />
+
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                       {'Total équipements : ' + chartTotal}
