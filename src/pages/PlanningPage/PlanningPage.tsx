@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -45,6 +45,16 @@ import logo512 from '../../assets/logo512.png';
 import CHANitec from '../../assets/CHANitec.png';
 import './PlanningPage.scss';
 
+const MM_TO_PX = 3.7795275591;
+const PDF_PAGE_HEIGHT_MM = 297;
+
+const waitForPdfLayout = () =>
+  new Promise<void>(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+
 interface PlanningPageProps {
   currentPath?: string;
   onNavigate?: (path: string) => void;
@@ -82,6 +92,8 @@ interface SelectedSiteWithSplits {
 }
 
 interface PlanningSiteSplitDetails {
+  id?: string;
+  split_id?: string;
   split_code?: string;
   split_name?: string;
   split_marque?: string;
@@ -110,6 +122,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfWatermarkPageCount, setPdfWatermarkPageCount] = useState(0);
   const [selectedSitesForPlanning, setSelectedSitesForPlanning] = useState<{
     [siteId: string]: SelectedSiteWithSplits;
   }>({});
@@ -137,6 +150,11 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     is_delayed: 0,
     description: ''
   });
+  const [editingSiteSiteId, setEditingSiteSiteId] = useState<string | null>(null);
+  const [editSiteSelectedSplits, setEditSiteSelectedSplits] = useState<{ [splitId: string]: boolean }>({});
+  const [editSiteOriginalSplits, setEditSiteOriginalSplits] = useState<{ [splitId: string]: string }>({});
+  const [loadingEditSiteSplits, setLoadingEditSiteSplits] = useState(false);
+  const [savingEditedPlanningSite, setSavingEditedPlanningSite] = useState(false);
 
   // Get clientId from URL params if not provided as prop
   const urlParams = new URLSearchParams(window.location.search);
@@ -352,6 +370,8 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
         try {
           const splits = await apiService.getPlanningSplitsByPlanningSiteId(ps.id);
           const details = splits.map((split: any) => ({
+            id: split.id,
+            split_id: split.split_id,
             split_code: split.split_code || split.Code || split.code || split.name || '',
             split_name: split.split_name || split.name || '',
             split_marque: split.split_marque || split.description || '',
@@ -402,7 +422,8 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
 
     try {
       setExportingPdf(true);
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await waitForPdfLayout();
+      await waitForPdfLayout();
 
       const canvas = await html2canvas(planningPdfRef.current, {
         scale: 2,
@@ -489,6 +510,24 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
       const newSelection = { ...selectedSitesForPlanning };
       delete newSelection[siteId];
       setSelectedSitesForPlanning(newSelection);
+    }
+  };
+
+  const loadSiteSplitsOnly = async (siteId: string) => {
+    if (siteSplits[siteId]) {
+      return siteSplits[siteId];
+    }
+
+    try {
+      setLoadingSplits(prev => ({ ...prev, [siteId]: true }));
+      const splits = await apiService.getSplitsBySiteId(siteId);
+      setSiteSplits(prev => ({ ...prev, [siteId]: splits }));
+      return splits;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load splits for site');
+      return [];
+    } finally {
+      setLoadingSplits(prev => ({ ...prev, [siteId]: false }));
     }
   };
 
@@ -620,8 +659,9 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     }
   };
 
-  const handleOpenEditSiteDialog = (planningSite: PlanningSite) => {
+  const handleOpenEditSiteDialog = async (planningSite: PlanningSite) => {
     setEditingSiteId(planningSite.id);
+    setEditingSiteSiteId(planningSite.site_id);
     setEditSiteFormData({
       planned_date: planningSite.planned_date || '',
       effective_date: planningSite.effective_date || '',
@@ -629,12 +669,47 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
       is_delayed: planningSite.is_delayed,
       description: planningSite.description || ''
     });
+    setEditSiteSelectedSplits({});
+    setEditSiteOriginalSplits({});
     setOpenEditSiteDialog(true);
+    setLoadingEditSiteSplits(true);
+
+    try {
+      const siteSplitList = await loadSiteSplitsOnly(planningSite.site_id);
+      const currentPlanningSplits = await apiService.getPlanningSplitsByPlanningSiteId(planningSite.id);
+
+      const selectedSplits: { [splitId: string]: boolean } = {};
+      const originalSplits: { [splitId: string]: string } = {};
+
+      siteSplitList.forEach((split) => {
+        selectedSplits[split.id] = false;
+      });
+
+      currentPlanningSplits.forEach((split: any) => {
+        if (split.split_id) {
+          selectedSplits[split.split_id] = true;
+          originalSplits[split.split_id] = split.id;
+        }
+      });
+
+      setEditSiteSelectedSplits(selectedSplits);
+      setEditSiteOriginalSplits(originalSplits);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load site splits for editing');
+    } finally {
+      setLoadingEditSiteSplits(false);
+    }
   };
 
   const handleCloseEditSiteDialog = () => {
     setOpenEditSiteDialog(false);
     setEditingSiteId(null);
+    setEditingSiteSiteId(null);
+    setEditSiteSelectedSplits({});
+    setEditSiteOriginalSplits({});
+    setLoadingEditSiteSplits(false);
+    setSavingEditedPlanningSite(false);
     setEditSiteFormData({
       planned_date: '',
       effective_date: '',
@@ -644,13 +719,38 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     });
   };
 
+  const handleEditSiteSplitToggle = (splitId: string, checked: boolean) => {
+    setEditSiteSelectedSplits(prev => ({
+      ...prev,
+      [splitId]: checked
+    }));
+  };
+
   const handleSaveEditedPlanningSite = async () => {
     if (!editingSiteId) return;
 
     try {
+      setSavingEditedPlanningSite(true);
+
       await apiService.updatePlanningSite(editingSiteId, editSiteFormData);
 
-      // Refresh planning sites
+      const splitsToAdd = Object.keys(editSiteSelectedSplits)
+        .filter(splitId => editSiteSelectedSplits[splitId] && !editSiteOriginalSplits[splitId]);
+
+      const splitsToRemove = Object.keys(editSiteOriginalSplits)
+        .filter(splitId => !editSiteSelectedSplits[splitId]);
+
+      await Promise.all(
+        splitsToRemove.map(splitId => apiService.deletePlanningSplit(editSiteOriginalSplits[splitId]))
+      );
+
+      if (splitsToAdd.length > 0) {
+        await apiService.createPlanningSplitsBatch(
+          editingSiteId,
+          splitsToAdd.map(splitId => ({ split_id: splitId, status: 'pending' }))
+        );
+      }
+
       if (selectedPlanning) {
         const sites = await apiService.getPlanningSitesByPlanningId(selectedPlanning.id);
         setPlanningSites(sites);
@@ -661,6 +761,8 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update planning site');
+    } finally {
+      setSavingEditedPlanningSite(false);
     }
   };
 
@@ -724,6 +826,83 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     }
     return siteId;
   };
+
+  const getSiteGroupKey = (siteName: string) => {
+    const normalized = siteName?.toString().trim().replace(/\s+/g, ' ');
+    const match = normalized.match(/^(.*?)(?:\s+|\s*)(\d+([.,]\d+)?)\s*$/);
+    return match ? (match[1].trim() || normalized) : normalized;
+  };
+
+  const formatDateForDisplay = (dateString?: string) => {
+    return dateString ? new Date(dateString).toLocaleDateString('fr-FR') : '-';
+  };
+
+  // Format date for HTML input (YYYY-MM-DD format)
+  const formatDateForInput = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      // Ensure we handle the date in local timezone
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
+  const toRomanNumeral = (value: number) => {
+    const romanMap: [number, string][] = [
+      [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
+      [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
+      [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
+    ];
+    let result = '';
+    let num = value;
+    for (const [arabic, roman] of romanMap) {
+      while (num >= arabic) {
+        result += roman;
+        num -= arabic;
+      }
+    }
+    return result;
+  };
+
+  const groupedPlanningSiteRows = useMemo(() => {
+    const groups = new Map<string, { label: string; items: PlanningSite[] }>();
+
+    planningSites.forEach((ps) => {
+      const siteName = findSiteName(ps.site_id);
+      const groupKey = getSiteGroupKey(siteName).toUpperCase();
+      const label = getSiteGroupKey(siteName);
+
+      if (groups.has(groupKey)) {
+        groups.get(groupKey)!.items.push(ps);
+      } else {
+        groups.set(groupKey, { label, items: [ps] });
+      }
+    });
+
+    return Array.from(groups.values());
+  }, [planningSites, selectedClient, clients]);
+
+  useLayoutEffect(() => {
+    if (!exportingPdf) {
+      setPdfWatermarkPageCount(0);
+      return;
+    }
+
+    const el = planningPdfRef.current;
+    if (!el) {
+      return;
+    }
+
+    const pageHeightPx = PDF_PAGE_HEIGHT_MM * MM_TO_PX;
+    const contentHeightPx = el.getBoundingClientRect().height;
+    const pageCount = Math.max(1, Math.ceil(contentHeightPx / pageHeightPx));
+    setPdfWatermarkPageCount(pageCount);
+  }, [exportingPdf, planningSites, groupedPlanningSiteRows]);
 
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
@@ -948,6 +1127,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
 
             <Box
               ref={planningPdfRef}
+              className="planning-pdf-wrapper"
               sx={{
                 width: exportingPdf ? '210mm' : '100%',
                 minHeight: exportingPdf ? '297mm' : 'auto',
@@ -961,126 +1141,136 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                 position: 'relative'
               }}
             >
-              {/* Background Logos for PDF */}
-              <img src={logo512} alt="Background Logo" className="planning-background-logo" style={{ display: exportingPdf ? 'block' : 'none' }} />
-              <img src={CHANitec} alt="Chanitec Logo" className="planning-background-logo-second" style={{ display: exportingPdf ? 'block' : 'none' }} />
-              <Box sx={{ mb: 2, pb: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  {selectedPlanning?.name}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                  {selectedPlanning?.description}
-                </Typography>
-                {selectedClient?.name && (
-                  <Typography variant="body2" color="textSecondary">
-                    Client : {selectedClient.name}
+              {exportingPdf && Array.from({ length: pdfWatermarkPageCount }, (_, pageIndex) => (
+                <Box
+                  key={`pdf-watermark-page-${pageIndex}`}
+                  className="planning-watermark-page"
+                  sx={{
+                    top: `${pageIndex * PDF_PAGE_HEIGHT_MM}mm`
+                  }}
+                >
+                  <img src={logo512} alt="Watermark" className="planning-watermark-image-primary" />
+                  <img src={CHANitec} alt="Chanitec watermark" className="planning-watermark-image-secondary" />
+                </Box>
+              ))}
+              <Box className="planning-pdf-content" sx={{ position: 'relative', zIndex: 1, backgroundColor: 'transparent' }}>
+                {!exportingPdf && (
+                  <>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {selectedPlanning?.name}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                      {selectedPlanning?.description}
+                    </Typography>
+                    {selectedClient?.name && (
+                      <Typography variant="body2" color="textSecondary">
+                        Client : {selectedClient.name}
+                      </Typography>
+                    )}
+                  </>
+                )}
+
+                {planningSites.length === 0 ? (
+                  <Typography variant="body1" color="textSecondary" sx={{ mb: 2 }}>
+                    Aucun site assigné à ce planning. Cliquez sur "Ajouter des sites" pour commencer.
                   </Typography>
+                ) : (
+                  <Box>
+                    <Box className="planning-sheet-header">
+                      <Typography variant="subtitle2" component="div" className="planning-sheet-title">
+                        Client : {selectedClient?.name} / {selectedPlanning?.name}
+                      </Typography>
+                      <Typography variant="body2" component="div" className="planning-sheet-date">
+                        {new Date().toLocaleDateString('fr-FR')}
+                      </Typography>
+                    </Box>
+                    <TableContainer component={Paper} className="planning-sheet-table-container" sx={{ boxShadow: 'none', border: 'none' }}>
+                      <Table className="planning-sheet-table" size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell className="cell-center"><strong>Ord</strong></TableCell>
+                            <TableCell><strong>SITE</strong></TableCell>
+                            <TableCell className="cell-center"><strong>NUMERO</strong></TableCell>
+                            <TableCell className="cell-center"><strong>Date planifiée</strong></TableCell>
+                            <TableCell><strong>Splits</strong></TableCell>
+                            <TableCell className="cell-center"><strong>Date d'exécution</strong></TableCell>
+                            <TableCell className="cell-center"><strong>NBR SPLIT</strong></TableCell>
+                            {!exportingPdf && (
+                              <TableCell className="cell-center"><strong>Actions</strong></TableCell>
+                            )}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {[...planningSites].sort((a, b) => findSiteName(a.site_id).localeCompare(findSiteName(b.site_id))).map((ps, index) => {
+                            const splitDetails = planningSiteSplits[ps.id] || [];
+                            const siteName = findSiteName(ps.site_id);
+                            return (
+                              <TableRow key={ps.id}>
+                                <TableCell className="cell-center">{index + 1}</TableCell>
+                                <TableCell>{siteName}</TableCell>
+                                <TableCell className="cell-center">{index + 1}</TableCell>
+                                <TableCell className="cell-center">{formatDateForDisplay(ps.planned_date)}</TableCell>
+                                <TableCell>
+                                  {splitDetails.length === 0 ? '-' : (
+                                    <Box className="planning-split-lines">
+                                      {splitDetails.map((split, splitIndex) => (
+                                        <Box
+                                          key={split.id || split.split_id || `${ps.id}-split-${splitIndex}`}
+                                          className="planning-split-line"
+                                        >
+                                          <span className="planning-split-field planning-split-code">
+                                            {split.split_code || '-'}
+                                          </span>
+                                          <span className="planning-split-field planning-split-marque">
+                                            {split.split_marque || '-'}
+                                          </span>
+                                          <span className="planning-split-field planning-split-freon">
+                                            {split.freon || '-'}
+                                          </span>
+                                          <span className="planning-split-field planning-split-puissance">
+                                            {split.puissance ?? '-'}
+                                          </span>
+                                        </Box>
+                                      ))}
+                                    </Box>
+                                  )}
+                                </TableCell>
+                                <TableCell className="cell-center">{formatDateForDisplay(ps.effective_date)}</TableCell>
+                                <TableCell className="cell-center">{splitDetails.length}</TableCell>
+                                {!exportingPdf && (
+                                  <TableCell className="cell-center">
+                                    <Box className="planning-site-actions">
+                                      <IconButton
+                                        size="small"
+                                        color="primary"
+                                        aria-label="Modifier le site"
+                                        onClick={() => handleOpenEditSiteDialog(ps)}
+                                      >
+                                        <EditIcon fontSize="small" />
+                                      </IconButton>
+                                      <IconButton
+                                        size="small"
+                                        color="error"
+                                        aria-label="Supprimer le site"
+                                        onClick={() => handleDeletePlanningSite(ps.id)}
+                                      >
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    </Box>
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
                 )}
               </Box>
-              {planningSites.length === 0 ? (
-              <Typography variant="body1" color="textSecondary" sx={{ mb: 2 }}>
-                Aucun site assigné à ce planning. Cliquez sur "Ajouter des sites" pour commencer.
-              </Typography>
-            ) : (
-              <TableContainer component={Paper} sx={{ width: '100%', boxShadow: 'none', border: '1px solid rgba(0,0,0,0.12)' }}>
-                <Table sx={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700, width: 60 }}>N°</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Site</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Splits assignés</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Date Planifiée</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Date Effective</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700 }}>Délai</TableCell>
-                      <TableCell align="right" sx={{ borderBottom: '1px solid rgba(0,0,0,0.12)', fontWeight: 700, display: exportingPdf ? 'none' : 'table-cell' }}>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {planningSites.map((ps, index) => {
-                      const splitDetails = planningSiteSplits[ps.id] || [];
-                      const isDelayed = ps.planned_date && ps.effective_date ? (new Date(ps.effective_date) > new Date(ps.planned_date)) : false;
-                      return (
-                        <TableRow key={ps.id} sx={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-                          <TableCell sx={{ fontWeight: 500, p: '8px 16px' }}>{index + 1}</TableCell>
-                          <TableCell sx={{ fontWeight: 500, p: '8px 16px' }}>{findSiteName(ps.site_id)}</TableCell>
-                          <TableCell sx={{ p: '8px 16px' }}>
-                            <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
-                              {splitDetails.length} split{splitDetails.length !== 1 ? 's' : ''}
-                            </Typography>
-                            {splitDetails.length > 0 ? (
-                              (() => {
-                                const groups = groupSplitsByCharacteristics(splitDetails);
-                                return (
-                                  <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 140px 200px', gap: 1, bgcolor: 'transparent', p: 0.5, fontWeight: 700 }}>
-                                      <Box>Quantité</Box>
-                                      <Box>Marque</Box>
-                                      <Box>Type</Box>
-                                      <Box>Puissance</Box>
-                                      <Box>Codes</Box>
-                                    </Box>
-                                    {groups.map((g, gi) => (
-                                      <Box key={gi} sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 140px 200px', gap: 1, alignItems: 'start', p: 0.5, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                                        <Box sx={{ fontWeight: 600 }}>{g.quantity}</Box>
-                                        <Box>{g.marque || '-'}</Box>
-                                        <Box>{g.type || '-'}</Box>
-                                        <Box>{g.puissance ?? '-'}</Box>
-                                        <Box>
-                                          {g.codes.length > 0 ? (
-                                            <Box>
-                                              {g.codes.join(', ')}
-                                            </Box>
-                                          ) : (
-                                            <Typography variant="caption" color="textSecondary">-</Typography>
-                                          )}
-                                        </Box>
-                                      </Box>
-                                    ))}
-                                  </Box>
-                                );
-                              })()
-                            ) : (
-                              <Typography variant="body2" color="textSecondary">
-                                Aucun split assigné
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell sx={{ p: '8px 16px' }}>
-                            {ps.planned_date ? new Date(ps.planned_date).toLocaleDateString('fr-FR') : '-'}
-                          </TableCell>
-                          <TableCell sx={{ p: '8px 16px' }}>
-                            {ps.effective_date ? new Date(ps.effective_date).toLocaleDateString('fr-FR') : '-'}
-                          </TableCell>
-                          <TableCell sx={{ p: '8px 16px' }}>
-                            <Checkbox checked={isDelayed} disabled inputProps={{ 'aria-label': 'Délai' }} />
-                          </TableCell>
-                          <TableCell align="right" sx={{ p: '8px 16px', display: exportingPdf ? 'none' : 'table-cell' }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenEditSiteDialog(ps)}
-                              title="Modifier"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeletePlanningSite(ps.id)}
-                              title="Supprimer"
-                              color="error"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
             </Box>
-          </Box>
-        )}
+            </Box>
+          )}
 
         {!loading && !error && activeClientId && !selectedClient && (
           <Box sx={{ textAlign: 'center', mt: 4 }}>
@@ -1158,7 +1348,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
 
           {selectedClient?.sites && selectedClient.sites.length > 0 ? (
             <Box>
-              {selectedClient.sites.map((site) => {
+              {selectedClient.sites.sort((a, b) => (a.name || '').localeCompare((b.name || ''))).map((site) => {
                 const isAlreadyAdded = planningSites.some(ps => ps.site_id === site.id);
                 const isSelected = !!selectedSitesForPlanning[site.id];
 
@@ -1330,78 +1520,266 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
         </DialogActions>
       </Dialog>
 
-      {/* Edit Planning Site Dialog */}
-      <Dialog open={openEditSiteDialog} onClose={handleCloseEditSiteDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Modifier le site du planning
+      {/* Edit Planning Site Dialog - Fully Enhanced */}
+      <Dialog open={openEditSiteDialog} onClose={handleCloseEditSiteDialog} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{
+          bgcolor: 'primary.main',
+          color: 'white',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <EditIcon />
+            <Box>
+              <Typography variant="h6" sx={{ color: 'white', m: 0 }}>
+                Modifier le site du planning
+              </Typography>
+              {editingSiteSiteId && (
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  {findSiteName(editingSiteSiteId)}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          <Chip
+            label={getStatusLabel(editSiteFormData.status)}
+            color={getStatusColor(editSiteFormData.status) as any}
+            sx={{ fontWeight: 600 }}
+          />
         </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <TextField
-            fullWidth
-            label="Date Planifiée"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={editSiteFormData.planned_date || ''}
-            onChange={(e) => {
-              const newData = { ...editSiteFormData, planned_date: e.target.value };
-              const planned = newData.planned_date;
-              const effective = newData.effective_date;
-              const isDelayed = planned && effective ? (new Date(effective) > new Date(planned)) : false;
-              setEditSiteFormData({ ...newData, is_delayed: isDelayed ? 1 : 0 });
-            }}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Date Effective"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={editSiteFormData.effective_date || ''}
-            onChange={(e) => {
-              const newData = { ...editSiteFormData, effective_date: e.target.value };
-              const planned = newData.planned_date;
-              const effective = newData.effective_date;
-              const isDelayed = planned && effective ? (new Date(effective) > new Date(planned)) : false;
-              setEditSiteFormData({ ...newData, is_delayed: isDelayed ? 1 : 0 });
-            }}
-            margin="normal"
-          />
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Statut</InputLabel>
-            <Select
-              value={editSiteFormData.status}
-              label="Statut"
-              onChange={(e) => setEditSiteFormData({ ...editSiteFormData, status: e.target.value as any })}
-            >
-              <MenuItem value="planned">Planifié</MenuItem>
-              <MenuItem value="active">Actif</MenuItem>
-              <MenuItem value="finished">Terminé</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={!!editSiteFormData.is_delayed}
-                disabled
+
+        <DialogContent sx={{ pt: 3, pb: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+            {/* Left Column - Dates and Status */}
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'primary.main', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 1 }}>
+                📅 Planification
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Date Planifiée"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  value={formatDateForInput(editSiteFormData.planned_date) || ''}
+                  onChange={(e) => {
+                    const newData = { ...editSiteFormData, planned_date: e.target.value };
+                    const planned = newData.planned_date;
+                    const effective = newData.effective_date;
+                    const isDelayed = planned && effective ? (new Date(effective) > new Date(planned)) : false;
+                    setEditSiteFormData({ ...newData, is_delayed: isDelayed ? 1 : 0 });
+                  }}
+                  size="small"
+                />
+                <TextField
+                  fullWidth
+                  label="Date d'Exécution"
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  value={formatDateForInput(editSiteFormData.effective_date) || ''}
+                  onChange={(e) => {
+                    const newData = { ...editSiteFormData, effective_date: e.target.value };
+                    const planned = newData.planned_date;
+                    const effective = newData.effective_date;
+                    const isDelayed = planned && effective ? (new Date(effective) > new Date(planned)) : false;
+                    setEditSiteFormData({ ...newData, is_delayed: isDelayed ? 1 : 0 });
+                  }}
+                  size="small"
+                  helperText={editSiteFormData.is_delayed ? "⚠️ Délai détecté" : ""}
+                  error={!!editSiteFormData.is_delayed}
+                />
+              </Box>
+
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'primary.main', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 1 }}>
+                  ⚙️ Statut
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Statut du site</InputLabel>
+                  <Select
+                    value={editSiteFormData.status}
+                    label="Statut du site"
+                    onChange={(e) => setEditSiteFormData({ ...editSiteFormData, status: e.target.value as any })}
+                  >
+                    <MenuItem value="planned">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#2196F3' }} />
+                        Planifié
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="active">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FFC107' }} />
+                        Actif
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="finished">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#4CAF50' }} />
+                        Terminé
+                      </Box>
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+
+                <Box sx={{ mt: 2, p: 1.5, bgcolor: editSiteFormData.is_delayed ? '#FFEBEE' : '#E8F5E9', borderRadius: 1, border: '1px solid', borderColor: editSiteFormData.is_delayed ? '#FFCDD2' : '#C8E6C9' }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={!!editSiteFormData.is_delayed}
+                        disabled
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          Délai détecté
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          La date d'exécution est après la date planifiée
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Right Column - Description and Notes */}
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'primary.main', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 1 }}>
+                📝 Détails
+              </Typography>
+              <TextField
+                fullWidth
+                label="Description / Notes"
+                multiline
+                rows={8}
+                value={editSiteFormData.description || ''}
+                onChange={(e) => setEditSiteFormData({ ...editSiteFormData, description: e.target.value })}
+                placeholder="Ajoutez des notes, observations ou détails spécifiques pour ce site..."
+                variant="outlined"
+                size="small"
               />
-            }
-            label="Délai"
-            sx={{ mt: 2, display: 'block' }}
-          />
-          <TextField
-            fullWidth
-            label="Description"
-            multiline
-            rows={3}
-            value={editSiteFormData.description || ''}
-            onChange={(e) => setEditSiteFormData({ ...editSiteFormData, description: e.target.value })}
-            margin="normal"
-          />
+            </Box>
+          </Box>
+
+          {/* Splits Section - Full Width */}
+          <Box sx={{ mt: 4, pt: 3, borderTop: '2px solid #e0e0e0' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 1 }}>
+                🔧 Divisions / Splits du site
+              </Typography>
+              {editingSiteSiteId && siteSplits[editingSiteSiteId]?.length > 0 && (
+                <Chip
+                  label={`${Object.values(editSiteSelectedSplits).filter(Boolean).length} sélectionnés / ${siteSplits[editingSiteSiteId].length} disponibles`}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+            </Box>
+
+            {loadingEditSiteSplits || (editingSiteSiteId && loadingSplits[editingSiteSiteId]) ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress size={32} />
+              </Box>
+            ) : editingSiteSiteId && siteSplits[editingSiteSiteId]?.length > 0 ? (
+              <Box
+                sx={{
+                  border: '1px solid #e0e0e0',
+                  borderRadius: 1,
+                  overflow: 'hidden'
+                }}
+              >
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+                      <TableCell sx={{ fontWeight: 700, width: '50px' }}>Sélection</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Marque</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Puissance</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Fluide</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {siteSplits[editingSiteSiteId].map((split, idx) => {
+                      const isSelected = !!editSiteSelectedSplits[split.id];
+                      return (
+                        <TableRow
+                          key={split.id}
+                          sx={{
+                            bgcolor: isSelected ? '#E3F2FD' : 'white',
+                            '&:hover': { bgcolor: isSelected ? '#BBDEFB' : '#fafafa' },
+                            transition: 'background-color 0.2s'
+                          }}
+                        >
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={(e) => handleEditSiteSplitToggle(split.id, e.target.checked)}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {split.Code || split.code || split.name}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {split.description || '-'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {split.name || '-'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={split.puissance || '-'}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={split.freon || '-'}
+                              size="small"
+                              color={split.freon ? 'primary' : 'default'}
+                              variant={split.freon ? 'filled' : 'outlined'}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </Box>
+            ) : (
+              <Box sx={{ p: 3, textAlign: 'center', bgcolor: '#fafafa', borderRadius: 1, border: '1px dashed #ccc' }}>
+                <Typography variant="body2" color="textSecondary">
+                  ❌ Aucune division disponible pour ce site.
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseEditSiteDialog}>Annuler</Button>
-          <Button onClick={handleSaveEditedPlanningSite} variant="contained">
-            Mettre à jour
+
+        <DialogActions sx={{ p: 2, bgcolor: '#f5f5f5', borderTop: '1px solid #e0e0e0' }}>
+          <Button onClick={handleCloseEditSiteDialog} disabled={savingEditedPlanningSite} variant="outlined">
+            Annuler
+          </Button>
+          <Button
+            onClick={handleSaveEditedPlanningSite}
+            variant="contained"
+            disabled={savingEditedPlanningSite || loadingEditSiteSplits}
+            sx={{ minWidth: 120 }}
+          >
+            {savingEditedPlanningSite ? '⏳ Enregistrement...' : '✓ Mettre à jour'}
           </Button>
         </DialogActions>
       </Dialog>
