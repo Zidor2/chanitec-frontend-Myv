@@ -848,7 +848,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     });
 
     return Array.from(groups.values());
-  }, [planningSites, selectedClient, clients, findSiteName]);
+  }, [planningSites, findSiteName]);
 
   useLayoutEffect(() => {
     if (!exportingPdf) {
