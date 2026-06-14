@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -792,32 +792,10 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     }
   };
 
-  // Group splits by marque/type/puissance/freon to compute quantity and codes
-  const groupSplitsByCharacteristics = (splits: PlanningSiteSplitDetails[]) => {
-    const map = new Map<string, { quantity: number; marque?: string; type?: string; puissance?: string | number | null; freon?: string | null; codes: string[] }>();
-    splits.forEach(sp => {
-      const key = `${sp.split_marque || ''}||${sp.split_name || ''}||${sp.puissance ?? ''}||${sp.freon || ''}`;
-      const existing = map.get(key);
-      const code = (sp.split_code || '').toString();
-      if (existing) {
-        existing.quantity += 1;
-        if (code) existing.codes.push(code);
-      } else {
-        map.set(key, {
-          quantity: 1,
-          marque: sp.split_marque,
-          type: sp.split_name,
-          puissance: sp.puissance,
-          freon: sp.freon,
-          codes: code ? [code] : []
-        });
-      }
-    });
-    return Array.from(map.values());
-  };
+  // (removed unused helper `groupSplitsByCharacteristics`)
 
   // Resolve a human-readable site name from available client/site data; fall back to the id
-  const findSiteName = (siteId: string) => {
+  const findSiteName = useCallback((siteId: string) => {
     const s1 = selectedClient?.sites?.find(s => s.id === siteId);
     if (s1 && s1.name) return s1.name;
     for (const c of clients) {
@@ -825,7 +803,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
       if (s && s.name) return s.name;
     }
     return siteId;
-  };
+  }, [selectedClient, clients]);
 
   const getSiteGroupKey = (siteName: string) => {
     const normalized = siteName?.toString().trim().replace(/\s+/g, ' ');
@@ -852,22 +830,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     }
   };
 
-  const toRomanNumeral = (value: number) => {
-    const romanMap: [number, string][] = [
-      [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
-      [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
-      [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
-    ];
-    let result = '';
-    let num = value;
-    for (const [arabic, roman] of romanMap) {
-      while (num >= arabic) {
-        result += roman;
-        num -= arabic;
-      }
-    }
-    return result;
-  };
+  // (removed unused helper `toRomanNumeral`)
 
   const groupedPlanningSiteRows = useMemo(() => {
     const groups = new Map<string, { label: string; items: PlanningSite[] }>();
@@ -885,7 +848,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     });
 
     return Array.from(groups.values());
-  }, [planningSites, selectedClient, clients]);
+  }, [planningSites, selectedClient, clients, findSiteName]);
 
   useLayoutEffect(() => {
     if (!exportingPdf) {
