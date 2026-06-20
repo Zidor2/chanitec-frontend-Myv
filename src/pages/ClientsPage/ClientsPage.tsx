@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import html2pdf from 'html2pdf.js';
 import logo512 from '../../assets/logo512.png';
 import CHANitec from '../../assets/CHANitec.png';
 
@@ -100,6 +99,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const [filterFreon, setFilterFreon] = useState<string[]>([]);
   const [filterPuissance, setFilterPuissance] = useState<string[]>([]);
   const [selectedChartType, setSelectedChartType] = useState<'site' | 'freon' | 'puissance'>('site');
+  const [isPdfMode, setIsPdfMode] = useState(false);
 
   // State for dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -308,43 +308,22 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
     setFilterPuissance([]);
   };
 
-  // Save chart to PDF
-  const handleSavePDF = () => {
-    const element = document.getElementById('chart-section');
-    if (!element) return;
-    const options = {
-      margin: 10,
-      filename: 'chart.pdf',
-      html2canvas: { scale: 3 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  const handlePrint = () => {
+    setIsPdfMode(true);
+    window.print();
+
+    const handleAfterPrint = () => {
+      setIsPdfMode(false);
+      window.removeEventListener('afterprint', handleAfterPrint);
+      if (timeoutId) clearTimeout(timeoutId);
     };
-    element.classList.add('pdf-export');
 
-    // Show background logos during export
-    const logos = Array.from(element.querySelectorAll('.clients-background-logo, .clients-background-logo-second')) as HTMLElement[];
-    logos.forEach(logo => {
-      logo.style.display = 'block';
-    });
+    window.addEventListener('afterprint', handleAfterPrint);
 
-    // Temporarily hide interactive controls via inline styles for robust export
-    const controls = Array.from(element.querySelectorAll('button, input, select, .MuiFormControl-root, .MuiOutlinedInput-root, .MuiButton-root, [role="button"]')) as HTMLElement[];
-    const prevStyles = controls.map(el => el.getAttribute('style') || '');
-    controls.forEach(el => {
-      try { el.style.setProperty('display', 'none', 'important'); el.style.setProperty('visibility', 'hidden', 'important'); } catch (e) {}
-    });
-
-    html2pdf().set(options).from(element).save().finally(() => {
-      controls.forEach((el, i) => {
-        try { el.setAttribute('style', prevStyles[i] || ''); } catch (e) {}
-      });
-
-      // Hide logos after export
-      logos.forEach(logo => {
-        logo.style.display = 'none';
-      });
-
-      element.classList.remove('pdf-export');
-    });
+    const timeoutId = setTimeout(() => {
+      setIsPdfMode(false);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    }, 5000);
   };
 
   // Show snackbar with message
@@ -848,7 +827,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
 
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
-      <Box className="clients-page">
+      <Box className={`clients-page ${isPdfMode ? 'is-pdf-mode' : ''}`}>
         {/* Header Section */}
         <Box className="page-header">
           <Container maxWidth="lg">
@@ -921,7 +900,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
           ) : selectedClient ? (
             <Box>
               {/* Selected Client Info */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Box className="clients-print-hide" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Box>
                   <Typography variant="h5" sx={{ mb: 0.5 }}>
                     {selectedClient.name}
@@ -1067,13 +1046,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
               </Box>
 
               {/* Chart Panel */}
-              <Card id="chart-section" sx={{ mb: 3, position: 'relative' }}>
+              <Card id="chart-section" className={isPdfMode ? 'is-pdf-mode' : ''} sx={{ mb: 3, position: 'relative' }}>
                 <CardContent sx={{ position: 'relative' }}>
                   {/* Background Logos */}
-                  <img src={logo512} alt="Background Logo" className="clients-background-logo" style={{ display: 'none', opacity: 0.15 }} />
-                  <img src={CHANitec} alt="Chanitec Logo" className="clients-background-logo-second" style={{ display: 'none', opacity: 0.15 }} />
+                  <img src={logo512} alt="Background Logo" className="clients-background-logo" />
+                  <img src={CHANitec} alt="Chanitec Logo" className="clients-background-logo-second" />
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                  <Box className="chart-toolbar" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                       {'Total équipements : ' + chartTotal}
                     </Typography>
@@ -1094,9 +1073,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       <Button
                         variant="outlined"
                         size="small"
-                        onClick={handleSavePDF}
+                        onClick={handlePrint}
                       >
-                        Sauvegarder PDF
+                        Imprimer
                       </Button>
                     </Box>
                   </Box>
@@ -1149,6 +1128,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
               </Card>
 
               {/* Sites and Splits Display */}
+              <Box className="clients-print-hide">
               {clientSitesLoading[selectedClientId] ? (
                 <Box className="loading-container">
                   <Typography>Chargement des sites...</Typography>
@@ -1210,6 +1190,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   ))}
                 </Box>
               )}
+              </Box>
             </Box>
           ) : null}
         </Container>

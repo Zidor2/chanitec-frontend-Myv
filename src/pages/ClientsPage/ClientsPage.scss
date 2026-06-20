@@ -363,13 +363,104 @@
 
 // Print styles
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
   .clients-page {
-    display: none;
+    .page-header,
+    .filter-section,
+    .clients-print-hide {
+      display: none !important;
+    }
+  }
+
+  #chart-section {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+
+    .chart-toolbar,
+    .chart-actions {
+      display: none !important;
+    }
+
+    .MuiTextField-root,
+    .MuiButton-root {
+      display: none !important;
+    }
+
+    button,
+    input,
+    select,
+    .MuiFormControl-root,
+    .MuiOutlinedInput-root,
+    .MuiInputBase-root,
+    [role="button"] {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    .pdf-header,
+    .pdf-legend {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .on-screen-legend {
+      display: none !important;
+    }
+
+    .pdf-header {
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    .pdf-legend > div {
+      text-align: left;
+      margin: 4px 0;
+    }
+
+    svg {
+      width: 100% !important;
+      height: auto !important;
+      max-width: 1100px !important;
+    }
+
+    .clients-background-logo,
+    .clients-background-logo-second {
+      display: block !important;
+    }
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .layout-root,
+  .dashboard-main,
+  .dashboard-content {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 }
 
-/* PDF export tweaks */
-#chart-section.pdf-export {
+.clients-page.is-pdf-mode {
+  .page-header,
+  .filter-section,
+  .clients-print-hide {
+    display: none !important;
+  }
+}
+
+#chart-section.is-pdf-mode {
+  .chart-toolbar,
   .chart-actions {
     display: none !important;
   }
@@ -379,7 +470,6 @@
     display: none !important;
   }
 
-  /* More aggressive hiding for MUI and native controls inside the export area */
   button,
   input,
   select,
@@ -398,8 +488,9 @@
     margin-bottom: 8px;
   }
 
-  /* hide the on-screen legend during PDF export to avoid duplicates */
-  .on-screen-legend { display: none !important; }
+  .on-screen-legend {
+    display: none !important;
+  }
 
   .pdf-header {
     font-size: 20px;
@@ -420,27 +511,35 @@
 
   .clients-background-logo,
   .clients-background-logo-second {
-    position: absolute;
-    z-index: 1;
-    pointer-events: none;
-    user-select: none;
+    display: block !important;
   }
+}
 
-  .clients-background-logo {
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 600px;
-    height: auto;
-  }
+.clients-background-logo,
+.clients-background-logo-second {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.15;
+  object-fit: contain;
+}
 
-  .clients-background-logo-second {
-    top: 75%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60%;
-    max-width: 400px;
-    height: auto;
-  }
+.clients-background-logo {
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  height: auto;
+}
+
+.clients-background-logo-second {
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  max-width: 400px;
+  height: auto;
 }

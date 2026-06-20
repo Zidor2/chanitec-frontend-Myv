@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -34,26 +34,14 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
-  Download as DownloadIcon
+  Print as PrintIcon
 } from '@mui/icons-material';
 import Layout from '../../components/Layout/Layout';
 import { Client, Planning } from '../../models/Quote';
 import { apiService } from '../../services/api-service';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import logo512 from '../../assets/logo512.png';
 import CHANitec from '../../assets/CHANitec.png';
 import './PlanningPage.scss';
-
-const MM_TO_PX = 3.7795275591;
-const PDF_PAGE_HEIGHT_MM = 297;
-
-const waitForPdfLayout = () =>
-  new Promise<void>(resolve => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => resolve());
-    });
-  });
 
 interface PlanningPageProps {
   currentPath?: string;
@@ -121,8 +109,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
   const [openEditSiteDialog, setOpenEditSiteDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
-  const [exportingPdf, setExportingPdf] = useState(false);
-  const [pdfWatermarkPageCount, setPdfWatermarkPageCount] = useState(0);
+  const [isPdfMode, setIsPdfMode] = useState(false);
   const [selectedSitesForPlanning, setSelectedSitesForPlanning] = useState<{
     [siteId: string]: SelectedSiteWithSplits;
   }>({});
@@ -417,60 +404,24 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     setSelectedSitesForPlanning({});
   };
 
-  const handleDownloadPlanningPdf = async () => {
-    if (!planningPdfRef.current || !selectedPlanning) return;
+  const handlePrint = () => {
+    if (!selectedPlanning) return;
 
-    try {
-      setExportingPdf(true);
-      await waitForPdfLayout();
-      await waitForPdfLayout();
+    setIsPdfMode(true);
+    window.print();
 
-      const canvas = await html2canvas(planningPdfRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        allowTaint: true,
-        width: planningPdfRef.current.scrollWidth,
-        height: planningPdfRef.current.scrollHeight,
-        windowWidth: planningPdfRef.current.scrollWidth,
-        windowHeight: planningPdfRef.current.scrollHeight
-      });
+    const handleAfterPrint = () => {
+      setIsPdfMode(false);
+      window.removeEventListener('afterprint', handleAfterPrint);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
 
-      // Create image and build a multi-page PDF with no margins
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
+    window.addEventListener('afterprint', handleAfterPrint);
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // Calculate image height in mm for the PDF width
-      const imgProps = pdf.getImageProperties(imgData);
-      const imgWidthMm = pdfWidth;
-      const imgHeightMm = (imgProps.height * imgWidthMm) / imgProps.width;
-
-      let heightLeft = imgHeightMm;
-      let position = 0;
-
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidthMm, imgHeightMm);
-      heightLeft -= pdfHeight;
-
-      // Add additional pages if content is taller than one page
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeightMm;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidthMm, imgHeightMm);
-        heightLeft -= pdfHeight;
-      }
-
-      const fileName = `${selectedPlanning.name?.replace(/[^a-z0-9]+/gi, '_').toLowerCase() || 'planning'}_export.pdf`;
-      pdf.save(fileName);
-    } catch (error) {
-      console.error('Error generating planning PDF:', error);
-      setError('Impossible de générer le PDF. Veuillez réessayer.');
-    } finally {
-      setExportingPdf(false);
-    }
+    const timeoutId = setTimeout(() => {
+      setIsPdfMode(false);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    }, 5000);
   };
 
   const handleBackFromPlanningSites = () => {
@@ -850,23 +801,6 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     return Array.from(groups.values());
   }, [planningSites, findSiteName]);
 
-  useLayoutEffect(() => {
-    if (!exportingPdf) {
-      setPdfWatermarkPageCount(0);
-      return;
-    }
-
-    const el = planningPdfRef.current;
-    if (!el) {
-      return;
-    }
-
-    const pageHeightPx = PDF_PAGE_HEIGHT_MM * MM_TO_PX;
-    const contentHeightPx = el.getBoundingClientRect().height;
-    const pageCount = Math.max(1, Math.ceil(contentHeightPx / pageHeightPx));
-    setPdfWatermarkPageCount(pageCount);
-  }, [exportingPdf, planningSites, groupedPlanningSiteRows]);
-
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
       <Box className="planning-page-container">
@@ -1045,8 +979,8 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
         )}
 
         {!loading && !error && selectedPlanning && (
-          <Box className="planning-sites-details" sx={{ mt: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+          <Box className={`planning-sites-details ${isPdfMode ? 'is-pdf-mode' : ''}`} sx={{ mt: 4 }}>
+            <Box className="planning-print-hide" sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Button
                 startIcon={<ArrowBackIcon />}
                 onClick={handleBackFromPlanningSites}
@@ -1065,18 +999,18 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
               </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
+            <Box className="planning-print-hide" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
               <Typography variant="h6">
                 Sites assignés ({planningSites.length})
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 <Button
                   variant="contained"
-                  startIcon={<DownloadIcon />}
-                  onClick={handleDownloadPlanningPdf}
+                  startIcon={<PrintIcon />}
+                  onClick={handlePrint}
                   disabled={!selectedPlanning}
                 >
-                  Télécharger PDF
+                  Imprimer
                 </Button>
                 <Button
                   variant="contained"
@@ -1090,11 +1024,9 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
 
             <Box
               ref={planningPdfRef}
-              className="planning-pdf-wrapper"
+              className={`planning-pdf-wrapper ${isPdfMode ? 'is-pdf-mode' : ''}`}
               sx={{
-                width: exportingPdf ? '210mm' : '100%',
-                minHeight: exportingPdf ? '297mm' : 'auto',
-                maxWidth: exportingPdf ? '210mm' : '100%',
+                width: '100%',
                 p: 2,
                 mx: 'auto',
                 bgcolor: '#fff',
@@ -1104,34 +1036,22 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                 position: 'relative'
               }}
             >
-              {exportingPdf && Array.from({ length: pdfWatermarkPageCount }, (_, pageIndex) => (
-                <Box
-                  key={`pdf-watermark-page-${pageIndex}`}
-                  className="planning-watermark-page"
-                  sx={{
-                    top: `${pageIndex * PDF_PAGE_HEIGHT_MM}mm`
-                  }}
-                >
-                  <img src={logo512} alt="Watermark" className="planning-watermark-image-primary" />
-                  <img src={CHANitec} alt="Chanitec watermark" className="planning-watermark-image-secondary" />
-                </Box>
-              ))}
+              <img src={logo512} alt="Background Logo" className="planning-background-logo" />
+              <img src={CHANitec} alt="Chanitec Logo" className="planning-background-logo-second" />
               <Box className="planning-pdf-content" sx={{ position: 'relative', zIndex: 1, backgroundColor: 'transparent' }}>
-                {!exportingPdf && (
-                  <>
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      {selectedPlanning?.name}
+                <Box className="planning-screen-only">
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {selectedPlanning?.name}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                    {selectedPlanning?.description}
+                  </Typography>
+                  {selectedClient?.name && (
+                    <Typography variant="body2" color="textSecondary">
+                      Client : {selectedClient.name}
                     </Typography>
-                    <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                      {selectedPlanning?.description}
-                    </Typography>
-                    {selectedClient?.name && (
-                      <Typography variant="body2" color="textSecondary">
-                        Client : {selectedClient.name}
-                      </Typography>
-                    )}
-                  </>
-                )}
+                  )}
+                </Box>
 
                 {planningSites.length === 0 ? (
                   <Typography variant="body1" color="textSecondary" sx={{ mb: 2 }}>
@@ -1158,9 +1078,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                             <TableCell><strong>Splits</strong></TableCell>
                             <TableCell className="cell-center"><strong>Date d'exécution</strong></TableCell>
                             <TableCell className="cell-center"><strong>NBR SPLIT</strong></TableCell>
-                            {!exportingPdf && (
-                              <TableCell className="cell-center"><strong>Actions</strong></TableCell>
-                            )}
+                            <TableCell className="cell-center planning-print-hide"><strong>Actions</strong></TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -1200,9 +1118,8 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                                 </TableCell>
                                 <TableCell className="cell-center">{formatDateForDisplay(ps.effective_date)}</TableCell>
                                 <TableCell className="cell-center">{splitDetails.length}</TableCell>
-                                {!exportingPdf && (
-                                  <TableCell className="cell-center">
-                                    <Box className="planning-site-actions">
+                                <TableCell className="cell-center planning-print-hide">
+                                  <Box className="planning-site-actions">
                                       <IconButton
                                         size="small"
                                         color="primary"
@@ -1220,8 +1137,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                                         <DeleteIcon fontSize="small" />
                                       </IconButton>
                                     </Box>
-                                  </TableCell>
-                                )}
+                                </TableCell>
                               </TableRow>
                             );
                           })}
