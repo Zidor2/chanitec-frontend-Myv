@@ -783,24 +783,6 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
 
   // (removed unused helper `toRomanNumeral`)
 
-  const groupedPlanningSiteRows = useMemo(() => {
-    const groups = new Map<string, { label: string; items: PlanningSite[] }>();
-
-    planningSites.forEach((ps) => {
-      const siteName = findSiteName(ps.site_id);
-      const groupKey = getSiteGroupKey(siteName).toUpperCase();
-      const label = getSiteGroupKey(siteName);
-
-      if (groups.has(groupKey)) {
-        groups.get(groupKey)!.items.push(ps);
-      } else {
-        groups.set(groupKey, { label, items: [ps] });
-      }
-    });
-
-    return Array.from(groups.values());
-  }, [planningSites, findSiteName]);
-
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
       <Box className="planning-page-container">
