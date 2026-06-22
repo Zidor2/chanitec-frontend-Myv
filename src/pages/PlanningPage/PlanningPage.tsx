@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -755,12 +755,6 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     }
     return siteId;
   }, [selectedClient, clients]);
-
-  const getSiteGroupKey = (siteName: string) => {
-    const normalized = siteName?.toString().trim().replace(/\s+/g, ' ');
-    const match = normalized.match(/^(.*?)(?:\s+|\s*)(\d+([.,]\d+)?)\s*$/);
-    return match ? (match[1].trim() || normalized) : normalized;
-  };
 
   const formatDateForDisplay = (dateString?: string) => {
     return dateString ? new Date(dateString).toLocaleDateString('fr-FR') : '-';
