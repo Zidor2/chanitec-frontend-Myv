@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Autocomplete,
   Box,
   Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
@@ -19,6 +26,7 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import { LaborItem } from '../../models/Quote';
+import { apiService } from '../../services/api-service';
 import { calculateLaborItemTotal } from '../../utils/calculations';
 import CustomNumberInput from '../CustomNumberInput/CustomNumberInput';
 import './LaborSection.scss';
@@ -52,12 +60,30 @@ const LaborSection: React.FC<LaborSectionProps> = ({
   const [nbHours, setNbHours] = useState(1);
   const [weekendMultiplier, setWeekendMultiplier] = useState(1);
   const [priceEuro, setPriceEuro] = useState(11);
+  const [descriptions, setDescriptions] = useState<Array<{ id: number; content: string }>>([]);
+  const [descriptionSearchInput, setDescriptionSearchInput] = useState('');
+  const [newDescriptionDialogOpen, setNewDescriptionDialogOpen] = useState(false);
+  const [newDescriptionText, setNewDescriptionText] = useState('');
+  const [isCreatingDescription, setIsCreatingDescription] = useState(false);
 
   // Weekend multiplier options
   const weekendOptions = [
     { value: 1, label: '1 (Normal)' },
     { value: 1.6, label: '1.6 (Weekend)' }
   ];
+
+  useEffect(() => {
+    const loadDescriptions = async () => {
+      try {
+        const loadedDescriptions = await apiService.getDescriptions(2);
+        setDescriptions(loadedDescriptions);
+      } catch (error) {
+        console.error('Error loading labor descriptions:', error);
+      }
+    };
+
+    loadDescriptions();
+  }, []);
 
   // Function to format description text with "En weekend" in bold red
   const formatDescriptionText = (text: string) => {
@@ -114,38 +140,77 @@ const LaborSection: React.FC<LaborSectionProps> = ({
     setPriceEuro(11);
   };
 
+  const handleSaveNewDescription = async () => {
+    if (!newDescriptionText.trim()) {
+      return;
+    }
+
+    setIsCreatingDescription(true);
+    try {
+      const response = await apiService.createDescription({
+        content: newDescriptionText.trim(),
+        section: 2
+      });
+
+      setDescriptions([...descriptions, response]);
+      onUpdateDescription(newDescriptionText.trim());
+      setNewDescriptionDialogOpen(false);
+      setNewDescriptionText('');
+      setDescriptionSearchInput('');
+    } catch (error) {
+      console.error('Error creating labor description:', error);
+      alert('Failed to create description. Please try again.');
+    } finally {
+      setIsCreatingDescription(false);
+    }
+  };
+
   return (
     <Paper className="labor-section" elevation={2}>
       <Typography variant="h6" className="section-title">
         MAIN D'OEUVRE
       </Typography>
 
-      <TextField
-        select
+      <Autocomplete
+        freeSolo
         fullWidth
-        label="Description de la main d'oeuvre"
-        value={description}
-        onChange={(e) => onUpdateDescription(e.target.value)}
-        variant="outlined"
-        margin="normal"
-        className="description-field"
-        SelectProps={{
-          renderValue: (value) => formatDescriptionText(value as string)
+        options={descriptions.map((d) => d.content)}
+        value={description || ''}
+        inputValue={descriptionSearchInput}
+        onInputChange={(event, newInputValue) => {
+          setDescriptionSearchInput(newInputValue);
         }}
-      >
-        <MenuItem value="Fixation, mise au point, raccordement, mise en vide et mise en service En weekend">
-          {formatDescriptionText("Fixation, mise au point, raccordement, mise en vide et mise en service En weekend")}
-        </MenuItem>
-        <MenuItem value="Fixation, mise au point, raccordement, mise en vide et mise en service ">
-          Fixation, mise au point, raccordement, mise en vide et mise en service
-        </MenuItem>
-        <MenuItem value="Mise au point, raccordement, mise en vide, mise en service, contrôle du rendement En weekend">
-          {formatDescriptionText("Mise au point, raccordement, mise en vide, mise en service, contrôle du rendement En weekend")}
-        </MenuItem>
-        <MenuItem value="Mise au point, raccordement, mise en vide, mise en service, contrôle du rendement">
-          Mise au point, raccordement, mise en vide, mise en service, contrôle du rendement
-        </MenuItem>
-      </TextField>
+        onChange={(event, newValue) => {
+          if (newValue) {
+            onUpdateDescription(String(newValue));
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && descriptionSearchInput.trim() !== '') {
+            const exists = descriptions.some(
+              (d) => d.content.toLowerCase() === descriptionSearchInput.toLowerCase()
+            );
+
+            if (!exists) {
+              setNewDescriptionText(descriptionSearchInput);
+              setNewDescriptionDialogOpen(true);
+            } else {
+              onUpdateDescription(descriptionSearchInput);
+            }
+            event.preventDefault();
+          }
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Description de la main d'oeuvre"
+            variant="outlined"
+            margin="normal"
+            className="description-field"
+            placeholder="Type or select description..."
+          />
+        )}
+      />
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems:  'right' , gap: 5 }} className="rates-container">
         <Box className="rates-container-item" sx={{ flex: '1 1 50px', width: '50%'}}>
@@ -297,6 +362,24 @@ const LaborSection: React.FC<LaborSectionProps> = ({
           {Number(totalHT ?? 0).toFixed(2)}
         </Typography>
       </Box>
+
+      <Dialog open={newDescriptionDialogOpen} onClose={() => setNewDescriptionDialogOpen(false)}>
+        <DialogTitle>Créer une nouvelle description</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Cette description n'existe pas encore pour la main d'œuvre. Voulez-vous l'ajouter ?
+          </DialogContentText>
+          <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+            {newDescriptionText}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewDescriptionDialogOpen(false)}>Annuler</Button>
+          <Button onClick={handleSaveNewDescription} variant="contained" disabled={isCreatingDescription}>
+            {isCreatingDescription ? <CircularProgress size={20} /> : 'Enregistrer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 };

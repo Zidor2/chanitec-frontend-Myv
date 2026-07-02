@@ -253,11 +253,12 @@ class ApiService {
     }
 
     // Descriptions
-    async getDescriptions(): Promise<any[]> {
-        return this.fetchApi<any[]>('/descriptions');
+    async getDescriptions(section?: number): Promise<any[]> {
+        const query = section === undefined ? '' : `?section=${section}`;
+        return this.fetchApi<any[]>(`/descriptions${query}`);
     }
 
-    async createDescription(data: { content: string }): Promise<any> {
+    async createDescription(data: { content: string; section?: number }): Promise<any> {
         const result = await this.fetchApi<any>('/descriptions', {
             method: 'POST',
             body: JSON.stringify(data),
