@@ -142,6 +142,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
   const [editSiteOriginalSplits, setEditSiteOriginalSplits] = useState<{ [splitId: string]: string }>({});
   const [loadingEditSiteSplits, setLoadingEditSiteSplits] = useState(false);
   const [savingEditedPlanningSite, setSavingEditedPlanningSite] = useState(false);
+  const [planningSiteSort, setPlanningSiteSort] = useState<'site' | 'date'>('site');
 
   // Get clientId from URL params if not provided as prop
   const urlParams = new URLSearchParams(window.location.search);
@@ -760,6 +761,29 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     return dateString ? new Date(dateString).toLocaleDateString('fr-FR') : '-';
   };
 
+  const getSortedPlanningSites = useCallback(() => {
+    const sorted = [...planningSites];
+
+    if (planningSiteSort === 'date') {
+      return sorted.sort((a, b) => {
+        const aDate = a.planned_date || a.effective_date || '';
+        const bDate = b.planned_date || b.effective_date || '';
+        const aTime = aDate ? new Date(aDate).getTime() : Number.MAX_SAFE_INTEGER;
+        const bTime = bDate ? new Date(bDate).getTime() : Number.MAX_SAFE_INTEGER;
+
+        if (aTime !== bTime) {
+          return aTime - bTime;
+        }
+
+        return findSiteName(a.site_id).localeCompare(findSiteName(b.site_id), 'fr', { sensitivity: 'base' });
+      });
+    }
+
+    return sorted.sort((a, b) =>
+      findSiteName(a.site_id).localeCompare(findSiteName(b.site_id), 'fr', { sensitivity: 'base' })
+    );
+  }, [planningSites, planningSiteSort, findSiteName]);
+
   // Format date for HTML input (YYYY-MM-DD format)
   const formatDateForInput = (dateString?: string) => {
     if (!dateString) return '';
@@ -979,7 +1003,19 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
               <Typography variant="h6">
                 Sites assignés ({planningSites.length})
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel id="planning-site-sort-label">Trier par</InputLabel>
+                  <Select
+                    labelId="planning-site-sort-label"
+                    value={planningSiteSort}
+                    label="Trier par"
+                    onChange={(e) => setPlanningSiteSort(e.target.value as 'site' | 'date')}
+                  >
+                    <MenuItem value="site">Site</MenuItem>
+                    <MenuItem value="date">Date</MenuItem>
+                  </Select>
+                </FormControl>
                 <Button
                   variant="contained"
                   startIcon={<PrintIcon />}
@@ -1058,7 +1094,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {[...planningSites].sort((a, b) => findSiteName(a.site_id).localeCompare(findSiteName(b.site_id))).map((ps, index) => {
+                          {getSortedPlanningSites().map((ps, index) => {
                             const splitDetails = planningSiteSplits[ps.id] || [];
                             const siteName = findSiteName(ps.site_id);
                             return (

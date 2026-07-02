@@ -85,21 +85,6 @@ const LaborSection: React.FC<LaborSectionProps> = ({
     loadDescriptions();
   }, []);
 
-  // Function to format description text with "En weekend" in bold red
-  const formatDescriptionText = (text: string) => {
-    if (text.includes('En weekend')) {
-      const parts = text.split('En weekend');
-      return (
-        <span>
-          {parts[0]}
-          <span style={{ fontWeight: 'bold', color: 'red' }}>En weekend</span>
-          {parts[1]}
-        </span>
-      );
-    }
-    return text;
-  };
-
   // Calculate dollar prices for all items when rates change
   useEffect(() => {
     const itemsWithDollarPrices = items.map(item =>
