@@ -21,24 +21,45 @@
 
 // Sidebar
 .dashboard-sidebar {
+  transition: width 0.3s ease;
+
   .sidebar-paper {
-    width: 280px;
+    width: 196px;
     background-color: white;
     border-right: 1px solid #e0e0e0;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+    transition: width 0.3s ease;
   }
 
   .sidebar-header {
-    padding: 2rem 1rem;
+    padding: 1rem;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #e0e0e0;
     background-color: #f8f9fa;
+    gap: 0.5rem;
 
-    .sidebar-logo {
-      height: 80px;
-      width: auto;
+    .sidebar-header-content {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+
+      .sidebar-logo {
+        height: 60px;
+        width: auto;
+        transition: opacity 0.3s ease;
+      }
+    }
+
+    .collapse-button {
+      flex-shrink: 0;
+      padding: 0.5rem !important;
+      min-width: 32px !important;
+      width: 32px !important;
+      height: 32px !important;
     }
   }
 
@@ -50,15 +71,16 @@
   }
 
   .sidebar-menu {
-    padding: 1rem 0;
+    padding: 0.75rem 0;
     flex: 1;
     overflow: hidden;
 
     .sidebar-menu-item {
-      margin: 0.25rem 1rem;
+      margin: 0.25rem 0.5rem;
       border-radius: 8px;
       transition: all 0.2s ease;
       cursor: pointer;
+      padding: 0.75rem !important;
 
       &:hover {
         background-color: #f0f7ff;
@@ -83,25 +105,28 @@
 
       .menu-item-icon {
         color: #666;
-        margin-right: 0.5rem;
+        margin-right: 0.75rem;
+        min-width: auto !important;
       }
 
       .menu-item-text {
         font-weight: 500;
         color: #333;
+        font-size: 0.9rem;
       }
     }
   }
 
   .sidebar-footer {
     margin-top: auto;
-    padding-bottom: 1rem;
+    padding-bottom: 0.5rem;
 
     .sidebar-menu-item {
-      margin: 0.25rem 1rem;
+      margin: 0.25rem 0.5rem;
       border-radius: 8px;
       transition: all 0.2s ease;
       cursor: pointer;
+      padding: 0.75rem !important;
 
       &:hover {
         background-color: #ffebee;
@@ -119,19 +144,71 @@
 
       .menu-item-icon {
         color: #666;
-        margin-right: 0.5rem;
+        margin-right: 0.75rem;
+        min-width: auto !important;
       }
 
       .menu-item-text {
         font-weight: 500;
         color: #333;
+        font-size: 0.9rem;
       }
     }
   }
 
   .sidebar-divider {
-    margin: 1rem;
+    margin: 0.5rem;
     background-color: #e0e0e0;
+  }
+
+  // Collapsed State
+  &.collapsed {
+    .sidebar-paper {
+      width: 70px;
+    }
+
+    .sidebar-header {
+      padding: 0.5rem;
+      justify-content: center;
+
+      .sidebar-header-content {
+        display: none;
+      }
+
+      .collapse-button {
+        margin: 0 auto;
+      }
+    }
+
+    .sidebar-menu-item {
+      justify-content: center !important;
+      padding: 0.75rem !important;
+
+      .menu-item-text {
+        display: none;
+      }
+
+      .menu-item-icon {
+        margin-right: 0 !important;
+      }
+
+      &:hover::after {
+        content: attr(title);
+        position: absolute;
+        left: 70px;
+        background-color: #333;
+        color: white;
+        padding: 0.5rem;
+        border-radius: 4px;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        z-index: 1000;
+      }
+    }
+
+    .sidebar-divider {
+      margin: 0.25rem 0;
+    }
   }
 }
 
@@ -159,10 +236,10 @@
 // Main Content
 .dashboard-main {
   flex-grow: 1;
-  margin-left: 280px; // Sidebar width
-  transition: margin-left 0.3s ease;
-  width: calc(100vw - 280px); // Ensure main content takes remaining width
-  overflow-x: hidden; // Prevent horizontal scrolling
+  margin-left: 196px;
+  transition: margin-left 0.3s ease, width 0.3s ease;
+  width: calc(100vw - 196px);
+  overflow-x: hidden;
 
   &.mobile-main {
     margin-left: 0;
@@ -173,11 +250,16 @@
     padding: 0;
     min-height: 100vh;
     width: 100%;
-    max-width: 100%; // Ensure content doesn't exceed container width
-    overflow-x: hidden; // Prevent horizontal scrolling
-    padding-left: 10%;
-    padding-right: 10%;
+    max-width: 100%;
+    overflow-x: hidden;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
+}
+
+.dashboard-sidebar.collapsed + .dashboard-main {
+  margin-left: 70px;
+  width: calc(100vw - 70px);
 }
 
 // Responsive Design
@@ -190,7 +272,7 @@
 
   .dashboard-main {
     margin-left: 240px;
-    width: calc(100vw - 240px); // Adjust width for smaller sidebar
+    width: calc(100vw - 240px);
   }
 }
 

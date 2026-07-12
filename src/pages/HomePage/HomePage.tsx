@@ -97,14 +97,6 @@ const HomePage: React.FC<HomePageProps> = ({
         color: '#607d8b',
         roles: ['admin', 'editor']
       },
-      {
-        title: 'Employés',
-        description: 'Gérer les employés et leurs informations',
-        icon: <GroupIcon />,
-        path: '/employees',
-        color: '#795548',
-        roles: ['admin', 'editor']
-      }
     ];
 
     if (!user) return [];

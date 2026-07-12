@@ -28,7 +28,9 @@ import {
   QuestionAnswer,
   AccountBalance,
   Schedule as ScheduleIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  ChevronLeft,
+  ChevronRight
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../assets/logo512.png';
@@ -52,6 +54,7 @@ const Layout: React.FC<LayoutProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -66,7 +69,6 @@ const Layout: React.FC<LayoutProps> = ({
       { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined />, roles: ['admin', 'editor'] },
       { path: '/planning', label: 'Planning', icon: <ScheduleIcon />, roles: ['admin', 'editor', 'viewer', 'user'] },
       { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined />, roles: ['admin', 'editor'] },
-      { path: '/employees', label: 'Employés', icon: <GroupOutlined />, roles: ['admin', 'editor'] },
       { path: '/financial', label: 'Financier', icon: <AccountBalance />, roles: ['admin'] },
       { path: '/help', label: 'Aide', icon: <QuestionAnswer />, roles: ['admin', 'editor', 'viewer', 'user'] }
     ];
@@ -103,7 +105,19 @@ const Layout: React.FC<LayoutProps> = ({
       {/* Sidebar Header - Only show logo on desktop */}
       {!isMobile && (
         <Box className="sidebar-header">
-          <img src={logo} alt="Chanitec Logo" className="sidebar-logo" />
+          <Box className="sidebar-header-content">
+            {!sidebarCollapsed && (
+              <img src={logo} alt="Chanitec Logo" className="sidebar-logo" />
+            )}
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="collapse-button"
+            sx={{ color: '#1976d2' }}
+          >
+            {sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
+          </IconButton>
         </Box>
       )}
 
@@ -206,7 +220,7 @@ const Layout: React.FC<LayoutProps> = ({
       {/* Desktop Sidebar */}
       <Drawer
         variant="permanent"
-        className="dashboard-sidebar"
+        className={`dashboard-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}
         classes={{
           paper: 'sidebar-paper'
         }}

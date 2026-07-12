@@ -100,6 +100,10 @@ export default function InterventionPage({
     chanicSignature: ''
   });
 
+  // Separate local state for satisfaction surveys to avoid naming collisions
+  const [clientSatisfaction, setClientSatisfaction] = useState<number>(0);
+  const [chanicSatisfaction, setChanicSatisfaction] = useState<number>(0);
+
   const handlePrint = () => {
     window.print();
   };
@@ -192,30 +196,50 @@ export default function InterventionPage({
             <div className="center-section">
               <div className="title-section">
                 <h1>ENTRETIEN DEPANNAGE</h1>
-                <h2>FICHE DE JOB N°</h2>
+                <div className="title-row">
+                  <h2>FICHE DE JOB N°</h2>
+                  <input
+                      type="text"
+                      value={formData.sheetNumber}
+                      onChange={(e) => setFormData({...formData, sheetNumber: e.target.value})}
+                      className="form-input fiche-input-header"
+                      placeholder="..."
+                    />
+                  <div className="fiche-header">
+                    <label className="fiche-label">N° Feuillet</label>
+                    <input
+                      type="text"
+                      value={formData.sheetNumber}
+                      onChange={(e) => setFormData({...formData, sheetNumber: e.target.value})}
+                      className="form-input fiche-input-header"
+                      placeholder="..."
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="right-section">
               <div className="division-info">
-                <div>Division Climatisation</div>
-                <div>N° Feuillet</div>
+                <div className="division-text">Division Climatisation</div>
               </div>
               <img src={logoTrane} alt="TRANE" className="logo-trane" />
             </div>
           </div>
 
-          {/* Title Row */}
-          <div className="title-row-table">
-            <div className="title-row-cell title-row-main">
+          {/* Top Information Grid */}
+          <div className="form-top-info">
+            <div className="info-row-main">
+              <div className="info-label">CLIENT</div>
               <input
                 type="text"
-                value={formData.jobNumber}
-                onChange={(e) => setFormData({...formData, jobNumber: e.target.value})}
-                placeholder=""
+                value={formData.client}
+                onChange={(e) => setFormData({...formData, client: e.target.value})}
                 className="form-input"
+                placeholder=""
               />
             </div>
-            <div className="title-row-cell title-row-date">
+            <div className="info-row">
+              <div className="info-label">DATE</div>
               <input
                 type="date"
                 value={formData.date}
@@ -223,95 +247,38 @@ export default function InterventionPage({
                 className="form-input"
               />
             </div>
-            <div className="title-row-cell title-row-center">
+            <div className="info-row">
+              <div className="info-label">LOCAL/PIECE</div>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({...formData, location: e.target.value})}
-                placeholder="LOCAL/PIECE"
                 className="form-input"
               />
             </div>
-            <div className="title-row-cell title-row-center">
-              <input
-                type="text"
-                value={formData.serialNumber}
-                onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
-                placeholder="N° SERIE"
-                className="form-input"
-              />
-            </div>
-            <div className="title-row-cell title-row-center">
-              <input
-                type="text"
-                value={formData.power}
-                onChange={(e) => setFormData({...formData, power: e.target.value})}
-                placeholder="P(KW)/BTU"
-                className="form-input"
-              />
-            </div>
-          </div>
-
-          {/* Time Row */}
-          <div className="title-row-table">
-            <div className="title-row-cell title-row-main">
+            <div className="info-row">
+              <div className="info-label">HEURE ARRIVEE</div>
               <input
                 type="time"
                 value={formData.arrivalTime}
                 onChange={(e) => setFormData({...formData, arrivalTime: e.target.value})}
-                placeholder="HEURE ARRIVEE"
                 className="form-input"
               />
             </div>
-            <div className="title-row-cell title-row-date">
+            <div className="info-row">
+              <div className="info-label">HEURE DEPART</div>
               <input
                 type="time"
                 value={formData.departureTime}
                 onChange={(e) => setFormData({...formData, departureTime: e.target.value})}
-                placeholder="HEURE DEPART"
-                className="form-input"
-              />
-            </div>
-            <div className="title-row-cell title-row-center">
-              <input
-                type="text"
-                value={formData.sheetNumber}
-                onChange={(e) => setFormData({...formData, sheetNumber: e.target.value})}
-                placeholder=""
-                className="form-input"
-              />
-            </div>
-            <div className="title-row-cell title-row-center">
-              <input
-                type="text"
-                value={formData.machineNumber}
-                onChange={(e) => setFormData({...formData, machineNumber: e.target.value})}
-                placeholder="N° MACHINE"
-                className="form-input"
-              />
-            </div>
-            <div className="title-row-cell title-row-center">
-              <input
-                type="text"
-                value={formData.brand}
-                onChange={(e) => setFormData({...formData, brand: e.target.value})}
-                placeholder="MARQUE"
                 className="form-input"
               />
             </div>
           </div>
 
-          {/* Client Information */}
-          <div className="info-row-table">
-            <div className="info-row-address">
-              <div className="address-label">CLIENT</div>
-              <input
-                type="text"
-                value={formData.client}
-                onChange={(e) => setFormData({...formData, client: e.target.value})}
-                className="form-input"
-              />
-              <div className="address-label">SITE</div>
+          <div className="form-second-row">
+            <div className="info-row-main">
+              <div className="info-label">SITE</div>
               <input
                 type="text"
                 value={formData.site}
@@ -319,58 +286,68 @@ export default function InterventionPage({
                 className="form-input"
               />
             </div>
-            <div className="info-row-header">OBJET INTERVENTION</div>
-            <div className="info-row-header">DEPANNAGE</div>
-            <div className="info-row-header">ENTRETIEN</div>
-            <div className="info-row-header">RAISON</div>
-            <div className="info-row-header">CLIM 1</div>
-            <div className="info-row-header">CLIM 2</div>
-            <div className="info-row-header">CLIM 3</div>
-            <div className="info-row-header">CLIM 4</div>
+            <div className="info-row">
+              <div className="info-label">N° MACHINE</div>
+              <input
+                type="text"
+                value={formData.machineNumber}
+                onChange={(e) => setFormData({...formData, machineNumber: e.target.value})}
+                className="form-input"
+              />
+            </div>
+            <div className="info-row">
+              <div className="info-label">MARQUE</div>
+              <input
+                type="text"
+                value={formData.brand}
+                onChange={(e) => setFormData({...formData, brand: e.target.value})}
+                className="form-input"
+              />
+            </div>
+            <div className="info-row">
+              <div className="info-label">N° SERIE</div>
+              <input
+                type="text"
+                value={formData.serialNumber}
+                onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
+                className="form-input"
+              />
+            </div>
+            <div className="info-row">
+              <div className="info-label">P(KW)/BTU</div>
+              <input
+                type="text"
+                value={formData.power}
+                onChange={(e) => setFormData({...formData, power: e.target.value})}
+                className="form-input"
+              />
+            </div>
+          </div>
 
-            <div className="info-row-cell">
-              <input
-                type="text"
-                value={formData.interventionObject.troubleshooting}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  interventionObject: {...formData.interventionObject, troubleshooting: e.target.value}
-                })}
-                className="form-input"
-              />
+          {/* Intervention Object Section */}
+          <div className="intervention-object-section">
+            <div className="intervention-col">
+              <div className="section-header">OBJET INTERVENTION</div>
+              <div className="obj-subcategory">
+                <label className="obj-label">DEPANNAGE</label>
+                <input type="checkbox" className="form-checkbox" />
+              </div>
+              <div className="obj-subcategory">
+                <label className="obj-label">ENTRETIEN</label>
+                <input type="checkbox" className="form-checkbox" />
+              </div>
             </div>
-            <div className="info-row-cell">
-              <input
-                type="text"
-                value={formData.interventionObject.maintenance}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  interventionObject: {...formData.interventionObject, maintenance: e.target.value}
-                })}
-                className="form-input"
-              />
-            </div>
-            <div className="info-row-cell">
+            <div className="intervention-col large">
+              <div className="section-header">RAISON</div>
               <input
                 type="text"
                 value={formData.reason}
                 onChange={(e) => setFormData({...formData, reason: e.target.value})}
                 placeholder="Problème, écoulement eau, bruit, HS, pas de froid etc"
-                className="form-input"
+                className="form-input reason-input"
               />
             </div>
-            <div className="info-row-cell">
-              <input type="checkbox" className="form-checkbox" />
-            </div>
-            <div className="info-row-cell">
-              <input type="checkbox" className="form-checkbox" />
-            </div>
-            <div className="info-row-cell">
-              <input type="checkbox" className="form-checkbox" />
-            </div>
-            <div className="info-row-cell">
-              <input type="checkbox" className="form-checkbox" />
-            </div>
+            {/* CLIM checkbox columns removed as requested */}
           </div>
 
           {/* Exterior Unit Section */}
@@ -416,157 +393,73 @@ export default function InterventionPage({
 
           {/* Measurements and Tests */}
           <div className="mesure-essais-combined-table">
-            <div className="mesure-essais-header-main">MESURE ET RELEVE</div>
+            <div className="mesure-essais-header-main">
+              <span className="mesure-essais-title">MESURE ET RELEVE</span>
+            </div>
             <div className="mesure-essais-header-clim">CLIM 1</div>
             <div className="mesure-essais-header-clim">CLIM 2</div>
             <div className="mesure-essais-header-clim">CLIM 3</div>
             <div className="mesure-essais-header-clim">CLIM 4</div>
 
             <div className="mesure-essais-label">Tension générale climatiseur</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Intensité générale climatiseur</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Intensité compresseur</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Intensité moteurs ventilateurs cond</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Intensité moteurs ventilateurs evap</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Haute pression (HP)</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Basse pression (BP)</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-
-            <div className="mesure-essais-header-section">UNITE INTERIEURE</div>
-            <div className="mesure-essais-header-clim">CLIM 1</div>
-            <div className="mesure-essais-header-clim">CLIM 2</div>
-            <div className="mesure-essais-header-clim">CLIM 3</div>
-            <div className="mesure-essais-header-clim">CLIM 4</div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Température de soufflage</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Température du local</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
 
             <div className="mesure-essais-label">Débit d'air de soufflage</div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
-            <div className="mesure-essais-cell">
-              <input type="text" className="form-input" />
-            </div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
+            <div className="mesure-essais-cell"><input type="text" className="form-input" /></div>
           </div>
 
           {/* Electrical Tests */}
@@ -724,23 +617,57 @@ export default function InterventionPage({
 
           {/* Observations */}
           <div className="compte-observations-table">
-            <div className="compte-observations-header">OBSERVATION CLIENT</div>
-            <div className="compte-observations-header">OBSERVATION CHANIC</div>
+            <div className="compte-observations-header">OBSERVATIONS CLIENT</div>
+            <div className="compte-observations-header">OBSERVATIONS CHANIC</div>
+
             <div className="compte-observations-cell">
-              <textarea
-                value={formData.clientObservation}
-                onChange={(e) => setFormData({...formData, clientObservation: e.target.value})}
-                placeholder="Constat, remarques etc"
-                className="compte-observations-textarea"
-              />
+              <div className="satisfaction" role="radiogroup" aria-label="Satisfaction client">
+                {[1,2,3,4,5].map((n) => (
+                  <div className="satisfaction-item" key={n}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={clientSatisfaction === n}
+                      className={"satisfaction-btn " + (clientSatisfaction === n ? 'selected' : '')}
+                      aria-label={["Très mauvais","Mauvais","Normal","Bien","Parfait"][n-1]}
+                      title={["Très mauvais","Mauvais","Normal","Bien","Parfait"][n-1]}
+                      onClick={() => setClientSatisfaction(clientSatisfaction === n ? 0 : n)}
+                    >
+                      {n === 1 && '😞'}
+                      {n === 2 && '🙁'}
+                      {n === 3 && '😐'}
+                      {n === 4 && '🙂'}
+                      {n === 5 && '😄'}
+                    </button>
+                    <div className="satisfaction-label">{["Très mauvais","Mauvais","Normal","Bien","Parfait"][n-1]}</div>
+                  </div>
+                ))}
+              </div>
             </div>
+
             <div className="compte-observations-cell">
-              <textarea
-                value={formData.chanicObservation}
-                onChange={(e) => setFormData({...formData, chanicObservation: e.target.value})}
-                placeholder="Bruit constaté, télécommande indispo, écoulement eau etc"
-                className="compte-observations-textarea"
-              />
+              <div className="satisfaction" role="radiogroup" aria-label="Satisfaction chanic">
+                {[1,2,3,4,5].map((n) => (
+                  <div className="satisfaction-item" key={n}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={chanicSatisfaction === n}
+                      className={"satisfaction-btn " + (chanicSatisfaction === n ? 'selected' : '')}
+                      aria-label={["Très mauvais","Mauvais","Normal","Bien","Parfait"][n-1]}
+                      title={["Très mauvais","Mauvais","Normal","Bien","Parfait"][n-1]}
+                      onClick={() => setChanicSatisfaction(chanicSatisfaction === n ? 0 : n)}
+                    >
+                      {n === 1 && '😞'}
+                      {n === 2 && '🙁'}
+                      {n === 3 && '😐'}
+                      {n === 4 && '🙂'}
+                      {n === 5 && '😄'}
+                    </button>
+                    <div className="satisfaction-label">{["Très mauvais","Mauvais","Normal","Bien","Parfait"][n-1]}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
