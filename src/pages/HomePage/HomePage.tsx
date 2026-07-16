@@ -19,7 +19,6 @@ import {
   Inventory as InventoryIcon,
   Assignment as AssignmentIcon,
   Business as BusinessIcon,
-  Group as GroupIcon,
   TrendingUp as TrendingUpIcon,
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon,

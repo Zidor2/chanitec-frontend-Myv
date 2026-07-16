@@ -24,7 +24,6 @@ import {
   Logout,
   AssignmentOutlined,
   BusinessOutlined,
-  GroupOutlined,
   QuestionAnswer,
   AccountBalance,
   Schedule as ScheduleIcon,
