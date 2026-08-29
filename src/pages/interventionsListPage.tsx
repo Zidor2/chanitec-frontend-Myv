@@ -105,7 +105,15 @@ export default function InterventionsListPage({ currentPath = '/interventions', 
     };
 
     useEffect(() => {
-        fetchInterventions();
+        const loadInterventions = async () => {
+            try {
+                const rows = await apiService.getInterventions({});
+                setInterventions(rows || []);
+            } catch (err) {
+                console.error('Error fetching interventions', err);
+            }
+        };
+        loadInterventions();
     }, []);
 
     const clearFilters = () => {

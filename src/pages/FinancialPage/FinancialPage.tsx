@@ -52,6 +52,35 @@ interface FinancialSummary {
   averageQuoteValue: number;
 }
 
+const getQuoteGroupKey = (quote: any): string => {
+  const hasValidParent = quote.parentId && quote.parentId !== '' && quote.parentId !== '0';
+  return String(hasValidParent ? quote.parentId : quote.id);
+};
+
+const getLatestQuoteVersions = (allQuotes: any[]) => {
+  const quoteGroups = new Map<string, any[]>();
+
+  allQuotes.forEach((quote) => {
+    const key = getQuoteGroupKey(quote);
+    if (!quoteGroups.has(key)) {
+      quoteGroups.set(key, []);
+    }
+    quoteGroups.get(key)!.push(quote);
+  });
+
+  return Array.from(quoteGroups.values()).map((group) => {
+    return [...group].sort((a, b) => {
+      const versionA = extractVersion(a.id) || 0;
+      const versionB = extractVersion(b.id) || 0;
+      if (versionA !== versionB) return versionB - versionA;
+
+      const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    })[0];
+  });
+};
+
 const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, onLogout }) => {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,37 +146,6 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
     } catch (error) {
       console.error('Error loading items:', error);
     }
-  };
-
-  // Group the same way as History: originals by their own id, revisions by parentId
-  const getQuoteGroupKey = (quote: any): string => {
-    const hasValidParent = quote.parentId && quote.parentId !== '' && quote.parentId !== '0';
-    return String(hasValidParent ? quote.parentId : quote.id);
-  };
-
-  // Keep only the latest version of each quote group
-  const getLatestQuoteVersions = (allQuotes: any[]) => {
-    const quoteGroups = new Map<string, any[]>();
-
-    allQuotes.forEach((quote) => {
-      const key = getQuoteGroupKey(quote);
-      if (!quoteGroups.has(key)) {
-        quoteGroups.set(key, []);
-      }
-      quoteGroups.get(key)!.push(quote);
-    });
-
-    return Array.from(quoteGroups.values()).map((group) => {
-      return [...group].sort((a, b) => {
-        const versionA = extractVersion(a.id) || 0;
-        const versionB = extractVersion(b.id) || 0;
-        if (versionA !== versionB) return versionB - versionA;
-
-        const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-        const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-        return timeB - timeA;
-      })[0];
-    });
   };
 
   const getQuoteAmounts = (quote: any) => {
