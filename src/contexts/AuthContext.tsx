@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, User } from '../services/auth-service';
+import { PageKey, canManageUsers as userCanManageUsers, hasPageAccess } from '../constants/pagePermissions';
+import { apiService } from '../services/api-service';
+import { enhancedStorageService } from '../services/enhanced-storage-service';
 
 interface AuthContextType {
   user: User | null;
@@ -7,6 +10,8 @@ interface AuthContextType {
   isAdmin: boolean;
   isEditor: boolean;
   isUser: boolean;
+  canManageUsers: boolean;
+  hasAccess: (page: PageKey) => boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -37,7 +42,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const currentUser = await authService.getCurrentUser();
           setUser(currentUser);
         } catch (error) {
-          // Token expired or invalid
           authService.logout();
           setUser(null);
         }
@@ -48,12 +52,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
+  const clearUserDataCache = () => {
+    apiService.clearCache();
+    try {
+      enhancedStorageService.clearCache();
+    } catch (error) {
+      console.warn('Failed to clear local quote cache:', error);
+    }
+  };
+
   const login = async (username: string, password: string) => {
+    clearUserDataCache();
     const authResponse = await authService.login(username, password);
     setUser(authResponse.user);
   };
 
   const logout = () => {
+    clearUserDataCache();
     authService.logout();
     setUser(null);
   };
@@ -61,9 +76,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
-    isAdmin: authService.isAdmin(),
+    isAdmin: userCanManageUsers(user),
     isEditor: authService.isEditor(),
     isUser: authService.isUser(),
+    canManageUsers: userCanManageUsers(user),
+    hasAccess: (page: PageKey) => hasPageAccess(user, page),
     login,
     logout,
     loading,

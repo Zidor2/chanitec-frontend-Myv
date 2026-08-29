@@ -14,11 +14,17 @@ import LoginPage from './pages/LoginPage/LoginPage';
 import HomePage from './pages/HomePage/HomePage';
 import QuoteTest from './pages/QuoteTest/QuoteTest';
 import InterventionPage from './pages/interventionPage';
+import PrintInterventionPage from './pages/printInterventionPage';
+import InterventionsListPage from './pages/interventionsListPage';
 import OrgChartPage from './pages/orgChartPage';
 import EmployeesPage from './pages/employeesPage';
+import EmployeePage from './pages/EmployeePage/EmployeePage';
 import HelpPage from './pages/HelpPage/HelpPage';
 import FinancialPage from './pages/FinancialPage/FinancialPage';
 import PlanningPage from './pages/PlanningPage/PlanningPage';
+import UsersPage from './pages/UsersPage/UsersPage';
+import LogsPage from './pages/LogsPage/LogsPage';
+import { PageKey } from './constants/pagePermissions';
 
 import './App.scss';
 
@@ -94,10 +100,17 @@ const theme = createTheme({
 });
 
 // Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, page }: { children: React.ReactNode; page?: PageKey }) => {
+  const { loading, hasAccess } = useAuth();
   const isAuthenticated = authService.isAuthenticated();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  if (loading) {
+    return null;
+  }
+  if (page && !hasAccess(page)) {
+    return <Navigate to="/home" replace />;
   }
   return <>{children}</>;
 };
@@ -286,7 +299,7 @@ const AppContent = () => {
             <Route
               path="/quote"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="quote">
                   <QuotePage currentPath="/quote" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
@@ -295,7 +308,7 @@ const AppContent = () => {
             <Route
               path="/quote-test"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="quote">
                   <QuoteTest currentPath="/quote-test" onNavigate={handleNavigate} />
                 </ProtectedRoute>
               }
@@ -304,7 +317,7 @@ const AppContent = () => {
             <Route
               path="/history"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="history">
                   <HistoryPage currentPath="/history" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
@@ -313,7 +326,7 @@ const AppContent = () => {
             <Route
               path="/clients"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="clients">
                   <ClientsPage currentPath="/clients" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
@@ -322,7 +335,7 @@ const AppContent = () => {
             <Route
               path="/planning"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="planning">
                   <PlanningPage currentPath="/planning" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
@@ -331,7 +344,7 @@ const AppContent = () => {
             <Route
               path="/items"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="items">
                   <ItemsPage currentPath="/items" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
@@ -340,7 +353,7 @@ const AppContent = () => {
             <Route
               path="/price-offer"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="quote">
                   <PriceOfferPage
                     currentPath="/price-offer"
                     onNavigate={handleNavigate}
@@ -354,8 +367,44 @@ const AppContent = () => {
             <Route
               path="/intervention"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="intervention">
+                  <InterventionsListPage currentPath="/intervention" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/intervention/new"
+              element={
+                <ProtectedRoute page="intervention">
+                  <InterventionPage currentPath="/intervention/new" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/intervention/:id/print"
+              element={
+                <ProtectedRoute page="intervention">
+                  <PrintInterventionPage currentPath="/intervention/print" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/intervention/:id"
+              element={
+                <ProtectedRoute page="intervention">
                   <InterventionPage currentPath="/intervention" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/interventions"
+              element={
+                <ProtectedRoute page="intervention">
+                  <InterventionsListPage currentPath="/interventions" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -363,7 +412,7 @@ const AppContent = () => {
             <Route
               path="/org-chart"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="org-chart">
                   <OrgChartPage currentPath="/org-chart" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
@@ -372,8 +421,17 @@ const AppContent = () => {
             <Route
               path="/employees"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="org-chart">
                   <EmployeesPage currentPath="/employees" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/employees/:id"
+              element={
+                <ProtectedRoute page="org-chart">
+                  <EmployeePage currentPath="/org-chart" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -381,8 +439,26 @@ const AppContent = () => {
             <Route
               path="/help"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="help">
                   <HelpPage currentPath="/help" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute page="users">
+                  <UsersPage currentPath="/users" onNavigate={handleNavigate} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/logs"
+              element={
+                <ProtectedRoute page="logs">
+                  <LogsPage currentPath="/logs" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -390,7 +466,7 @@ const AppContent = () => {
             <Route
               path="/financial"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute page="financial">
                   <FinancialPage currentPath="/financial" onNavigate={handleNavigate} onLogout={handleLogout} />
                 </ProtectedRoute>
               }

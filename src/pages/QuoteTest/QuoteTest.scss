@@ -1,423 +1,300 @@
-// --- Added for pixel-perfect match with reference HTML ---
+// Quote printable layout — matches CALCUL DE PRIX OFFRE design
+
+$quote-blue: #1565c0;
+$quote-blue-bg: #dceaf8;
+$quote-border: #cfd4da;
+$quote-text: #222;
+$quote-muted-bg: #f7f8fa;
+
 .quote-test-content {
   position: relative;
   min-height: 100vh;
   width: 100%;
-  max-width: 100%;
-  margin: 25px 50px 50px 50px;
+  max-width: 1100px;
+  margin: 16px auto 40px;
+  padding: 32px 24px 32px;
+  background: #fff;
+  color: $quote-text;
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
 }
 
 .reference-header {
   display: flex;
-  width: 100%;
   align-items: center;
-  justify-content: left;
-  gap: 7%;
-  margin: 0 auto;
+  justify-content: flex-start;
+  gap: 24px;
+  position: relative;
+  margin-bottom: 18px;
+  min-height: 72px;
 }
+
 .reference-logo {
-  width: 80px;
-  margin-bottom: 10px;
+  width: 78px;
+  height: auto;
+  flex-shrink: 0;
+  z-index: 1;
 }
+
 .reference-title {
-  font-size: 24px;
-  font-weight: bold;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.4px;
   text-align: center;
-  letter-spacing: 1px;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
-  margin: 0 auto;
-  right: unset;
+  max-width: calc(100% - 120px);
+  color: #111;
 }
-.reference-subtitle {
-  font-size: 18px;
-  font-weight: bold;
-  text-transform: uppercase;
-  text-align: center;
-  margin-top: 0;
-}
+
 .client-info-box {
-  background: #f8f9fa;
-  border: 1px solid #d3d3d3;
+  background: $quote-muted-bg;
+  border: 1px solid $quote-border;
   border-radius: 8px;
-  padding: 18px 5px 10px 5px;
+  padding: 14px 16px;
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
+  margin-bottom: 12px;
 }
+
 .client-info-grid {
   display: grid;
-  grid-template-columns: 70px 1fr 70px 1fr;
-  gap: 10px 5px;
+  grid-template-columns: 72px 1fr 72px 1fr;
+  gap: 10px 12px;
   align-items: center;
 }
+
 .client-info-label {
-  font-weight: bold;
-  color: #222;
-  text-align: right;
+  font-weight: 700;
+  color: $quote-text;
+  text-align: left;
+  font-size: 14px;
+  text-transform: uppercase;
 }
+
 .client-info-value input,
 .client-info-value select {
   width: 100%;
   padding: 6px 10px;
-  border: 1px solid #d3d3d3;
-  border-radius: 4px;
+  border: 1px solid $quote-border;
+  border-radius: 3px;
   background: #fff;
-  font-size: 18px;
+  font-size: 15px;
+  box-sizing: border-box;
+  color: $quote-text;
 }
+
+.summary-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px 0 18px;
+}
+
 .summary-table {
-  float: right;
-  margin-top: 10px;
   border-collapse: collapse;
-  max-width: none;
-  min-width: 420px;
+  min-width: 340px;
   width: auto;
 }
-.summary-table th, .summary-table td {
-  border: 1px solid #d3d3d3;
-  padding: 7px 14px;
-  text-align: right;
-  font-size: 15px;
+
+.summary-table th,
+.summary-table td {
+  border: 1px solid $quote-border;
+  padding: 7px 12px;
+  font-size: 14px;
   white-space: nowrap;
-}
-.summary-table th {
-  background: #e3f0fa;
-  color: #1976d2;
-  font-weight: bold;
-  text-align: left;
-  white-space: nowrap;
-}
-.section-title {
-  color: #1976d2;
-  font-size: 18px;
-  font-weight: bold;
-  text-transform: uppercase;
-  margin: 0px 0 10px 0;
-  text-align: left;
-  background: transparent !important;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-.input-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  align-items: center;
-  justify-content: space-between;
-  background: transparent !important;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-.input-row input, .input-row select {
-  padding: 6px 10px;
-  border: 1px solid #d3d3d3;
-  border-radius: 4px;
-  font-size: 15px;
-  background: #fff;
-}
-.input-row label {
-  font-weight: bold;
-  font-size: 15px;
-  color: #222;
-}
-.description {
-  font-weight: bold;
-  font-size: 15px;
-  color: #222;
-  width: 100%;
-}
-.tx-row span {
-  font-weight: bold;
-  font-size: 15px;
-  color: #222;
-}
-.tx-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  margin-left: auto;
-  justify-content: flex-end;
-}
-.tx-row label {
-  font-weight: bold;
-  font-size: 15px;
-  color: #222;
-  margin-right: 5px;
 }
 
-.tx-row span {
-  font-weight: bold;
-  font-size: 15px;
-  color: #222;
-  margin-right: 15px;
+.summary-table th {
+  background: $quote-blue-bg;
+  color: $quote-blue;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
 }
-.input-row .add-btn {
-  background: #1976d2;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 7px 18px;
-  font-size: 15px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.2s;
+
+.summary-table td {
+  text-align: right;
+  background: #fff;
+  font-weight: 600;
+  min-width: 90px;
 }
-.input-row .add-btn:hover {
-  background: #1256a3;
+
+.quote-section {
+  margin-top: 8px;
+  width: 100%;
 }
-.item-actions{
-  margin-bottom: 10px;
+
+.section-title {
+  color: $quote-blue;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 12px 0 8px;
+  text-align: left;
+  background: transparent !important;
 }
+
+.section-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.section-meta .description {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: $quote-text;
+  line-height: 1.35;
+}
+
+.tx-row {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 14px;
+  color: $quote-text;
+}
+
+.tx-row strong {
+  font-weight: 700;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
   background: #fff;
-  box-sizing: border-box;
+  table-layout: fixed;
 }
-.data-table th, .data-table td {
-  border: 1px solid #d3d3d3;
-  padding: 7px 10px;
-  font-size: 15px;
-  text-align: left;
+
+.data-table th,
+.data-table td {
+  border: 1px solid $quote-border;
+  padding: 6px 8px;
+  font-size: 13px;
+  vertical-align: middle;
 }
+
 .data-table th {
-  background: #e3f0fa;
-  color: #1976d2;
-  font-weight: bold;
+  background: $quote-blue-bg;
+  color: $quote-blue;
+  font-weight: 700;
 }
 
-// Ensure all sections have consistent width matching client-info-box
-.section-title,
-.input-row,
-.tx-row,
-.data-table {
-  box-sizing: border-box;
+.data-table .col-desc {
+  text-align: left;
+  width: auto;
+  word-break: break-word;
 }
 
-// Ensure the clearfix container also uses full width
-.clearfix {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-// Add table layout and column width styles for better table formatting
-.data-table {
-  table-layout: fixed; // Ensure consistent column widths
-}
-
-// Specific column widths for supplies table
-.data-table th:nth-child(1), // N° column
-.data-table td:nth-child(1) {
-  width: 5%;
-  text-align: center;
-}
-
-.data-table th:nth-child(2), // Description
-.data-table td:nth-child(2) {
-  width: 25%;
-}
-
-.data-table th:nth-child(3), // Qté/Nb technicien
-.data-table td:nth-child(3) {
-  width: 8%;
-  text-align: center;
-}
-
-.data-table th:nth-child(4), // PR €/Nb heures
-.data-table td:nth-child(4) {
-  width: 12%;
-  text-align: center;
-}
-
-.data-table th:nth-child(5), // PR $/Majo Weekend
-.data-table td:nth-child(5) {
-  width: 12%;
-  text-align: center;
-}
-
-.data-table th:nth-child(6), // PV/u $/PR €
-.data-table td:nth-child(6) {
-  width: 12%;
+.data-table .col-num {
   text-align: right;
+  width: 90px;
+  white-space: nowrap;
 }
 
-.data-table th:nth-child(7), // PV $ Total HT/PR $
-.data-table td:nth-child(7) {
-  width: 15%;
+.data-table.labor-table .col-num {
+  width: 78px;
+}
+
+.data-table.labor-table .col-desc {
+  width: auto;
+}
+
+.data-table .totals-row td {
+  font-weight: 700;
+  background: #fff;
+}
+
+.data-table .totals-label {
   text-align: right;
+  text-transform: uppercase;
 }
 
-.data-table th:nth-child(8), // PV $ Total HT (labor table only)
-.data-table td:nth-child(8) {
-  width: 17%;
-  text-align: right;
+.quote-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 28px 0 8px;
 }
 
-// Add table layout and column width styles for better table formatting
-.data-table {
-  table-layout: fixed; // Ensure consistent column widths
-}
-
-// Specific column widths for supplies table
-.data-table th:nth-child(1), // N° column
-.data-table td:nth-child(1) {
-  width: 5%;
-  text-align: center;
-}
-
-.data-table th:nth-child(2), // Description
-.data-table td:nth-child(2) {
-  width: 25%;
-}
-
-.data-table th:nth-child(3), // Qté/Nb technicien
-.data-table td:nth-child(3) {
-  width: 8%;
-  text-align: center;
-}
-
-.data-table th:nth-child(4), // PR €/Nb heures
-.data-table td:nth-child(4) {
-  width: 12%;
-  text-align: center;
-}
-
-.data-table th:nth-child(5), // PR $/Majo Weekend
-.data-table td:nth-child(5) {
-  width: 12%;
-  text-align: center;
-}
-
-.data-table th:nth-child(6), // PV/u $/PR €
-.data-table td:nth-child(6) {
-  width: 12%;
-  text-align: right;
-}
-
-.data-table th:nth-child(7), // PV $ Total HT/PR $
-.data-table td:nth-child(7) {
-  width: 15%;
-  text-align: right;
-}
-
-.data-table th:nth-child(8), // PV $ Total HT (labor table only)
-.data-table td:nth-child(8) {
-  width: 17%;
-  text-align: right;
-}
-.data-table input {
-  width: 80px;
-  padding: 4px 6px;
-  border: 1px solid #d3d3d3;
-  border-radius: 4px;
-  font-size: 15px;
-  background: #f8f9fa;
-  text-align: right;
-}
-.data-table .delete-btn {
-  background: #e53935;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 10px;
-  font-size: 16px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.2s;
-}
-.data-table .delete-btn:hover {
-  background: #b71c1c;
-}
-.data-table tfoot td {
-  font-weight: bold;
-  background: #f8f9fa;
-  background: transparent !important;
-}
-.totals-row td {
-  background: #f8f9fa;
-  font-weight: bold;
-  background: transparent !important;
-}
-.clearfix::after {
-  content: "";
-  display: table;
-  clear: both;
-}
-.clearfix {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-.btn-update {
-  background-color: #2196F3;
-  color: white;
-  margin-right: 10px;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-size: 15px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.2s;
-}
-.btn-update:disabled {
-  background: #b0bec5;
-  color: #fff;
-  cursor: not-allowed;
-}
-.btn-update:hover {
-  background-color: #1976D2;
-}
-.btn-save {
-  background-color: #4CAF50;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 10px;
-  font-size: 15px;
-  font-weight: bold;
-  transition: background 0.2s;
-}
-.btn-save:hover {
-  background-color: #45a049;
-}
+.btn-save,
 .btn-print {
-  background-color: #008CBA;
-  color: white;
-  padding: 10px 20px;
+  background: $quote-blue;
+  color: #fff;
   border: none;
   border-radius: 4px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 15px;
-  font-weight: bold;
-  transition: background 0.2s;
 }
+
+.btn-save:hover,
 .btn-print:hover {
-  background-color: #007399;
+  background: #0d47a1;
 }
 
+.loading-container,
+.error-container {
+  padding: 40px;
+  text-align: center;
+}
 
+.quote-test-content.is-pdf-mode {
+  .reference-header,
+  .client-info-box,
+  .summary-wrap,
+  .quote-section {
+    position: relative;
+    z-index: 1;
+  }
+}
 
-// --- Print Styles to Preserve Current Layout ---
 @media print {
-  // Page setup for proper printing
   @page {
-    size: A4;
-    margin: 5mm;
+    size: A4 portrait;
+    margin: 10mm 12mm;
   }
 
-  // Hide action buttons in print mode
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body,
+  #root,
+  .App,
+  .layout-root,
+  .dashboard-main,
+  .dashboard-content,
+  .quote-test-content {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .dashboard-sidebar,
+  .MuiAppBar-root,
+  .MuiDrawer-root,
+  .mobile-app-bar,
+  .mobile-sidebar,
+  .mobile-toolbar-spacer,
+  .layout-back-bar,
+  .layout-back-button,
+  .quote-actions,
   .btn-print,
   .btn-save,
   .btn-update,
@@ -426,340 +303,111 @@
     display: none !important;
   }
 
-  /* Allow background logos to be controlled later so they can appear on every page */
-
-  // Ensure the page prints with current layout
-  body, .main-content, .quote-test-root, #root {
-    background: white !important;
-  }
-
-  // Preserve all current styling and layout
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  // Fix height restrictions that cut off content
-  .layout-root,
-  .dashboard-main,
-  .dashboard-content {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  // Ensure the main content container can expand
-  .quote-test-content {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  // Remove any container height limits
-  .client-info-box,
-  .clearfix,
-  .section-title,
-  .input-row,
-  .tx-row {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  // Allow content to flow naturally
-  .clearfix {
-    clear: both !important;
-    overflow: visible !important;
-  }
-
-  // Force all content to be visible
-  .section-title,
-  .input-row,
-  .tx-row,
-  .summary-table {
-    display: block !important;
-    visibility: visible !important;
-  }
-
-  // Override ALL possible height restrictions
-  html, body {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  // Override any Material-UI or other framework height restrictions
-  .MuiBox-root,
-  .MuiContainer-root,
-  .MuiGrid-root,
-  .MuiPaper-root {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  // Ensure the root elements don't constrain height
-  #root,
-  .App,
-  .layout-root,
-  .dashboard-main,
-  .dashboard-content,
-  .quote-test-content {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    position: static !important;
-  }
-
-  // Force all direct children to expand
-  .quote-test-content > * {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  // Remove any CSS Grid or Flexbox height constraints
-  .client-info-grid,
-  .input-row,
-  .tx-row {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  // Ensure taux de marge and taux de change are visible in print
-  .tx-row {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  .tx-row label,
-  .tx-row span {
-    display: inline !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    color: #222 !important;
-    font-weight: bold !important;
-  }
-
-  // Ensure input-row content is visible
-  .input-row {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  .input-row span {
-    display: inline !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  // Hide navigation bar in mobile version when printing
-  .mobile-app-bar,
-  .mobile-sidebar,
-  .mobile-toolbar-spacer {
-    display: none !important;
-  }
-
-  // Ensure mobile layout doesn't interfere with print
-  .mobile-main {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-
-  // Hide any mobile-specific navigation elements
-  .MuiAppBar-root,
-  .MuiDrawer-root {
-    display: none !important;
-  }
-
-  // CRITICAL: Override Layout component width constraints for print
-  .dashboard-content {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-  }
-
   .dashboard-main {
-    width: 100% !important;
     margin-left: 0 !important;
+    width: 100% !important;
     padding: 0 !important;
   }
 
-
-  // Ensure client info box and other containers use full width
-  .client-info-box,
-  .reference-header,
-  .section-title,
-  .input-row {
+  .dashboard-content {
+    padding: 0 !important;
+    margin: 0 !important;
     width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    max-width: none !important;
   }
 
-  // Override any percentage-based padding that might limit width
   .quote-test-content {
-    padding: 0 !important;
-    margin: 25px 50px 50px 50px !important;
-    width: calc(100% - 100px) !important;
-    max-width: calc(100% - 100px) !important;
-  }
-
-  // CRITICAL: Make all tables match client-info-box width exactly
-  .client-info-box {
-    width: 100% !important;
-    max-width: 100% !important;
     margin: 0 !important;
-    padding: 18px 5px 10px 5px !important;
-  }
-
-
-  // Force all tables to use the same container width as client-info-box
-  .section-title,
-  .input-row,
-  .tx-row {
+    padding: 16px 0 0 !important;
     width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    max-width: none !important;
+    box-shadow: none !important;
   }
 
-  // Ensure the reference header also uses full width
   .reference-header {
+    margin-bottom: 12px;
+    min-height: 64px;
+  }
+
+  .reference-logo {
+    width: 70px;
+  }
+
+  .reference-title {
+    font-size: 18px;
+  }
+
+  .client-info-box {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+  }
+
+  .client-info-value input {
+    border: 1px solid $quote-border;
+    background: #fff;
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+
+  .summary-wrap {
+    display: flex !important;
+    justify-content: flex-end;
+    margin: 6px 0 14px;
+  }
+
+  .summary-table {
+    display: table !important;
+    float: none !important;
+    min-width: 300px;
+  }
+
+  .summary-table th,
+  .summary-table td {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    margin: 10px 0 6px;
+  }
+
+  .section-meta {
+    display: flex !important;
+    margin-bottom: 6px;
+  }
+
+  .section-meta .description,
+  .tx-row {
+    font-size: 12px;
+  }
+
+  .tx-row {
+    display: flex !important;
+  }
+
+  .data-table {
+    display: table !important;
     width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-}
-
-// --- End of added styles ---
-
-// Hide background logos by default
-.background-logo,
-.background-logo-second {
-  display: none;
-}
-
-// --- Background Logo Styles ---
-/* Show background logos when printing */
-@media print {
-  .background-logo,
-  .background-logo-second {
-    display: block !important;
-    position: absolute;
-    opacity: 0.1;
-    z-index: 1000;
-    pointer-events: none;
+    page-break-inside: auto;
   }
 
-  .background-logo {
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 600px;
+  .data-table thead {
+    display: table-header-group;
   }
 
-  .background-logo-second {
-    top: 75%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60%;
-    max-width: 400px;
+  .data-table tr {
+    page-break-inside: avoid;
   }
 
-  body, .main-content, .quote-test-root, #root {
-    background: transparent !important;
+  .data-table th,
+  .data-table td {
+    font-size: 11px;
+    padding: 4px 6px;
   }
 
-  body, .main-content, .quote-test-root, #root {
-    background: transparent !important;
+  .data-table .col-num {
+    width: 72px;
   }
-}
 
-/* Show background logos when in PDF mode */
-.quote-test-content.is-pdf-mode .background-logo,
-.quote-test-content.is-pdf-mode .background-logo-second {
-  display: block;
-  position: absolute;
-  opacity: 0.5;
-  z-index: 1000;
-  pointer-events: none;
-}
-
-.quote-test-content.is-pdf-mode .background-logo {
-  top: 40%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90%;
-  max-width: 600px;
-}
-
-.quote-test-content.is-pdf-mode .background-logo-second {
-  top: 75%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60%;
-  max-width: 400px;
-}
-
-// Specific styles for labor table with custom column widths
-.data-table.labor-table {
-  table-layout: fixed;
-}
-
-.data-table.labor-table th:nth-child(1), // Nb technicien
-.data-table.labor-table td:nth-child(1) {
-  width: 12%; // Equal width for 4 middle columns
-  text-align: center;
-}
-
-.data-table.labor-table th:nth-child(2), // Nb heures
-.data-table.labor-table td:nth-child(2) {
-  width: 12%; // Equal width for 4 middle columns
-  text-align: center;
-}
-
-.data-table.labor-table th:nth-child(3), // Majo Weekend
-.data-table.labor-table td:nth-child(3) {
-  width: 12%; // Equal width for 4 middle columns
-  text-align: center;
-}
-
-.data-table.labor-table th:nth-child(4), // PR €
-.data-table.labor-table td:nth-child(4) {
-  width: 12%; // Equal width for 4 middle columns
-  text-align: right;
-}
-
-.data-table.labor-table th:nth-child(5), // PR $
-.data-table.labor-table td:nth-child(5) {
-  width: 15%; // A little bigger than the 4 equal columns
-  text-align: right;
-}
-
-.data-table.labor-table th:nth-child(6), // PV/u $
-.data-table.labor-table td:nth-child(6) {
-  width: 15%; // A little bigger than the 4 equal columns
-  text-align: right;
-}
-
-.data-table.labor-table th:nth-child(7), // PV $ Total HT
-.data-table.labor-table td:nth-child(7) {
-  width: 22%; // Biggest column for the total
-  text-align: right;
 }

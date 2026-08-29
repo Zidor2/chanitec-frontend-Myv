@@ -35,7 +35,7 @@ import Layout from '../../components/Layout/Layout';
 import { apiService } from '../../services/api-service';
 import { SupplyItem } from '../../models/Quote';
 import * as XLSX from 'xlsx';
-import { extractVersion, extractBaseId } from '../../utils/id-generator';
+import { extractVersion } from '../../utils/id-generator';
 import './FinancialPage.scss';
 
 interface FinancialPageProps {
@@ -119,52 +119,65 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
     }
   };
 
-  // Function to get only the latest version of each quote group
+  // Group the same way as History: originals by their own id, revisions by parentId
+  const getQuoteGroupKey = (quote: any): string => {
+    const hasValidParent = quote.parentId && quote.parentId !== '' && quote.parentId !== '0';
+    return String(hasValidParent ? quote.parentId : quote.id);
+  };
+
+  // Keep only the latest version of each quote group
   const getLatestQuoteVersions = (allQuotes: any[]) => {
-    const quoteGroups = new Map<string, { quote: any; version: number; timestamp: Date }>();
+    const quoteGroups = new Map<string, any[]>();
 
-    console.log('=== Starting latest version filtering ===');
-    console.log('Total quotes to process:', allQuotes.length);
-
-    allQuotes.forEach(quote => {
-      // Prefer explicit parentId grouping; otherwise fallback to baseId or the full quote ID.
-      const parentKey = quote.parentId && quote.parentId !== '0' ? quote.parentId : null;
-      const baseId = extractBaseId(quote.id);
-      const key = parentKey || baseId || quote.id;
-      const version = extractVersion(quote.id) || 0;
-      const timestamp = new Date(quote.updatedAt || quote.createdAt || 0);
-
-      const current = quoteGroups.get(key);
-
-      // Determine if this quote should replace the current one
-      const isNewerVersion = !current || version > current.version;
-      const isSameVersionButNewer = !isNewerVersion && version === current.version && timestamp > current.timestamp;
-      const shouldReplace = isNewerVersion || isSameVersionButNewer;
-
-      if (shouldReplace) {
-        console.log(`Quote ${quote.id} (v${version}) - Keeping as latest for group "${key}"`);
-        if (current) {
-          console.log(`  (Replacing previous version: ${current.quote.id} v${current.version})`);
-        }
-        quoteGroups.set(key, {
-          quote,
-          version,
-          timestamp
-        });
-      } else {
-        console.log(`Quote ${quote.id} (v${version}) - Filtered out (not latest for group "${key}")`);
+    allQuotes.forEach((quote) => {
+      const key = getQuoteGroupKey(quote);
+      if (!quoteGroups.has(key)) {
+        quoteGroups.set(key, []);
       }
+      quoteGroups.get(key)!.push(quote);
     });
 
-    const result = Array.from(quoteGroups.values()).map(item => item.quote);
-    console.log('=== Filtering complete ===');
-    console.log('Final quotes to display:', result.length);
-    result.forEach(q => {
-      const v = extractVersion(q.id) || 0;
-      console.log(`  - ${q.id} (v${v}) | Client: ${q.clientName} | Updated: ${q.updatedAt}`);
-    });
+    return Array.from(quoteGroups.values()).map((group) => {
+      return [...group].sort((a, b) => {
+        const versionA = extractVersion(a.id) || 0;
+        const versionB = extractVersion(b.id) || 0;
+        if (versionA !== versionB) return versionB - versionA;
 
-    return result;
+        const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return timeB - timeA;
+      })[0];
+    });
+  };
+
+  const getQuoteAmounts = (quote: any) => {
+    let suppliesTotal = 0;
+    const convertedSuppliesTotal = Number(quote.totalSuppliesHT);
+    if (quote.totalSuppliesHT && !isNaN(convertedSuppliesTotal) && convertedSuppliesTotal > 0) {
+      suppliesTotal = convertedSuppliesTotal;
+    } else if (quote.supplyItems && Array.isArray(quote.supplyItems) && quote.supplyItems.length > 0) {
+      suppliesTotal = quote.supplyItems.reduce(
+        (sum: number, item: any) => sum + (Number(item.totalPriceDollar) || 0),
+        0
+      );
+    }
+
+    let laborTotal = 0;
+    const convertedLaborTotal = Number(quote.totalLaborHT);
+    if (quote.totalLaborHT && !isNaN(convertedLaborTotal) && convertedLaborTotal > 0) {
+      laborTotal = convertedLaborTotal;
+    } else if (quote.laborItems && Array.isArray(quote.laborItems) && quote.laborItems.length > 0) {
+      laborTotal = quote.laborItems.reduce(
+        (sum: number, item: any) => sum + (Number(item.totalPriceDollar) || 0),
+        0
+      );
+    }
+
+    return {
+      suppliesTotal,
+      laborTotal,
+      total: suppliesTotal + laborTotal
+    };
   };
 
   // Fetch quotes and items on component mount
@@ -431,41 +444,24 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
     });
   };
 
-  const visibleQuoteChartData = React.useMemo(() => {
-    const data = filteredQuotes.map((quote: any) => {
-      let suppliesTotal = 0;
-      const convertedSuppliesTotal = Number(quote.totalSuppliesHT);
-      if (quote.totalSuppliesHT && !isNaN(convertedSuppliesTotal) && convertedSuppliesTotal > 0) {
-        suppliesTotal = convertedSuppliesTotal;
-      } else if (quote.supplyItems && Array.isArray(quote.supplyItems) && quote.supplyItems.length > 0) {
-        suppliesTotal = quote.supplyItems.reduce((sum: number, item: any) => sum + (Number(item.totalPriceDollar) || 0), 0);
-      }
+  const topCustomersChartData = React.useMemo(() => {
+    const byClient = new Map<string, { name: string; total: number; quoteCount: number }>();
 
-      let laborTotal = 0;
-      const convertedLaborTotal = Number(quote.totalLaborHT);
-      if (quote.totalLaborHT && !isNaN(convertedLaborTotal) && convertedLaborTotal > 0) {
-        laborTotal = convertedLaborTotal;
-      } else if (quote.laborItems && Array.isArray(quote.laborItems) && quote.laborItems.length > 0) {
-        laborTotal = quote.laborItems.reduce((sum: number, item: any) => sum + (Number(item.totalPriceDollar) || 0), 0);
-      }
-
-      const total = suppliesTotal + laborTotal;
-      const shortLabel = quote.id?.length > 12 ? `${quote.id.slice(0, 10)}...` : quote.id;
-
-      return {
-        id: quote.id,
-        label: shortLabel,
-        clientName: quote.clientName || 'Sans client',
-        total,
-        rawDate: quote.date
-      };
+    filteredQuotes.forEach((quote: any) => {
+      const name = quote.clientName || 'Sans client';
+      const { total } = getQuoteAmounts(quote);
+      const current = byClient.get(name) || { name, total: 0, quoteCount: 0 };
+      current.total += total;
+      current.quoteCount += 1;
+      byClient.set(name, current);
     });
 
-    const sorted = data.sort((a, b) => b.total - a.total);
-    return sorted.slice(0, 20);
+    return Array.from(byClient.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15);
   }, [filteredQuotes]);
 
-  const chartMaxValue = visibleQuoteChartData.reduce((max, item) => Math.max(max, item.total), 1);
+  const chartMaxValue = topCustomersChartData.reduce((max, item) => Math.max(max, item.total), 1);
 
   const exportToExcel = () => {
     if (filteredQuotes.length === 0) {
@@ -932,34 +928,39 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
           </Box>
         </Box>
 
-        {/* Visible Quotes Bar Chart */}
+        {/* Top Customers Chart */}
         <Paper className="chart-section" elevation={2}>
           <Typography variant="h6" className="section-title">
-            Graphique des devis visibles
+            Top clients (dernières versions des devis)
           </Typography>
-          {filteredQuotes.length === 0 ? (
+          {topCustomersChartData.length === 0 ? (
             <Box display="flex" justifyContent="center" alignItems="center" padding={4}>
               <Typography variant="body1" color="textSecondary">
-                Aucun devis visible pour afficher le graphique.
+                Aucun client à afficher pour le graphique.
               </Typography>
             </Box>
           ) : (
             <Box className="chart-wrapper">
-              {visibleQuoteChartData.map((point) => {
+              {topCustomersChartData.map((point) => {
                 const widthPercent = chartMaxValue > 0 ? Math.round((point.total / chartMaxValue) * 100) : 0;
                 return (
-                  <Box key={point.id} className="chart-row">
-                    <Box className="chart-label">
-                      {point.label}
+                  <Box key={point.name} className="chart-row">
+                    <Box className="chart-label" title={point.name}>
+                      {point.name}
                     </Box>
                     <Box className="chart-bar-container">
                       <Box
                         className="chart-bar"
-                        sx={{ width: `${widthPercent}%` }}
+                        sx={{ width: `${Math.max(widthPercent, 2)}%` }}
                       />
                     </Box>
-                    <Box className="chart-value">
-                      {formatCurrency(point.total)}
+                    <Box className="chart-meta">
+                      <Box className="chart-value">
+                        {formatCurrency(point.total)}
+                      </Box>
+                      <Box className="chart-subvalue">
+                        {point.quoteCount} devis
+                      </Box>
                     </Box>
                   </Box>
                 );
@@ -971,7 +972,7 @@ const FinancialPage: React.FC<FinancialPageProps> = ({ currentPath, onNavigate, 
                 {/* Quotes Table */}
         <Paper className="quotes-table-section" elevation={2}>
           <Typography variant="h6" className="section-title">
-            Devis ({filteredQuotes.length})
+            Devis — dernières versions ({filteredQuotes.length})
           </Typography>
           {filteredQuotes.length === 0 ? (
             <Box display="flex" justifyContent="center" alignItems="center" padding={4}>

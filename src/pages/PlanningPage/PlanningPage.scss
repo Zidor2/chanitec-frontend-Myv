@@ -25,44 +25,7 @@
   border-radius: 8px;
 }
 
-/* Background logos for print / PDF mode */
-.planning-background-logo,
-.planning-background-logo-second {
-  display: none;
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  user-select: none;
-  object-fit: contain;
-  opacity: 0.15;
-  z-index: 0;
-}
-
-.planning-background-logo {
-  top: 40%;
-  width: 90%;
-  max-width: 600px;
-  height: auto;
-}
-
-.planning-background-logo-second {
-  top: 75%;
-  width: 60%;
-  max-width: 400px;
-  height: auto;
-}
-
-.planning-sites-details.is-pdf-mode .planning-print-hide {
-  display: none !important;
-}
-
 .planning-pdf-wrapper.is-pdf-mode {
-  .planning-background-logo,
-  .planning-background-logo-second {
-    display: block;
-  }
-
   .planning-screen-only,
   .planning-print-hide {
     display: none !important;
@@ -215,10 +178,13 @@
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+    position: relative !important;
+    overflow: visible !important;
 
-    .planning-background-logo,
-    .planning-background-logo-second {
-      display: block;
+    .print-background-logo,
+    .print-background-logo-second {
+      display: block !important;
+      visibility: visible !important;
     }
   }
 

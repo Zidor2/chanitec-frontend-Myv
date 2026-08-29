@@ -13,6 +13,12 @@
     width: 21cm;
     margin: 0 auto;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+
+    > *:not(.print-background-logo):not(.print-background-logo-second) {
+      position: relative;
+      z-index: 1;
+    }
 
     .header {
       display: flex;

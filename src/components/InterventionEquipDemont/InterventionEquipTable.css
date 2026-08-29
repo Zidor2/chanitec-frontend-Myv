@@ -1,0 +1,111 @@
+.intervention-equip-table {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid rgba(104, 150, 116, 0.9);
+  box-sizing: border-box;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.equip-title-row,
+.equip-header-row,
+.equip-data-row {
+  flex: 1 1 auto;
+  min-height: 0;
+  border-bottom: 1px solid rgba(104, 150, 116, 0.9);
+  box-sizing: border-box;
+}
+
+.equip-data-row:last-child {
+  border-bottom: none;
+}
+
+.equip-title-row {
+  display: flex;
+  align-items: stretch;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.equip-title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 8px;
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #111;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.equip-header-row,
+.equip-data-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.equip-table-installer .equip-header-row,
+.equip-table-installer .equip-data-row {
+  grid-template-columns: minmax(0, 1fr) 38px 14px;
+}
+
+.equip-header-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.equip-data-row {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.equip-col-label,
+.equip-col-qte,
+.equip-col-extra,
+.equip-cell-desc,
+.equip-cell-qte,
+.equip-cell-extra {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  border-right: 1px solid rgba(104, 150, 116, 0.9);
+}
+
+.equip-col-label,
+.equip-col-qte,
+.equip-col-extra {
+  padding: 0 6px;
+  font-size: 9px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #111;
+  text-transform: uppercase;
+}
+
+.equip-col-qte:last-child,
+.equip-col-extra,
+.equip-cell-qte:last-child,
+.equip-cell-extra {
+  border-right: none;
+}
+
+.equip-cell-desc,
+.equip-cell-qte,
+.equip-cell-extra {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0 6px;
+  font-size: 9px;
+  color: #111;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -5,55 +5,33 @@
   max-width: 100%;
   overflow-x: hidden;
 
-  // Header Section
-  .page-header {
-    background-color: white;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 1.5rem 0;
-    margin-bottom: 2rem;
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 2rem;
-
-      @media (max-width: 768px) {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 1rem;
-      }
-
-      .header-left {
-        .page-title {
-          font-weight: 600;
-          color: #333;
-          margin: 0;
-        }
-      }
-
-      .header-actions {
-        .create-client-btn {
-          border-radius: 8px;
-          text-transform: none;
-          font-weight: 500;
-          padding: 0.75rem 1.5rem;
-          box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
-
-          &:hover {
-            box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
-          }
-        }
-      }
-    }
-  }
-
   // Main Content
   .main-content {
-    padding: 0 1rem 2rem;
+    padding: 0.5rem 1rem 2rem;
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+  }
+
+  .clients-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+
+    .create-client-btn {
+      border-radius: 8px;
+      text-transform: none;
+      font-weight: 500;
+      padding: 0.75rem 1.5rem;
+      box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
+
+      &:hover {
+        box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+      }
+    }
   }
 
   // Filter Section
@@ -313,16 +291,6 @@
 // Responsive Design
 @media (max-width: 768px) {
   .clients-page {
-    .page-header {
-      .header-content {
-        .header-left {
-          .page-title {
-            font-size: 1.5rem;
-          }
-        }
-      }
-    }
-
     .filter-section {
       .filter-content {
         .filter-left {
@@ -361,93 +329,46 @@
   }
 }
 
-// Print styles
-@media print {
-  @page {
-    size: A4 landscape;
-    margin: 10mm;
+.pdf-header {
+  display: none;
+  width: 100%;
+}
+
+.clients-pie-wrap {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  overflow: visible;
+}
+
+.clients-pie-chart {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  overflow: visible;
+  background: #ffffff;
+}
+
+#chart-section.is-pdf-mode {
+  .chart-toolbar,
+  .chart-actions {
+    display: none !important;
   }
 
-  .clients-page {
-    .page-header,
-    .filter-section,
-    .clients-print-hide {
-      display: none !important;
-    }
+  .pdf-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
   }
 
-  #chart-section {
-    box-shadow: none !important;
-    border: none !important;
-    margin: 0 !important;
-
-    .chart-toolbar,
-    .chart-actions {
-      display: none !important;
-    }
-
-    .MuiTextField-root,
-    .MuiButton-root {
-      display: none !important;
-    }
-
-    button,
-    input,
-    select,
-    .MuiFormControl-root,
-    .MuiOutlinedInput-root,
-    .MuiInputBase-root,
-    [role="button"] {
-      display: none !important;
-      visibility: hidden !important;
-    }
-
-    .pdf-header,
-    .pdf-legend {
-      display: block !important;
-      text-align: center;
-      margin-bottom: 8px;
-    }
-
-    .on-screen-legend {
-      display: none !important;
-    }
-
-    .pdf-header {
-      font-size: 20px;
-      font-weight: 700;
-      margin-top: 8px;
-    }
-
-    .pdf-legend > div {
-      text-align: left;
-      margin: 4px 0;
-    }
-
-    svg {
-      width: 100% !important;
-      height: auto !important;
-      max-width: 1100px !important;
-    }
-
-    .clients-background-logo,
-    .clients-background-logo-second {
-      display: block !important;
-    }
-  }
-
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .layout-root,
-  .dashboard-main,
-  .dashboard-content {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
+  .clients-pie-wrap {
+    position: relative;
+    z-index: 1;
   }
 }
 
@@ -459,87 +380,148 @@
   }
 }
 
-#chart-section.is-pdf-mode {
+// Print styles
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  html,
+  body,
+  #root,
+  .layout-root,
+  .dashboard-main,
+  .dashboard-content,
+  .clients-page {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    visibility: visible !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-shadow: none !important;
+  }
+
+  .layout-root,
+  .dashboard-main,
+  .dashboard-content,
+  .clients-page,
+  .main-content,
+  .MuiContainer-root {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .dashboard-sidebar,
+  .mobile-app-bar,
+  .mobile-toolbar-spacer,
+  .page-header,
+  .filter-section,
+  .clients-print-hide,
   .chart-toolbar,
   .chart-actions {
     display: none !important;
   }
 
-  .MuiTextField-root,
-  .MuiButton-root {
+  #chart-section .MuiTextField-root,
+  #chart-section .MuiButton-root,
+  #chart-section button,
+  #chart-section input,
+  #chart-section select {
     display: none !important;
   }
 
-  button,
-  input,
-  select,
-  .MuiFormControl-root,
-  .MuiOutlinedInput-root,
-  .MuiInputBase-root,
-  [role="button"] {
-    display: none !important;
-    visibility: hidden !important;
+  #chart-section,
+  #chart-section * {
+    visibility: visible !important;
   }
 
-  .pdf-header,
-  .pdf-legend {
+  #chart-section {
+    position: static !important;
     display: block !important;
-    text-align: center;
-    margin-bottom: 8px;
-  }
-
-  .on-screen-legend {
-    display: none !important;
-  }
-
-  .pdf-header {
-    font-size: 20px;
-    font-weight: 700;
-    margin-top: 8px;
-  }
-
-  .pdf-legend > div {
-    text-align: left;
-    margin: 4px 0;
-  }
-
-  svg {
     width: 100% !important;
-    height: auto !important;
-    max-width: 1100px !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
-  .clients-background-logo,
-  .clients-background-logo-second {
+  #chart-section .MuiCardContent-root {
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  #chart-section .pdf-header {
     display: block !important;
+    width: 100% !important;
+    text-align: center;
+    margin: 0 0 6mm 0 !important;
+    color: #000 !important;
   }
-}
 
-.clients-background-logo,
-.clients-background-logo-second {
-  display: none;
-  position: absolute;
-  z-index: 1;
-  pointer-events: none;
-  user-select: none;
-  opacity: 0.15;
-  object-fit: contain;
-}
+  #chart-section .pdf-header h6,
+  #chart-section .pdf-header .MuiTypography-h6 {
+    font-size: 18pt !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    color: #000 !important;
+  }
 
-.clients-background-logo {
-  top: 40%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90%;
-  max-width: 600px;
-  height: auto;
-}
+  #chart-section .pdf-header .MuiTypography-subtitle1,
+  #chart-section .pdf-header .MuiTypography-subtitle2 {
+    font-size: 11pt !important;
+    color: #000 !important;
+  }
 
-.clients-background-logo-second {
-  top: 75%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60%;
-  max-width: 400px;
-  height: auto;
+  #chart-section .clients-pie-wrap {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 100% !important;
+    height: 162mm !important;
+    max-width: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  #chart-section .clients-pie-chart,
+  #chart-section svg {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  #chart-section .clients-pie-chart path,
+  #chart-section .clients-pie-chart polyline {
+    stroke: #000 !important;
+  }
+
+  #chart-section .clients-pie-chart text {
+    fill: #000 !important;
+    font-weight: 700 !important;
+  }
 }

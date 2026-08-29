@@ -5,19 +5,9 @@ import { useQuote } from '../../contexts/QuoteContext';
 import './QuoteTest.scss';
 import logo from '../../logo.png';
 import { useLocation, useNavigate } from 'react-router-dom';
-import logo512 from '../../assets/logo512.png';
-import CHANitec from '../../assets/CHANitec.png';
+import PrintBackgroundLogos from '../../components/PrintBackgroundLogos/PrintBackgroundLogos';
 import { formatNumberWithSpaces, calculateTotalWithRemise, calculateTotalWithRemiseAndHBC, calculateVAT } from '../../utils/calculations';
-
-// Add a helper function for date formatting at the top level
-function formatDate(dateString: string) {
-  if (!dateString) return '';
-  const d = new Date(dateString);
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-}
+import { apiService } from '../../services/api-service';
 
 interface QuoteTestProps {
   currentPath: string;
@@ -54,8 +44,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
             createdAt = currentQuote.createdAt;
           } else {
             try {
-              const allQuotes = await fetch(`${process.env.REACT_APP_API_URL}/quotes`).then(res => res.json());
-              const found = allQuotes.find((q: any) => q.id === quoteId);
+              const found = await apiService.getQuoteById(quoteId);
               if (found) {
                 createdAt = found.createdAt;
               }
@@ -109,22 +98,22 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
 
   const handlePrint = () => {
     setIsPdfMode(true);
-    window.print();
 
-    // Reset PDF mode after print dialog closes
-    const handleAfterPrint = () => {
+    const cleanup = () => {
       setIsPdfMode(false);
-      window.removeEventListener('afterprint', handleAfterPrint);
+      window.removeEventListener('afterprint', cleanup);
       if (timeoutId) clearTimeout(timeoutId);
     };
 
-    window.addEventListener('afterprint', handleAfterPrint);
+    window.addEventListener('afterprint', cleanup);
 
-    // Fallback: in case afterprint is not fired, reset after 5 seconds
-    const timeoutId = setTimeout(() => {
-      setIsPdfMode(false);
-      window.removeEventListener('afterprint', handleAfterPrint);
-    }, 5000);
+    const timeoutId = setTimeout(cleanup, 15000);
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+      }, 50);
+    });
   };
 
   // Show loading or error state
@@ -189,18 +178,14 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onHomeClick={handleHomeClick}>
       <div ref={contentRef} className={`quote-test-content ${isPdfMode ? 'is-pdf-mode' : ''}`}>
-        {/* Background Logo */}
-        <img src={logo512} alt="Background Logo" className="background-logo" />
-        <img src={CHANitec} alt="Chanitec Logo" className="background-logo-second" />
+        <PrintBackgroundLogos />
 
-        {/* Header Section */}
-        <div className="reference-header">
-          <img src={logo} alt="Logo" className="reference-logo" />
-          <div className="reference-title">CALCUL DE PRIX OFFRE CLIMATISATION</div>
-        </div>
+        <header className="reference-header">
+          <img src={logo} alt="Groupe Chanic" className="reference-logo" />
+          <h1 className="reference-title">CALCUL DE PRIX OFFRE CLIMATISATION</h1>
+        </header>
 
-        {/* Client Info Section */}
-        <div className="client-info-box">
+        <section className="client-info-box">
           <div className="client-info-grid">
             <div className="client-info-label">CLIENT:</div>
             <div className="client-info-value">
@@ -232,11 +217,7 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
             <div className="client-info-label">DATE:</div>
             <div className="client-info-value">
               {isPdfMode ? (
-                <input
-                  type="text"
-                  value={formatDate(currentQuote.date)}
-                  disabled
-                />
+                <input type="text" value={currentQuote.date || ''} disabled />
               ) : (
                 <input
                   type="date"
@@ -247,24 +228,27 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
               )}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Totals Section */}
-        <div className="clearfix">
-          <table className="summary-table" style={{ float: 'right' }}>
+        <div className="summary-wrap">
+          <table className="summary-table">
             <tbody>
-              <tr><th>TOTAL OFFRE USD HT:</th><td>{formatNumberWithSpaces(currentQuote.totalHT)}</td></tr>
-              {(currentQuote.remise !== undefined && currentQuote.remise !== null && currentQuote.remise > 0) && (
+              <tr>
+                <th>TOTAL OFFRE USD HT:</th>
+                <td>{formatNumberWithSpaces(currentQuote.totalHT)}</td>
+              </tr>
+              {currentQuote.remise !== undefined && currentQuote.remise !== null && currentQuote.remise > 0 && (
                 <tr>
-                  <th>Remise :</th>
+                  <th>REMISE:</th>
                   <td>-{formatNumberWithSpaces(remiseAmount)}</td>
                 </tr>
               )}
-
-              <tr>
-                <th>TOTAL HT APRÈS REMISE:</th>
-                <td>{formatNumberWithSpaces(totalAfterRemise)}</td>
-              </tr>
+              {currentQuote.remise !== undefined && currentQuote.remise !== null && currentQuote.remise > 0 && (
+                <tr>
+                  <th>TOTAL HT APRÈS REMISE:</th>
+                  <td>{formatNumberWithSpaces(totalAfterRemise)}</td>
+                </tr>
+              )}
               {currentQuote.hbc !== undefined && currentQuote.hbc !== null && currentQuote.hbc > 0 && (
                 <tr>
                   <th>HBC ({currentQuote.hbc.toFixed(2)}%):</th>
@@ -283,101 +267,112 @@ const QuoteTest: React.FC<QuoteTestProps> = ({ currentPath, onNavigate }) => {
           </table>
         </div>
 
-        {/* Fournitures Section */}
-        <div className="section-title">FOURNITURES</div>
-        <div className="input-row">
-        <span className="description" > {currentQuote.supplyDescription || ''} </span>
-          <div className='tx-row'>
-          <label>Tx de chg:</label>
-          <span> {currentQuote.supplyExchangeRate || 1.15}</span>
-          <label>Tx de marge:</label>
-          <span>{currentQuote.supplyMarginRate || 0.75}</span>
-        </div>
-
-        </div>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>N°</th>
-              <th>Description</th>
-              <th>Qté</th>
-              <th>PR €</th>
-              <th>PR $</th>
-              <th>PV/u $</th>
-              <th>PV $ Total HT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentQuote.supplyItems.map((item, idx) => (
-              <tr key={idx}>
-                <td>{idx + 1}</td>
-                <td>{item.description}</td>
-                <td>{item.quantity} </td>
-                <td>{formatNumberWithSpaces(item.priceEuro)}</td>
-                <td>{formatNumberWithSpaces((item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)))}</td>
-                <td>{formatNumberWithSpaces(((item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))))}</td>
-                <td>{formatNumberWithSpaces(((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))))}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="totals-row">
-              <td colSpan={6} style={{ textAlign: 'left' }}>TOTAL FOURNITURE $ HT:</td>
-              <td>{formatNumberWithSpaces(currentQuote.supplyItems.reduce((sum, item) => sum + ((item.quantity * item.priceEuro * (currentQuote.supplyExchangeRate || 1.15)) * (1 / (currentQuote.supplyMarginRate || 0.75))), 0))}</td>
-            </tr>
-          </tfoot>
-        </table>
-
-        {/* Main d'oeuvre Section */}
-        <div className="section-title">MAIN D'OEUVRE</div>
-        <div className="input-row">
-          <span className="description"> {currentQuote.laborDescription || ''}</span>
-          <div className='tx-row'>
-          <label>Tx de chg:</label>
-          <span>{currentQuote.laborExchangeRate || 1.2}</span>
-          <label>Tx de marge:</label>
-          <span>{currentQuote.laborMarginRate || 0.8}</span>
+        <section className="quote-section supplies-section">
+          <h2 className="section-title">FOURNITURES</h2>
+          <div className="section-meta">
+            <span className="description">{currentQuote.supplyDescription || ''}</span>
+            <div className="tx-row">
+              <span><strong>Tx de chg:</strong> {currentQuote.supplyExchangeRate || 1.15}</span>
+              <span><strong>Tx de marge:</strong> {currentQuote.supplyMarginRate || 0.75}</span>
+            </div>
           </div>
-        </div>
-
-
-        <table className="data-table labor-table">
-          <thead>
-            <tr>
-              <th>Nb technicien</th>
-              <th>Nb heures</th>
-              <th>Majo Weekend</th>
-              <th>PR €</th>
-              <th>PR $</th>
-              <th>PV/u $</th>
-              <th>PV $ Total HT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentQuote.laborItems.map((item, idx) => (
-              <tr key={idx}>
-                <td>{item.nbTechnicians}</td>
-                <td>{item.nbHours}</td>
-                <td>{item.weekendMultiplier}</td>
-                <td>{formatNumberWithSpaces(item.priceEuro)}</td>
-                <td>{formatNumberWithSpaces(item.priceDollar || 0)}</td>
-                <td>{formatNumberWithSpaces(item.unitPriceDollar || 0)}</td>
-                <td>{formatNumberWithSpaces(item.totalPriceDollar || 0)}</td>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="col-desc">Description</th>
+                <th className="col-num">Qté</th>
+                <th className="col-num">PR €</th>
+                <th className="col-num">PR $</th>
+                <th className="col-num">PV/u $</th>
+                <th className="col-num">PV $ Total HT</th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="totals-row">
-              <td colSpan={6} style={{ textAlign: 'left' }}>TOTAL MO $ HT:</td>
-              <td colSpan={2}>{formatNumberWithSpaces(currentQuote.totalLaborHT)}</td>
-            </tr>
-          </tfoot>
-        </table>
+            </thead>
+            <tbody>
+              {currentQuote.supplyItems.map((item, idx) => {
+                const exchange = currentQuote.supplyExchangeRate || 1.15;
+                const margin = currentQuote.supplyMarginRate || 0.75;
+                const prDollar = item.priceEuro * exchange;
+                const pvUnit = prDollar * (1 / margin);
+                const pvTotal = item.quantity * pvUnit;
+                return (
+                  <tr key={idx}>
+                    <td className="col-desc">{item.description}</td>
+                    <td className="col-num">{item.quantity}</td>
+                    <td className="col-num">{formatNumberWithSpaces(item.priceEuro)}</td>
+                    <td className="col-num">{formatNumberWithSpaces(prDollar)}</td>
+                    <td className="col-num">{formatNumberWithSpaces(pvUnit)}</td>
+                    <td className="col-num">{formatNumberWithSpaces(pvTotal)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="totals-row">
+                <td colSpan={5} className="totals-label">TOTAL FOURNITURE $ HT:</td>
+                <td className="col-num">
+                  {formatNumberWithSpaces(
+                    currentQuote.supplyItems.reduce((sum, item) => {
+                      const exchange = currentQuote.supplyExchangeRate || 1.15;
+                      const margin = currentQuote.supplyMarginRate || 0.75;
+                      return sum + item.quantity * item.priceEuro * exchange * (1 / margin);
+                    }, 0)
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </section>
 
-        {/* Action Buttons */}
+        <section className="quote-section labor-section">
+          <h2 className="section-title">MAIN D'OEUVRE</h2>
+          <div className="section-meta">
+            <span className="description">{currentQuote.laborDescription || ''}</span>
+            <div className="tx-row">
+              <span><strong>Tx de chg:</strong> {currentQuote.laborExchangeRate || 1.2}</span>
+              <span><strong>Tx de marge:</strong> {currentQuote.laborMarginRate || 0.8}</span>
+            </div>
+          </div>
+          <table className="data-table labor-table">
+            <thead>
+              <tr>
+                <th className="col-desc">Description</th>
+                <th className="col-num">Nb technicien</th>
+                <th className="col-num">Nb heures</th>
+                <th className="col-num">Majo Weekend</th>
+                <th className="col-num">PR €</th>
+                <th className="col-num">PR $</th>
+                <th className="col-num">PV/u $</th>
+                <th className="col-num">PV $ Total HT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentQuote.laborItems.map((item, idx) => (
+                <tr key={idx}>
+                  <td className="col-desc">{item.description}</td>
+                  <td className="col-num">{item.nbTechnicians}</td>
+                  <td className="col-num">{item.nbHours}</td>
+                  <td className="col-num">{item.weekendMultiplier}</td>
+                  <td className="col-num">{formatNumberWithSpaces(item.priceEuro)}</td>
+                  <td className="col-num">{formatNumberWithSpaces(item.priceDollar || 0)}</td>
+                  <td className="col-num">{formatNumberWithSpaces(item.unitPriceDollar || 0)}</td>
+                  <td className="col-num">{formatNumberWithSpaces(item.totalPriceDollar || 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="totals-row">
+                <td colSpan={7} className="totals-label">TOTAL MO $ HT:</td>
+                <td className="col-num">{formatNumberWithSpaces(currentQuote.totalLaborHT)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </section>
+
         {!isPdfMode && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, margin: '30px 0' }}>
-            <button className="btn-save" onClick={handlePrint}> {'Imprimer'}</button>
+          <div className="quote-actions">
+            <button type="button" className="btn-save" onClick={handlePrint}>
+              Imprimer
+            </button>
           </div>
         )}
       </div>

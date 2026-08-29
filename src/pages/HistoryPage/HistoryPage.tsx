@@ -37,6 +37,7 @@ import CustomNumberInput from '../../components/CustomNumberInput/CustomNumberIn
 import { calculateVAT } from '../../utils/calculations';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { hasAllAccess } from '../../constants/pagePermissions';
 
 interface HistoryPageProps {
   currentPath: string;
@@ -177,6 +178,21 @@ const calculateTotalTTCAfterDiscount = (quote: Quote): number => {
 
   // Return total TTC after discount and HBC
   return totalHTAfterRemiseAndHBC + tvaAfterDiscountAndHBC;
+};
+
+const isCreatedByAdmin = (quote: Quote): boolean => {
+  if (quote.createdByRole === 'admin') return true;
+  return hasAllAccess(quote.createdByPermissions || []);
+};
+
+const QuoteCreatorNote: React.FC<{ quote: Quote }> = ({ quote }) => {
+  if (!quote.userId || isCreatedByAdmin(quote)) return null;
+  const name = quote.createdByUsername?.trim() || `utilisateur #${quote.userId}`;
+  return (
+    <Typography component="span" className="creator-note">
+      Créé par {name}
+    </Typography>
+  );
 };
 
 const HistoryPage: React.FC<HistoryPageProps> = ({ currentPath, onNavigate, onLogout }) => {
@@ -696,6 +712,7 @@ ${quoteDetails}`);
                         <Typography component="span" className="version-label latest" sx={{ ml: 1 }}>
                           Version la plus récente
                         </Typography>
+                        <QuoteCreatorNote quote={latestQuote} />
                       </Box>
                       <Typography variant="caption" color="text.secondary">
                         {new Date(latestQuote.createdAt).toLocaleDateString('fr-FR')}
@@ -827,6 +844,7 @@ ${quoteDetails}`);
                                 sx={{ ml: 1 }}>
                                 {isOriginal ? 'Version originale' : `Version ${idx}`}
                               </Typography>
+                              <QuoteCreatorNote quote={quote} />
                             </Box>
                             <Typography variant="caption" color="text.secondary">
                               {new Date(quote.createdAt).toLocaleDateString('fr-FR')}

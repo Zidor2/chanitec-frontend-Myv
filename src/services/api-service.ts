@@ -12,6 +12,21 @@ interface CacheEntry {
     timestamp: number;
 }
 
+export interface ActivityLogEntry {
+    id: number;
+    userId: number | null;
+    username: string | null;
+    action: string;
+    entityType: string | null;
+    entityId: string | null;
+    method: string;
+    path: string;
+    statusCode: number;
+    details: Record<string, unknown> | string | null;
+    ipAddress: string | null;
+    createdAt: string;
+}
+
 class ApiService {
     private cache = new Map<string, CacheEntry>();
 
@@ -39,7 +54,22 @@ class ApiService {
             });
 
             if (!response.ok) {
-                throw new Error(`API call failed: ${response.statusText}`);
+                let errorMessage = `API call failed: ${response.statusText}`;
+                try {
+                    const errorBody = await response.json();
+                    if (errorBody?.error && errorBody?.details) {
+                        errorMessage = `${errorBody.error}: ${errorBody.details}`;
+                    } else if (errorBody?.error) {
+                        errorMessage = errorBody.error;
+                    } else if (errorBody?.details) {
+                        errorMessage = errorBody.details;
+                    }
+                } catch {
+                    // Ignore JSON parse errors and fall back to status text
+                }
+                const requestError = new Error(errorMessage) as Error & { status?: number };
+                requestError.status = response.status;
+                throw requestError;
             }
 
             // Handle 204 No Content responses
@@ -49,6 +79,10 @@ class ApiService {
 
             return response.json();
         } catch (error) {
+            const status = (error as { status?: number }).status;
+            if (status && status >= 400 && status < 500) {
+                throw error;
+            }
             if (retries > 0) {
                 console.log(`Retrying API call, ${retries} attempts remaining...`);
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
@@ -63,8 +97,10 @@ class ApiService {
         const url = `${API_BASE_URL}${endpoint}`;
         const isGet = !options.method || options.method === 'GET';
 
+        const cacheKey = `${url}::${authService.getUser()?.id ?? 'anon'}`;
+
         if (isGet) {
-            const cached = this.cache.get(url);
+            const cached = this.cache.get(cacheKey);
             if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
                 console.log(`Returning cached data for: ${url}`);
                 return cached.data;
@@ -75,7 +111,7 @@ class ApiService {
         const result = await this.fetchWithRetry<T>(url, options);
 
         if (isGet) {
-            this.cache.set(url, { data: result, timestamp: Date.now() });
+            this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
         }
 
         return result;
@@ -220,6 +256,105 @@ class ApiService {
         return this.fetchApi<SupplyItem[]>(`/supply-items/${quoteId}`);
     }
 
+    async saveIntervention(intervention: any): Promise<any> {
+        const result = await this.fetchApi<any>('/interventions', {
+            method: 'POST',
+            body: JSON.stringify(intervention),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    /**
+     * Get interventions with optional filters
+     */
+    async getInterventions(options: {
+        clientId?: string;
+        siteId?: string;
+        splitId?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        object?: string;
+    } = {}): Promise<any[]> {
+        const params = new URLSearchParams();
+        if (options.clientId) params.append('client_id', options.clientId);
+        if (options.siteId) params.append('site_id', options.siteId);
+        if (options.splitId) params.append('split_id', options.splitId);
+        if (options.dateFrom) params.append('dateFrom', options.dateFrom);
+        if (options.dateTo) params.append('dateTo', options.dateTo);
+        if (options.object) params.append('object', options.object);
+
+        const queryString = params.toString();
+        return this.fetchApi<any[]>(`/interventions${queryString ? '?' + queryString : ''}`);
+    }
+
+    async createInterventionUniteExterieure(interventionId: number, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-unite-exterieure/${interventionId}`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async createInterventionMesureReleve(interventionId: number, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-mesure-releve/${interventionId}`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async createInterventionEssaisElectrique(interventionId: number, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-essais-electrique/${interventionId}`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async createInterventionLiaisonsElectriques(interventionId: number, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-liaisons-electriques/${interventionId}`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async createInterventionCoffretElectrique(interventionId: number, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-coffret-electrique/${interventionId}`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async saveInterventionObservations(interventionId: number | string, data: {
+        observations_client?: string;
+        observations_chanic?: string;
+        signature_client?: string;
+        signature_chanic?: string;
+        technician_employee_ids?: string | number[] | null;
+    }): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-observations/${interventionId}`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
     async saveSupply(supply: Omit<SupplyItem, 'id'> & { id?: string }, quoteId: string): Promise<SupplyItem> {
         const result = await this.fetchApi<SupplyItem>(`/supply-items/${quoteId}`, {
             method: 'POST',
@@ -282,6 +417,98 @@ class ApiService {
 
     async getSplitsBySiteId(siteId: string): Promise<any[]> {
         return this.fetchApi<any[]>(`/splits/by-site/${siteId}`);
+    }
+
+    async getInterventionById(id: string): Promise<any> {
+        return this.fetchApi<any>(`/interventions/${id}`);
+    }
+
+    async getSiteById(id: string): Promise<any> {
+        return this.fetchApi<any>(`/sites/${id}`);
+    }
+
+    async getInterventionUniteExterieureByInterventionId(id: string): Promise<any> {
+        return this.fetchApi<any>(`/intervention-unite-exterieure/by-intervention/${id}`);
+    }
+
+    async getInterventionEssaisElectriqueByInterventionId(id: string): Promise<any> {
+        return this.fetchApi<any>(`/intervention-essais-electrique/by-intervention/${id}`);
+    }
+
+    async getInterventionLiaisonsElectriquesByInterventionId(id: string): Promise<any> {
+        return this.fetchApi<any>(`/intervention-liaisons-electriques/by-intervention/${id}`);
+    }
+
+    async getInterventionCoffretElectriqueByInterventionId(id: string): Promise<any> {
+        return this.fetchApi<any>(`/intervention-coffret-electrique/by-intervention/${id}`);
+    }
+
+    async getInterventionMesureReleveByInterventionId(id: string): Promise<any> {
+        return this.fetchApi<any>(`/intervention-mesure-releve/by-intervention/${id}`);
+    }
+
+    async getInterventionObservationsByInterventionId(id: string): Promise<any> {
+        return this.fetchApi<any>(`/intervention-observations/by-intervention/${id}`);
+    }
+
+    async updateIntervention(id: string, intervention: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/interventions/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(intervention),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async updateInterventionUniteExterieure(id: number | string, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-unite-exterieure/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async updateInterventionMesureReleve(id: number | string, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-mesure-releve/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async updateInterventionEssaisElectrique(id: number | string, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-essais-electrique/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async updateInterventionLiaisonsElectriques(id: number | string, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-liaisons-electriques/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
+    }
+
+    async updateInterventionCoffretElectrique(id: number | string, data: any): Promise<any> {
+        const result = await this.fetchApi<any>(`/intervention-coffret-electrique/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+
+        this.clearCache();
+        return result;
     }
 
     async createSplit(split: Omit<any, 'id'>): Promise<any> {
@@ -868,6 +1095,39 @@ class ApiService {
 
         // Clear cache after delete to ensure fresh data on next fetch
         this.clearCache();
+    }
+
+    async getActivityLogs(options: {
+        page?: number;
+        limit?: number;
+        username?: string;
+        action?: string;
+        entityType?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        status?: string;
+    } = {}): Promise<{
+        items: ActivityLogEntry[];
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        const params = new URLSearchParams();
+        if (options.page) params.append('page', String(options.page));
+        if (options.limit) params.append('limit', String(options.limit));
+        if (options.username) params.append('username', options.username);
+        if (options.action) params.append('action', options.action);
+        if (options.entityType) params.append('entityType', options.entityType);
+        if (options.dateFrom) params.append('dateFrom', options.dateFrom);
+        if (options.dateTo) params.append('dateTo', options.dateTo);
+        if (options.status) params.append('status', options.status);
+        const query = params.toString();
+        const url = `${API_BASE_URL}/logs${query ? `?${query}` : ''}`;
+        return this.fetchWithRetry(url);
+    }
+
+    async getActivityLogActions(): Promise<string[]> {
+        return this.fetchWithRetry(`${API_BASE_URL}/logs/actions`);
     }
 
 } // <-- Close ApiService class

@@ -43,6 +43,7 @@
       .quote-id {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 0.5rem;
 
         .id-number {
@@ -66,6 +67,16 @@
             background-color: #fff3e0;
             color: #f57c00;
           }
+        }
+
+        .creator-note {
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          background-color: #fff8e1;
+          color: #ef6c00;
+          white-space: nowrap;
         }
       }
     }

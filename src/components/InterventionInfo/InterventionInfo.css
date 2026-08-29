@@ -1,0 +1,135 @@
+.intervention-info {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1.25fr 1.25fr 0.94fr;
+  background: #fff;
+  border: 1px solid #6d8fb6;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.info-column {
+  display: grid;
+  grid-template-rows: 18px 18px 18px 18px minmax(24px, 1fr);
+  min-width: 0;
+  border-right: 1px solid #6d8fb6;
+}
+
+.info-column:last-child {
+  border-right: none;
+}
+
+.info-row {
+  border-bottom: 1px solid #6d8fb6;
+  background: rgba(255, 255, 255, 0.04);
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+.info-column .info-row:last-child {
+  border-bottom: none;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 7px;
+  font-size: 9.25px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.value-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 7px;
+  padding-right: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 9.25px;
+  line-height: 1.1;
+  font-weight: 400;
+  color: #111;
+  text-transform: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.label-with-value {
+  justify-content: space-between;
+  gap: 6px;
+  padding-right: 6px;
+}
+
+.inline-value {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.object-sub-cell.is-selected {
+  font-weight: 700;
+}
+
+.object-row,
+.reason-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.object-label,
+.reason-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 7px;
+  border-right: 1px solid #6d8fb6;
+  font-size: 9.25px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.object-sub {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  min-width: 0;
+}
+
+.object-sub-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 7px;
+  font-size: 9.25px;
+  color: #111;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.reason-empty {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 8.9px;
+  line-height: 1.2;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

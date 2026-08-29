@@ -1,9 +1,14 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
+export type UserRole = 'admin' | 'editor' | 'viewer' | 'user';
+
 export interface User {
   id: number;
   username: string;
-  role: 'admin' | 'editor' | 'viewer' | 'user';
+  role: UserRole;
+  permissions?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {
@@ -148,7 +153,7 @@ class AuthService {
   }
 
   // Create new user (admin only)
-  async createUser(username: string, password: string, role: 'admin' | 'editor' | 'viewer'): Promise<User> {
+  async createUser(username: string, password: string, permissions: string[]): Promise<User> {
     const token = this.getToken();
     if (!token) {
       throw new Error('No authentication token found');
@@ -160,7 +165,7 @@ class AuthService {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password, role }),
+      body: JSON.stringify({ username, password, permissions }),
     });
 
     if (!response.ok) {
@@ -172,16 +177,15 @@ class AuthService {
   }
 
   // Update user (admin only)
-  async updateUser(id: number, username?: string, password?: string, role?: 'admin' | 'editor' | 'viewer'): Promise<User> {
+  async updateUser(id: number, data: {
+    username?: string;
+    password?: string;
+    permissions?: string[];
+  }): Promise<User> {
     const token = this.getToken();
     if (!token) {
       throw new Error('No authentication token found');
     }
-
-    const updateData: any = {};
-    if (username) updateData.username = username;
-    if (password) updateData.password = password;
-    if (role) updateData.role = role;
 
     const response = await fetch(`${API_BASE_URL}/auth/${id}`, {
       method: 'PUT',
@@ -189,7 +193,7 @@ class AuthService {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(updateData),
+      body: JSON.stringify(data),
     });
 
     if (!response.ok) {

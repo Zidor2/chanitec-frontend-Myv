@@ -100,7 +100,6 @@ body {
 // Print-specific styles
 @media print {
   @page {
-    size: A4;
     margin: 0;
   }
 
@@ -115,12 +114,11 @@ body {
 
 
 
-  .quote-content,
-  .quote-content > div,
-  .layout-root {
-    page-break-inside: avoid !important;
-    page-break-before: avoid !important;
-    page-break-after: avoid !important;
+  .quote-content .quote-header,
+  .quote-content .supplies-section,
+  .quote-content .labor-section,
+  .quote-content .total-section {
+    page-break-inside: avoid;
   }
 
   // Hide all input fields and form elements

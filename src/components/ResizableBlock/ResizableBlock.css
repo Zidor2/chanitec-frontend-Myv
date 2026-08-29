@@ -1,0 +1,105 @@
+.resizable-block {
+  position: relative;
+  transition: box-shadow 0.2s ease;
+}
+
+.resizable-block:hover {
+  box-shadow: inset 0 0 0 2px rgba(0, 120, 215, 0.3);
+}
+
+.resizable-block.is-dragging,
+.resizable-block.is-resizing {
+  opacity: 0.96;
+  box-shadow: inset 0 0 0 2px #0078d7;
+  transition: none;
+}
+
+.resizable-block.is-dragging .drag-handle,
+.resizable-block.is-resizing .drag-handle {
+  opacity: 1;
+}
+
+.drag-handle {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  z-index: 12;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  grid-template-columns: 3px 3px;
+  grid-template-rows: 3px 3px 3px;
+  gap: 2px;
+  place-content: center;
+  cursor: grab;
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 0.85);
+  user-select: none;
+}
+
+.drag-handle span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #0078d7;
+}
+
+.resizable-block:hover .drag-handle,
+.resizable-block.is-dragging .drag-handle,
+.resizable-block.is-resizing .drag-handle {
+  opacity: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Resize Handles */
+.resize-handle {
+  position: absolute;
+  z-index: 10;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Width Resize Handle - Right edge */
+.resize-handle-width {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.resize-handle-width:hover {
+  background: rgba(0, 120, 215, 0.5);
+}
+
+/* Height Resize Handle - Bottom edge */
+.resize-handle-height {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.resize-handle-height:hover {
+  background: rgba(0, 120, 215, 0.5);
+}
+
+/* Corner Resize Handle */
+.resize-handle-corner {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 120, 215, 0.6) 50%);
+  border-radius: 0 0 2px 0;
+}
+
+.resize-handle-corner:hover {
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 120, 215, 1) 50%);
+}

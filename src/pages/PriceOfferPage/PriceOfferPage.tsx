@@ -18,6 +18,7 @@ import { priceOfferService } from '../../services/price-offer-service';
 import { apiService } from '../../services/api-service';
 import { calculateTotalWithRemise, calculateVAT } from '../../utils/calculations';
 import './PriceOfferPage.scss';
+import PrintBackgroundLogos from '../../components/PrintBackgroundLogos/PrintBackgroundLogos';
 import logo512 from '../../assets/logo512.png';
 import logoChanitec from '../../assets/logo chanitecc.png';
 import signatureAyachi from '../../assets/signature-ayachi.png';
@@ -67,8 +68,7 @@ const PriceOfferPage: React.FC<PriceOfferPageProps> = ({ currentPath, onNavigate
         // Find the quote in the list to get createdAt
         let numberToDisplayLocal = '';
         try {
-          const allQuotes = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/quotes`).then(res => res.json());
-          const found = allQuotes.find((q: any) => q.id === quoteIdFromUrl);
+          const found = await apiService.getQuoteById(quoteIdFromUrl);
           if (found) {
             numberToDisplayLocal = found.number_chanitec && found.number_chanitec.trim() !== '' ? found.number_chanitec : found.id;
           } else {
@@ -143,6 +143,7 @@ const PriceOfferPage: React.FC<PriceOfferPageProps> = ({ currentPath, onNavigate
         {/* Wrap the PDF content in a plain div with the ref */}
         <div ref={contentRef}>
           <Paper className="price-offer-content" elevation={2}>
+            <PrintBackgroundLogos />
             {/* Header with logos */}
             <Box className="header" sx={{ marginBottom: 4 }}>
               <img src={logo512} alt="Logo" className="logo" />

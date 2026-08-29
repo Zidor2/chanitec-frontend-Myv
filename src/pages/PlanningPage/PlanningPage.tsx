@@ -39,8 +39,7 @@ import {
 import Layout from '../../components/Layout/Layout';
 import { Client, Planning } from '../../models/Quote';
 import { apiService } from '../../services/api-service';
-import logo512 from '../../assets/logo512.png';
-import CHANitec from '../../assets/CHANitec.png';
+import PrintBackgroundLogos from '../../components/PrintBackgroundLogos/PrintBackgroundLogos';
 import './PlanningPage.scss';
 
 interface PlanningPageProps {
@@ -409,20 +408,22 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
     if (!selectedPlanning) return;
 
     setIsPdfMode(true);
-    window.print();
 
-    const handleAfterPrint = () => {
+    const cleanup = () => {
       setIsPdfMode(false);
-      window.removeEventListener('afterprint', handleAfterPrint);
+      window.removeEventListener('afterprint', cleanup);
       if (timeoutId) clearTimeout(timeoutId);
     };
 
-    window.addEventListener('afterprint', handleAfterPrint);
+    window.addEventListener('afterprint', cleanup);
 
-    const timeoutId = setTimeout(() => {
-      setIsPdfMode(false);
-      window.removeEventListener('afterprint', handleAfterPrint);
-    }, 5000);
+    const timeoutId = window.setTimeout(cleanup, 15000);
+
+    requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        window.print();
+      }, 80);
+    });
   };
 
   const handleBackFromPlanningSites = () => {
@@ -1048,8 +1049,7 @@ const PlanningPage: React.FC<PlanningPageProps> = ({
                 position: 'relative'
               }}
             >
-              <img src={logo512} alt="Background Logo" className="planning-background-logo" />
-              <img src={CHANitec} alt="Chanitec Logo" className="planning-background-logo-second" />
+              <PrintBackgroundLogos />
               <Box className="planning-pdf-content" sx={{ position: 'relative', zIndex: 1, backgroundColor: 'transparent' }}>
                 <Box className="planning-screen-only">
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>

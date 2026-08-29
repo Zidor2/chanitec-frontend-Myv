@@ -10,6 +10,15 @@ export interface Employee {
   fonction: string;
   sub_type_id?: number;
   type_description?: string;
+  score?: number | null;
+}
+
+export interface EmployeeIntervention {
+  intervention_id: number;
+  date: string | null;
+  client: string;
+  observations_client: string;
+  observations_chanic: string;
 }
 
 export interface CreateEmployeeDTO {
@@ -27,15 +36,33 @@ export interface CreateEmployeeDTO {
 
 export interface UpdateEmployeeDTO extends Partial<CreateEmployeeDTO> {}
 
+const parseResponse = async (response: Response) => {
+  if (response.status === 204) {
+    return null;
+  }
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = payload?.error || `Request failed (${response.status})`;
+    throw new Error(message);
+  }
+  return payload;
+};
+
 class EmployeeService {
   async getAllEmployees(): Promise<Employee[]> {
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/employees`).then(res => res.json());
-    return response;
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/employees`);
+    return parseResponse(response);
   }
 
   async getEmployeeById(id: number): Promise<Employee> {
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/employees/${id}`).then(res => res.json());
-    return response;
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/employees/${id}`);
+    return parseResponse(response);
+  }
+
+  async getEmployeeInterventions(id: number): Promise<EmployeeIntervention[]> {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/employees/${id}/interventions`);
+    return parseResponse(response);
   }
 
   async createEmployee(employeeData: CreateEmployeeDTO): Promise<Employee> {
@@ -45,8 +72,8 @@ class EmployeeService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(employeeData),
-    }).then(res => res.json());
-    return response;
+    });
+    return parseResponse(response);
   }
 
   async updateEmployee(id: number, employeeData: UpdateEmployeeDTO): Promise<Employee> {
@@ -56,14 +83,15 @@ class EmployeeService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(employeeData),
-    }).then(res => res.json());
-    return response;
+    });
+    return parseResponse(response);
   }
 
   async deleteEmployee(id: number): Promise<void> {
-    await fetch(`${process.env.REACT_APP_API_URL}/employees/${id}`, {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/employees/${id}`, {
       method: 'DELETE',
     });
+    await parseResponse(response);
   }
 }
 

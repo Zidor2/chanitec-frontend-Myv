@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout/Layout';
 import { employeeService, Employee as BackendEmployee, CreateEmployeeDTO } from '../services/employee-service';
+import {
+  EMPTY_EMPLOYEE_FORM,
+  CIVIL_STATUS_OPTIONS,
+  CONTRACT_TYPE_OPTIONS,
+  EMPLOYEE_TYPE_OPTIONS,
+  calculateSeniority,
+  buildEmployeePayload,
+  subTypeFromDescription
+} from '../utils/employeeForm';
 import './orgChartPage.scss';
 
 // Function to generate dummy profile picture using initials
@@ -37,7 +46,51 @@ interface OrgEmployee {
   avatar: string;
   subType?: string;
   typeDescription?: string;
+  score?: number | null;
 }
+
+const ORG_CHART_TYPES = [
+  {
+    key: 'clim-domestique',
+    title: 'Chef de service Chargé de clim-domestique',
+    matches: (description: string) =>
+      description.includes('clim-domestique') || description.includes('clim domestique')
+  },
+  {
+    key: 'polyvalent',
+    title: 'Polyvalent',
+    matches: (description: string) => description.includes('polyvalent')
+  },
+  {
+    key: 'climatisation-centralise',
+    title: 'Chef de service adj chargé du climatisation centralisé',
+    matches: (description: string) => description.includes('climatisation centralis')
+  }
+] as const;
+
+const DEPARTMENT_LEADER: OrgEmployee = {
+  id: 0,
+  name: 'Département Froid et climatisation',
+  title: 'Direction',
+  location: '',
+  avatar: generateDummyAvatar('Departement Froid')
+};
+
+const normalizeTypeDescription = (value?: string) =>
+  (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const getOrgTypeKey = (typeDescription?: string) => {
+  const description = normalizeTypeDescription(typeDescription);
+  if (!description) {
+    return null;
+  }
+  return ORG_CHART_TYPES.find(type => type.matches(description))?.key ?? null;
+};
 
 interface OrgChartPageProps {
   currentPath?: string;
@@ -56,38 +109,15 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<CreateEmployeeDTO>({
-    full_name: '',
-    civil_status: '',
-    birth_date: '',
-    entry_date: '',
-    seniority: '',
-    contract_type: '',
-    job_title: '',
-    fonction: '',
-    sub_type_id: undefined,
-    type_description: '',
-  });
+  const [formData, setFormData] = useState<CreateEmployeeDTO>(EMPTY_EMPLOYEE_FORM);
 
-  const civilStatusOptions = [
-    { value: 'C', label: 'Célibataire' },
-    { value: 'M', label: 'Marié' },
-  ];
-  const contractTypeOptions = ['CDI', 'CDD', 'Interim'];
+  const reloadEmployees = async () => {
+    const data = await employeeService.getAllEmployees();
+    setEmployees(data.map(mapToOrgEmployee));
+  };
 
   const resetForm = () => {
-    setFormData({
-      full_name: '',
-      civil_status: '',
-      birth_date: '',
-      entry_date: '',
-      seniority: '',
-      contract_type: '',
-      job_title: '',
-      fonction: '',
-      sub_type_id: undefined,
-      type_description: '',
-    });
+    setFormData(EMPTY_EMPLOYEE_FORM);
     setDialogError(null);
   };
 
@@ -96,15 +126,31 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
     setIsDialogOpen(true);
   };
 
-  const closeCreateDialog = () => {
+  const closeDialog = () => {
     setIsDialogOpen(false);
-    setDialogError(null);
+    resetForm();
+  };
+
+  const openEmployeePage = (employeeId: number) => {
+    onNavigate?.(`/employees/${employeeId}`);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const field = e.target.name as keyof CreateEmployeeDTO;
-    const value = field === 'sub_type_id' ? (e.target.value ? Number(e.target.value) : undefined) : e.target.value;
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const rawValue = e.target.value;
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        [field]: field === 'sub_type_id' ? (rawValue ? Number(rawValue) : undefined) : rawValue
+      };
+      if (field === 'entry_date') {
+        next.seniority = calculateSeniority(rawValue);
+      }
+      if (field === 'type_description') {
+        next.sub_type_id = subTypeFromDescription(rawValue) ?? prev.sub_type_id;
+      }
+      return next;
+    });
   };
 
   const mapToOrgEmployee = (emp: BackendEmployee): OrgEmployee => ({
@@ -114,19 +160,19 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
     location: emp.fonction || emp.contract_type || '',
     subType: emp.type_description || undefined,
     typeDescription: emp.type_description || undefined,
-    avatar: generateDummyAvatar(emp.full_name)
+    avatar: generateDummyAvatar(emp.full_name),
+    score: emp.score ?? null
   });
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setDialogError(null);
     try {
-      await employeeService.createEmployee(formData);
-      const data = await employeeService.getAllEmployees();
-      setEmployees(data.map(mapToOrgEmployee));
-      closeCreateDialog();
+      await employeeService.createEmployee(buildEmployeePayload(formData));
+      await reloadEmployees();
+      closeDialog();
     } catch (err) {
-      console.error('Error creating employee', err);
+      console.error('Error saving employee', err);
       setDialogError('Impossible d’ajouter l’employé. Vérifiez les informations.');
     } finally {
       setIsSubmitting(false);
@@ -136,16 +182,7 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
   useEffect(() => {
     employeeService.getAllEmployees()
       .then((data: BackendEmployee[]) => {
-        const orgEmployees = data.map(emp => ({
-          id: emp.id,
-          name: emp.full_name,
-          title: emp.job_title || emp.fonction || 'Collaborateur',
-          location: emp.fonction || emp.contract_type || '',
-          subType: emp.type_description || undefined,
-          typeDescription: emp.type_description || undefined,
-          avatar: generateDummyAvatar(emp.full_name)
-        }));
-        setEmployees(orgEmployees);
+        setEmployees(data.map(mapToOrgEmployee));
       })
       .catch(err => {
         console.error('Unable to load employees for org chart', err);
@@ -154,36 +191,21 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
       .finally(() => setLoading(false));
   }, []);
 
-  const leader = employees.find(emp =>
-    emp.title.toLowerCase().includes('departement froid') ||
-    emp.title.toLowerCase().includes('departement') ||
-    emp.title.toLowerCase().includes('direction') ||
-    emp.typeDescription?.toLowerCase().includes('direction')
-  ) || employees[0];
+  const leader = employees.find(emp => {
+    const description = normalizeTypeDescription(emp.typeDescription);
+    const title = normalizeTypeDescription(emp.title);
+    return (
+      description.includes('direction') ||
+      title.includes('departement froid') ||
+      title.includes('direction')
+    ) && !getOrgTypeKey(emp.typeDescription);
+  }) || DEPARTMENT_LEADER;
 
-  const isClimDomestique = (emp: OrgEmployee) =>
-    emp.title.toLowerCase().includes('chef de service chargé de clim-domestique') ||
-    (emp.typeDescription?.toLowerCase().includes('utex') || false) ||
-    (emp.typeDescription?.toLowerCase().includes('snel') || false);
-
-  const isPolyvalent = (emp: OrgEmployee) =>
-    emp.title.toLowerCase().includes('polyvalent') ||
-    (emp.typeDescription?.toLowerCase().includes('polyvalent') || false);
-
-  const isClimatisationCentralise = (emp: OrgEmployee) =>
-    emp.title.toLowerCase().includes('chef de service adj chargé du climatisation centralisé') ||
-    emp.title.toLowerCase().includes('climatisation centralisé') ||
-    (emp.typeDescription?.toLowerCase().includes('climatisation centralisé') || false);
-
-  const climDomestiqueEmployees = employees.filter(emp => emp.id !== leader?.id && isClimDomestique(emp));
-  const polyvalentEmployees = employees.filter(emp => emp.id !== leader?.id && isPolyvalent(emp));
-  const climatisationCentraliseEmployees = employees.filter(emp => emp.id !== leader?.id && isClimatisationCentralise(emp));
-  const otherEmployees = employees.filter(emp =>
-    emp.id !== leader?.id &&
-    !isClimDomestique(emp) &&
-    !isPolyvalent(emp) &&
-    !isClimatisationCentralise(emp)
-  );
+  const employeesByType = ORG_CHART_TYPES.map(type => ({
+    key: type.key,
+    title: type.title,
+    employees: employees.filter(emp => getOrgTypeKey(emp.typeDescription) === type.key)
+  }));
 
   const renderEmployeeRows = (employeeList: OrgEmployee[]) => {
     const rows = [];
@@ -191,14 +213,35 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
       const row = employeeList.slice(i, i + 2);
       rows.push(
         <div className="orgchart-row" key={i}>
-          {row.map(employee => (
-            <div className="orgchart-card advisor" key={employee.id}>
+          {row.map(employee => {
+            const hasScore = employee.score !== null && employee.score !== undefined;
+            const scoreClass = hasScore
+              ? (Number(employee.score) < 70 ? 'score-low' : 'score-high')
+              : '';
+            return (
+            <div
+              className={`orgchart-card advisor is-clickable ${scoreClass}`.trim()}
+              key={employee.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => openEmployeePage(employee.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openEmployeePage(employee.id);
+                }
+              }}
+            >
               <img src={employee.avatar} alt={employee.name} className="orgchart-avatar" />
               <div className="orgchart-name">{employee.name}</div>
-              <div className="orgchart-title">{employee.subType || employee.title}</div>
-              <div className="orgchart-location">{employee.location}</div>
+              <div className="orgchart-title">{employee.title}</div>
+              {employee.location ? <div className="orgchart-location">{employee.location}</div> : null}
+              <div className="orgchart-score">
+                Score : {hasScore ? employee.score : '—'}
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
@@ -219,9 +262,10 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
         </div>
 
         {isDialogOpen && (
-          <div className="orgchart-overlay">
-            <div className="orgchart-dialog">
+          <div className="orgchart-overlay" onClick={closeDialog}>
+            <div className="orgchart-dialog" onClick={(event) => event.stopPropagation()}>
               <h2>Ajouter un nouvel employé</h2>
+              <fieldset className="orgchart-form" disabled={isSubmitting}>
               <div className="orgchart-form-row">
                 <label>Nom complet</label>
                 <input
@@ -238,7 +282,7 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
                   onChange={handleInputChange}
                 >
                   <option value="">Sélectionner</option>
-                  {civilStatusOptions.map(option => (
+                  {CIVIL_STATUS_OPTIONS.map(option => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -295,11 +339,15 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
                   onChange={handleInputChange}
                 >
                   <option value="">Sélectionner</option>
-                  {contractTypeOptions.map(option => (
+                  {CONTRACT_TYPE_OPTIONS.map(option => (
                     <option key={option} value={option}>
                       {option}
                     </option>
                   ))}
+                  {formData.contract_type &&
+                    !CONTRACT_TYPE_OPTIONS.includes(formData.contract_type) && (
+                      <option value={formData.contract_type}>{formData.contract_type}</option>
+                    )}
                 </select>
               </div>
               <div className="orgchart-form-row">
@@ -313,14 +361,26 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
               </div>
               <div className="orgchart-form-row">
                 <label>Type de poste</label>
-                <input
+                <select
                   name="type_description"
                   value={formData.type_description}
                   onChange={handleInputChange}
-                />
+                >
+                  <option value="">Sélectionner</option>
+                  {EMPLOYEE_TYPE_OPTIONS.map(type => (
+                    <option key={type.key} value={type.title}>
+                      {type.title}
+                    </option>
+                  ))}
+                  {formData.type_description &&
+                    !EMPLOYEE_TYPE_OPTIONS.some(type => type.title === formData.type_description) && (
+                      <option value={formData.type_description}>{formData.type_description}</option>
+                    )}
+                </select>
               </div>
+              </fieldset>
               <div className="orgchart-form-actions">
-                <button type="button" className="orgchart-dialog-button" onClick={closeCreateDialog}>
+                <button type="button" className="orgchart-dialog-button" onClick={closeDialog}>
                   Annuler
                 </button>
                 <button
@@ -340,48 +400,41 @@ const OrgChartPage: React.FC<OrgChartPageProps> = ({
         {loading && <div className="orgchart-loading">Chargement des employés...</div>}
         {error && <div className="orgchart-error">{error}</div>}
 
-        {!loading && !error && leader && (
+        {!loading && !error && (
           <>
             <div className="orgchart-leader">
-              <div className="orgchart-card leader">
+              <div
+                className={`orgchart-card leader ${leader.id ? 'is-clickable' : ''}`.trim()}
+                role={leader.id ? 'button' : undefined}
+                tabIndex={leader.id ? 0 : undefined}
+                onClick={() => {
+                  if (leader.id) openEmployeePage(leader.id);
+                }}
+                onKeyDown={(event) => {
+                  if (!leader.id) return;
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openEmployeePage(leader.id);
+                  }
+                }}
+              >
                 <img src={leader.avatar} alt={leader.name} className="orgchart-avatar leader" />
                 <div className="orgchart-name leader">{leader.name}</div>
                 <div className="orgchart-title leader">{leader.title}</div>
-                <div className="orgchart-location leader">{leader.location}</div>
+                {leader.location ? <div className="orgchart-location leader">{leader.location}</div> : null}
               </div>
             </div>
             <div className="orgchart-line" />
 
             <div className="orgchart-sections">
-              <div className="orgchart-section">
-                <h2 className="orgchart-section-title">Chef de service Chargé de clim-domestique</h2>
-                <div className="orgchart-advisors">
-                  {renderEmployeeRows(climDomestiqueEmployees)}
-                </div>
-              </div>
-
-              <div className="orgchart-section">
-                <h2 className="orgchart-section-title">Polyvalent</h2>
-                <div className="orgchart-advisors">
-                  {renderEmployeeRows(polyvalentEmployees)}
-                </div>
-              </div>
-
-              <div className="orgchart-section">
-                <h2 className="orgchart-section-title">Chef de service adj chargé du climatisation centralisé</h2>
-                <div className="orgchart-advisors">
-                  {renderEmployeeRows(climatisationCentraliseEmployees)}
-                </div>
-              </div>
-
-              {otherEmployees.length > 0 && (
-                <div className="orgchart-section">
-                  <h2 className="orgchart-section-title">Autres collaborateurs</h2>
+              {employeesByType.map(section => (
+                <div className="orgchart-section" key={section.key}>
+                  <h2 className="orgchart-section-title">{section.title}</h2>
                   <div className="orgchart-advisors">
-                    {renderEmployeeRows(otherEmployees)}
+                    {renderEmployeeRows(section.employees)}
                   </div>
                 </div>
-              )}
+              ))}
             </div>
           </>
         )}

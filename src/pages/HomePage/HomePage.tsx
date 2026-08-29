@@ -19,6 +19,8 @@ import {
   Inventory as InventoryIcon,
   Assignment as AssignmentIcon,
   Business as BusinessIcon,
+  ManageAccounts as ManageAccountsIcon,
+  ListAlt as ListAltIcon,
   TrendingUp as TrendingUpIcon,
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon,
@@ -41,7 +43,7 @@ const HomePage: React.FC<HomePageProps> = ({
   onNavigate,
   onLogout
 }) => {
-  const { user } = useAuth();
+  const { user, hasAccess } = useAuth();
   const { stats, loading, error, refetch } = useDashboardStats();
 
   const getMenuItems = () => {
@@ -53,7 +55,7 @@ const HomePage: React.FC<HomePageProps> = ({
         path: '/quote',
         color: '#1976d2',
         badge: 'Populaire',
-        roles: ['admin', 'editor', 'user']
+        page: 'quote' as const
       },
       {
         title: 'Historique',
@@ -62,7 +64,7 @@ const HomePage: React.FC<HomePageProps> = ({
         path: '/history',
         color: '#2196f3',
         badge: 'Récents',
-        roles: ['admin', 'editor', 'viewer', 'user']
+        page: 'history' as const
       },
       {
         title: 'Clients',
@@ -70,7 +72,7 @@ const HomePage: React.FC<HomePageProps> = ({
         icon: <PeopleIcon />,
         path: '/clients',
         color: '#4caf50',
-        roles: ['admin', 'editor']
+        page: 'clients' as const
       },
       {
         title: 'Articles',
@@ -78,7 +80,7 @@ const HomePage: React.FC<HomePageProps> = ({
         icon: <InventoryIcon />,
         path: '/items',
         color: '#ff9800',
-        roles: ['admin', 'editor']
+        page: 'items' as const
       },
       {
         title: 'Intervention',
@@ -86,7 +88,15 @@ const HomePage: React.FC<HomePageProps> = ({
         icon: <AssignmentIcon />,
         path: '/intervention',
         color: '#9c27b0',
-        roles: ['admin', 'editor']
+        page: 'intervention' as const
+      },
+      {
+        title: 'Planning',
+        description: 'Consulter et gérer le planning',
+        icon: <ScheduleIcon />,
+        path: '/planning',
+        color: '#00897b',
+        page: 'planning' as const
       },
       {
         title: 'Organigramme',
@@ -94,13 +104,29 @@ const HomePage: React.FC<HomePageProps> = ({
         icon: <BusinessIcon />,
         path: '/org-chart',
         color: '#607d8b',
-        roles: ['admin', 'editor']
+        page: 'org-chart' as const
+      },
+      {
+        title: 'Utilisateurs',
+        description: 'Créer, supprimer et attribuer les accès',
+        icon: <ManageAccountsIcon />,
+        path: '/users',
+        color: '#d32f2f',
+        page: 'users' as const
+      },
+      {
+        title: 'Journal',
+        description: 'Consulter toutes les actions effectuées dans l\'application',
+        icon: <ListAltIcon />,
+        path: '/logs',
+        color: '#455a64',
+        page: 'logs' as const
       },
     ];
 
     if (!user) return [];
 
-    return allItems.filter(item => item.roles.includes(user.role));
+    return allItems.filter(item => hasAccess(item.page));
   };
 
   const menuItems = getMenuItems();

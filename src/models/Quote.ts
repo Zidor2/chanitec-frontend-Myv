@@ -114,6 +114,10 @@ export interface Quote {
 
   parentId?: string; // Reference to the parent quote if this is a revision
   number_chanitec?: string;
+  userId?: number | null;
+  createdByUsername?: string | null;
+  createdByRole?: string | null;
+  createdByPermissions?: string[];
 }
 
 /**

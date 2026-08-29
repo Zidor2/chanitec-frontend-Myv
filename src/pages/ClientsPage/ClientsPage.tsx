@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import logo512 from '../../assets/logo512.png';
-import CHANitec from '../../assets/CHANitec.png';
+import PrintBackgroundLogos from '../../components/PrintBackgroundLogos/PrintBackgroundLogos';
 
 import {
   Box,
@@ -84,6 +83,198 @@ interface ClientsPageProps {
   onNavigate: (path: string) => void;
   onLogout?: () => void;
 }
+
+interface PieChartDatum {
+  name: string;
+  value: number;
+}
+
+interface PieChartSegment {
+  path: string;
+  color: string;
+  name: string;
+  value: number;
+  label: string;
+  linePoints: string;
+  textX: number;
+  textY: number;
+  textAnchor: 'start' | 'end';
+}
+
+interface LabeledPieChart {
+  width: number;
+  height: number;
+  segments: PieChartSegment[];
+}
+
+const PIE_COLORS = [
+  '#c6b4d8',
+  '#7a2f2f',
+  '#fff3b8',
+  '#9fe3ee',
+  '#5a2d91',
+  '#f4a07c',
+  '#e94d9a',
+  '#f4e21a',
+  '#2ec6d6',
+  '#43b54a',
+  '#9b4dca',
+  '#d62728',
+  '#3b7fc4',
+  '#ff7f0e',
+  '#b8d4a8',
+  '#8c564b',
+  '#e7c04a',
+  '#17becf',
+  '#bcbd22',
+  '#9bb8e8',
+  '#c44c4c',
+  '#7b4173',
+  '#ce6dbd',
+  '#393b79',
+  '#637939',
+  '#8c6d31',
+  '#843c39',
+  '#ad494a',
+  '#d6616b',
+  '#e7ba52'
+];
+
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+const polarPoint = (cx: number, cy: number, radius: number, angleDeg: number) => ({
+  x: cx + radius * Math.cos(toRadians(angleDeg)),
+  y: cy + radius * Math.sin(toRadians(angleDeg))
+});
+
+const isOtherSlice = (name: string) => /^(other|autres?|inconnu)$/i.test(name.trim());
+
+const formatPieLabel = (name: string, value: number) => {
+  const displayName = name.length > 42 ? `${name.slice(0, 39)}…` : name;
+  return `${displayName}, ${value}`;
+};
+
+const spreadLabelPositions = (idealYs: number[], minY: number, maxY: number, gap: number) => {
+  const count = idealYs.length;
+  if (count === 0) return [];
+
+  const order = idealYs.map((y, index) => ({ y, index })).sort((a, b) => a.y - b.y);
+  const ys = order.map((item) => item.y);
+
+  for (let pass = 0; pass < 10; pass++) {
+    ys[0] = Math.max(ys[0], minY);
+    for (let i = 1; i < count; i++) {
+      ys[i] = Math.max(ys[i], ys[i - 1] + gap);
+    }
+
+    ys[count - 1] = Math.min(ys[count - 1], maxY);
+    for (let i = count - 2; i >= 0; i--) {
+      ys[i] = Math.min(ys[i], ys[i + 1] - gap);
+    }
+  }
+
+  const result = new Array(count).fill(0);
+  order.forEach((item, i) => {
+    result[item.index] = ys[i];
+  });
+  return result;
+};
+
+const buildLabeledPieChart = (data: PieChartDatum[]): LabeledPieChart => {
+  const sorted = [...data]
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, 'fr'));
+
+  const width = 1100;
+
+  if (sorted.length === 0) {
+    return { width, height: 560, segments: [] };
+  }
+
+  const total = sorted.reduce((sum, item) => sum + item.value, 0);
+  let cursorAngle = -90;
+  const angled = sorted.map((entry, index) => {
+    const sliceAngle = (entry.value / total) * 360;
+    const startAngle = cursorAngle;
+    const endAngle = startAngle + sliceAngle;
+    const midAngle = startAngle + sliceAngle / 2;
+    cursorAngle = endAngle;
+
+    return {
+      ...entry,
+      startAngle,
+      endAngle,
+      midAngle,
+      sliceAngle,
+      side: (Math.cos(toRadians(midAngle)) >= 0 ? 'right' : 'left') as 'left' | 'right',
+      color: isOtherSlice(entry.name) ? '#000000' : PIE_COLORS[index % PIE_COLORS.length]
+    };
+  });
+
+  const leftCount = angled.filter((item) => item.side === 'left').length;
+  const rightCount = angled.filter((item) => item.side === 'right').length;
+  const height = Math.max(560, Math.max(leftCount, rightCount) * 16 + 56);
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = 168;
+  const labelGap = 16;
+
+  const rawSegments = angled.map((entry) => {
+    const start = polarPoint(cx, cy, radius, entry.startAngle);
+    const end = polarPoint(cx, cy, radius, entry.endAngle);
+    const largeArcFlag = entry.sliceAngle > 180 ? 1 : 0;
+    const path = entry.sliceAngle >= 359.999
+      ? `M ${cx} ${cy} m -${radius} 0 a ${radius} ${radius} 0 1 0 ${2 * radius} 0 a ${radius} ${radius} 0 1 0 -${2 * radius} 0`
+      : `M ${cx} ${cy} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+    const pieEdge = polarPoint(cx, cy, radius, entry.midAngle);
+    const elbow = polarPoint(cx, cy, radius + 18, entry.midAngle);
+
+    return {
+      path,
+      color: entry.color,
+      name: entry.name,
+      value: entry.value,
+      label: formatPieLabel(entry.name, entry.value),
+      side: entry.side,
+      pieEdge,
+      elbow,
+      idealY: elbow.y
+    };
+  });
+
+  const leftIndexes = rawSegments.map((segment, index) => ({ segment, index })).filter((item) => item.segment.side === 'left');
+  const rightIndexes = rawSegments.map((segment, index) => ({ segment, index })).filter((item) => item.segment.side === 'right');
+  const leftYs = spreadLabelPositions(leftIndexes.map((item) => item.segment.idealY), 16, height - 16, labelGap);
+  const rightYs = spreadLabelPositions(rightIndexes.map((item) => item.segment.idealY), 16, height - 16, labelGap);
+
+  leftIndexes.forEach((item, i) => {
+    rawSegments[item.index] = { ...rawSegments[item.index], idealY: leftYs[i] };
+  });
+  rightIndexes.forEach((item, i) => {
+    rawSegments[item.index] = { ...rawSegments[item.index], idealY: rightYs[i] };
+  });
+
+  const segments: PieChartSegment[] = rawSegments.map((segment) => {
+    const textX = segment.side === 'right'
+      ? Math.max(segment.elbow.x + 10, cx + radius + 28)
+      : Math.min(segment.elbow.x - 10, cx - radius - 28);
+    const lineEndX = segment.side === 'right' ? textX - 4 : textX + 4;
+
+    return {
+      path: segment.path,
+      color: segment.color,
+      name: segment.name,
+      value: segment.value,
+      label: segment.label,
+      linePoints: `${segment.pieEdge.x},${segment.pieEdge.y} ${segment.elbow.x},${segment.elbow.y} ${lineEndX},${segment.idealY}`,
+      textX,
+      textY: segment.idealY,
+      textAnchor: segment.side === 'right' ? 'start' : 'end'
+    };
+  });
+
+  return { width, height, segments };
+};
 
 
 const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLogout }) => {
@@ -259,45 +450,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   };
 
   const getChartSegmentPaths = (data: { name: string; value: number }[]) => {
-    const total = data.reduce((sum, item) => sum + item.value, 0);
-    if (total === 0) return [];
-
-    const cx = 100;
-    const cy = 100;
-    const r = 80;
-    let startAngle = 0;
-
-    // Generate visually distinct colors using the golden angle to avoid repeats
-    const goldenAngle = 137.50776405003785; // degrees
-    const colors = data.map((_, index) => {
-      const hue = (index * goldenAngle) % 360;
-      return `hsl(${Math.round(hue)}, 70%, 50%)`;
-    });
-
-    return data.map((entry, index) => {
-      const angle = (entry.value / total) * 360;
-      const endAngle = startAngle + angle;
-      const start = {
-        x: cx + r * Math.cos((Math.PI / 180) * startAngle),
-        y: cy + r * Math.sin((Math.PI / 180) * startAngle)
-      };
-      const end = {
-        x: cx + r * Math.cos((Math.PI / 180) * endAngle),
-        y: cy + r * Math.sin((Math.PI / 180) * endAngle)
-      };
-      const largeArcFlag = angle > 180 ? 1 : 0;
-      const path = angle >= 359.999
-        ? `M ${cx} ${cy} m -${r} 0 a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 -${2 * r} 0`
-        : `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
-      const segment = {
-        path,
-        color: colors[index],
-        name: entry.name,
-        value: entry.value
-      };
-      startAngle = endAngle;
-      return segment;
-    });
+    return buildLabeledPieChart(data);
   };
 
   // Clear all filters
@@ -310,20 +463,32 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
 
   const handlePrint = () => {
     setIsPdfMode(true);
-    window.print();
+    document.body.classList.add('print-clients-chart');
 
-    const handleAfterPrint = () => {
+    const pageStyle = document.createElement('style');
+    pageStyle.setAttribute('data-print-clients-chart', 'true');
+    pageStyle.textContent = '@page { size: A4 landscape; margin: 8mm; }';
+    document.head.appendChild(pageStyle);
+
+    const cleanup = () => {
       setIsPdfMode(false);
-      window.removeEventListener('afterprint', handleAfterPrint);
-      if (timeoutId) clearTimeout(timeoutId);
+      document.body.classList.remove('print-clients-chart');
+      pageStyle.remove();
+      window.removeEventListener('afterprint', cleanup);
+      if (timeoutId) window.clearTimeout(timeoutId);
     };
 
-    window.addEventListener('afterprint', handleAfterPrint);
+    window.addEventListener('afterprint', cleanup);
 
-    const timeoutId = setTimeout(() => {
-      setIsPdfMode(false);
-      window.removeEventListener('afterprint', handleAfterPrint);
-    }, 5000);
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+    }, 15000);
+
+    requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        window.print();
+      }, 80);
+    });
   };
 
   // Show snackbar with message
@@ -822,22 +987,19 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
   const selectedClient = selectedClientId ? clients.find(c => c.id === selectedClientId) : null;
   const filteredSites = getFilteredSites();
   const filteredChartData = getFilteredChartData();
-  const chartSegments = getChartSegmentPaths(filteredChartData);
+  const pieChart = getChartSegmentPaths(filteredChartData);
+  const chartSegments = pieChart.segments;
   const chartTotal = filteredChartData.reduce((sum, item) => sum + (item?.value || 0), 0);
 
   return (
     <Layout currentPath={currentPath} onNavigate={onNavigate} onLogout={onLogout}>
       <Box className={`clients-page ${isPdfMode ? 'is-pdf-mode' : ''}`}>
-        {/* Header Section */}
-        <Box className="page-header">
-          <Container maxWidth="lg">
-            <Box className="header-content">
-              <Box className="header-left">
-                <Typography variant="h4" className="page-title">
-                  Clients
-                </Typography>
-              </Box>
-              <Box className="header-actions">
+        <Container maxWidth="lg" className="main-content">
+          {/* All Clients List Section */}
+          {!selectedClientId ? (
+            <Box>
+              <Box className="clients-list-header">
+                <Typography variant="h6">Sélectionnez un client</Typography>
                 <Button
                   variant="contained"
                   color="primary"
@@ -849,15 +1011,6 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                   + Créer un client
                 </Button>
               </Box>
-            </Box>
-          </Container>
-        </Box>
-
-        <Container maxWidth="lg" className="main-content">
-          {/* All Clients List Section */}
-          {!selectedClientId ? (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 2 }}>Sélectionnez un client</Typography>
               {loading ? (
                 <Box className="loading-container">
                   <Typography>Chargement...</Typography>
@@ -1048,9 +1201,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
               {/* Chart Panel */}
               <Card id="chart-section" className={isPdfMode ? 'is-pdf-mode' : ''} sx={{ mb: 3, position: 'relative' }}>
                 <CardContent sx={{ position: 'relative' }}>
-                  {/* Background Logos */}
-                  <img src={logo512} alt="Background Logo" className="clients-background-logo" />
-                  <img src={CHANitec} alt="Chanitec Logo" className="clients-background-logo-second" />
+                  <PrintBackgroundLogos />
 
                   <Box className="chart-toolbar" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
@@ -1079,49 +1230,77 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ currentPath, onNavigate, onLo
                       </Button>
                     </Box>
                   </Box>
-                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'stretch', md: 'center' }, gap: 2 }}>
-                    <Box className="pdf-header" sx={{ display: 'none', width: '100%' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 2 }}>
+                    <Box className="pdf-header">
                       <Typography variant="h6" sx={{ fontWeight: '700', textAlign: 'center' }}>
                         {selectedChartType === 'site' ? "Nombre d'équipements par site" : selectedChartType === 'freon' ? 'Répartition des fluides' : 'Répartition de la puissance'}
                       </Typography>
-                      <Typography variant="subtitle2" sx={{ textAlign: 'center', mt: 1 }}>
+                      <Typography variant="subtitle1" sx={{ textAlign: 'center', mt: 0.5, fontWeight: 600 }}>
+                        {selectedClient.name} — Total équipements : {chartTotal}
+                      </Typography>
+                      <Typography variant="subtitle2" sx={{ textAlign: 'center', mt: 0.5 }}>
                         {getSelectedFilterSummary()}
                       </Typography>
                     </Box>
-                    <Box sx={{ minWidth: 220, flex: 1, display: 'flex', justifyContent: 'center' }}>
-                      <svg width="220" height="220" viewBox="0 0 200 200">
-                        {chartSegments.map((segment, index) => (
-                          <path key={index} d={segment.path} fill={segment.color} />
-                        ))}
-                      </svg>
-                    </Box>
-                    <Box className="on-screen-legend" sx={{ flex: 1 }}>
+                    <Box className="clients-pie-wrap">
                       {filteredChartData.length === 0 ? (
                         <Typography variant="body2" color="textSecondary">
                           Aucune donnée disponible pour le graphique et les filtres sélectionnés.
                         </Typography>
                       ) : (
-                        chartSegments.map((segment) => (
-                          <Box key={segment.name} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                            <Box sx={{ width: 14, height: 14, mr: 1, bgcolor: segment.color, borderRadius: '50%' }} />
-                            <Typography variant="body2" sx={{ mr: 1, fontWeight: 'bold' }}>
-                              {segment.name}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              {segment.value}
-                            </Typography>
-                          </Box>
-                        ))
+                        <svg
+                          className="clients-pie-chart"
+                          viewBox={`0 0 ${pieChart.width} ${pieChart.height}`}
+                          width={pieChart.width}
+                          height={pieChart.height}
+                          preserveAspectRatio="xMidYMid meet"
+                          role="img"
+                          aria-label="Graphique en secteurs des équipements"
+                        >
+                          {chartSegments.map((segment, index) => (
+                            <path
+                              key={`slice-${segment.name}-${index}`}
+                              d={segment.path}
+                              fill={segment.color}
+                              stroke="#000000"
+                              strokeWidth="1.25"
+                              strokeLinejoin="round"
+                              shapeRendering="geometricPrecision"
+                            />
+                          ))}
+                          {chartSegments.map((segment, index) => (
+                            <polyline
+                              key={`line-${segment.name}-${index}`}
+                              points={segment.linePoints}
+                              fill="none"
+                              stroke="#000000"
+                              strokeWidth="1.1"
+                              strokeLinejoin="round"
+                              strokeLinecap="round"
+                              shapeRendering="geometricPrecision"
+                            />
+                          ))}
+                          {chartSegments.map((segment, index) => (
+                            <text
+                              key={`label-${segment.name}-${index}`}
+                              x={segment.textX}
+                              y={segment.textY}
+                              textAnchor={segment.textAnchor}
+                              dominantBaseline="middle"
+                              fontSize="13"
+                              fontFamily="Arial, Helvetica, sans-serif"
+                              fontWeight="600"
+                              fill="#000000"
+                              stroke="#ffffff"
+                              strokeWidth="3.5"
+                              paintOrder="stroke"
+                              style={{ textRendering: 'geometricPrecision' }}
+                            >
+                              {segment.label}
+                            </text>
+                          ))}
+                        </svg>
                       )}
-                    </Box>
-                    <Box className="pdf-legend" sx={{ display: 'none', width: '100%' }}>
-                      {chartSegments.map((segment) => (
-                        <Box key={segment.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-                          <Box sx={{ width: 14, height: 14, bgcolor: segment.color, borderRadius: '50%' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{segment.name}</Typography>
-                          <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>({segment.value})</Typography>
-                        </Box>
-                      ))}
                     </Box>
                   </Box>
                 </CardContent>

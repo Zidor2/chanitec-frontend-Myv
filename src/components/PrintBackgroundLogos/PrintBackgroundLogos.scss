@@ -1,0 +1,60 @@
+.print-background-logo,
+.print-background-logo-second {
+  display: none;
+  object-fit: contain;
+}
+
+.is-pdf-mode {
+  .print-background-logo,
+  .print-background-logo-second {
+    display: block;
+    position: absolute;
+    opacity: 0.12;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  .print-background-logo {
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+  }
+
+  .print-background-logo-second {
+    top: 75%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    max-width: 400px;
+  }
+}
+
+@media print {
+  .print-background-logo,
+  .print-background-logo-second {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed;
+    opacity: 0.08;
+    z-index: 9999;
+    pointer-events: none;
+  }
+
+  .print-background-logo {
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 560px;
+  }
+
+  .print-background-logo-second {
+    top: 78%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 55%;
+    max-width: 360px;
+  }
+}

@@ -206,8 +206,8 @@
     }
 
     .chart-label {
-      min-width: 120px;
-      max-width: 140px;
+      min-width: 160px;
+      max-width: 220px;
       font-size: 0.9rem;
       color: #1a237e;
       font-weight: 600;
@@ -228,16 +228,24 @@
     .chart-bar {
       height: 100%;
       border-radius: 999px;
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
       transition: width 0.4s ease;
     }
 
-    .chart-value {
-      min-width: 90px;
+    .chart-meta {
+      min-width: 110px;
       text-align: right;
+    }
+
+    .chart-value {
       font-size: 0.9rem;
       color: #1a237e;
-      font-weight: 600;
+      font-weight: 700;
+    }
+
+    .chart-subvalue {
+      font-size: 0.75rem;
+      color: #607d8b;
     }
   }
 

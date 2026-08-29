@@ -1,8 +1,11 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Box,
+  Button,
   Toolbar,
+  Tooltip,
   Typography,
   CssBaseline,
   Drawer,
@@ -26,14 +29,42 @@ import {
   BusinessOutlined,
   QuestionAnswer,
   AccountBalance,
+  ManageAccounts,
+  ListAlt,
   Schedule as ScheduleIcon,
   Add as AddIcon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowBack
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../assets/logo512.png';
 import './Layout.scss';
+
+const navigationStack: string[] = [];
+
+const pathKey = (pathname: string, search: string) => `${pathname}${search || ''}`;
+
+const pushNavigationPath = (path: string) => {
+  if (!path || path.startsWith('/login')) return;
+  if (navigationStack[navigationStack.length - 1] === path) return;
+  navigationStack.push(path);
+  if (navigationStack.length > 40) navigationStack.shift();
+};
+
+const getPreviousPath = (current: string) => {
+  if (navigationStack[navigationStack.length - 1] === current) {
+    navigationStack.pop();
+  }
+  while (navigationStack.length > 0) {
+    const previous = navigationStack[navigationStack.length - 1];
+    if (previous && previous !== current && !previous.startsWith('/login')) {
+      return previous;
+    }
+    navigationStack.pop();
+  }
+  return '/home';
+};
 
 interface LayoutProps {
   children: ReactNode;
@@ -50,31 +81,50 @@ const Layout: React.FC<LayoutProps> = ({
   onHomeClick,
   onLogout
 }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { user } = useAuth();
+  const { user, hasAccess } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentKey = pathKey(location.pathname, location.search);
+  const isHomePage = location.pathname === '/home' || currentPath === '/home';
 
-  // Navigation items based on user role
+  useEffect(() => {
+    pushNavigationPath(currentKey);
+  }, [currentKey]);
+
+  const handleBack = () => {
+    const previous = getPreviousPath(currentKey);
+    if (previous && previous !== currentKey) {
+      navigate(previous);
+      return;
+    }
+    if (location.pathname !== '/home') {
+      navigate('/home');
+    }
+  };
+
   const getNavItems = () => {
     const allItems = [
-      { path: '/home', label: 'Accueil', icon: <HomeOutlined />, roles: ['admin', 'editor', 'viewer', 'user'] },
-      { path: '/quote', label: 'Nouveau Devis', icon: <AddIcon />, roles: ['admin', 'editor', 'user'] },
-      { path: '/history', label: 'Historique', icon: <HistoryOutlined />, roles: ['admin', 'editor', 'viewer', 'user'] },
-      { path: '/clients', label: 'Clients', icon: <PeopleOutlineOutlined />, roles: ['admin', 'editor'] },
-      { path: '/items', label: 'Gérer les articles', icon: <InventoryOutlined />, roles: ['admin', 'editor'] },
-      { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined />, roles: ['admin', 'editor'] },
-      { path: '/planning', label: 'Planning', icon: <ScheduleIcon />, roles: ['admin', 'editor', 'viewer', 'user'] },
-      { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined />, roles: ['admin', 'editor'] },
-      { path: '/financial', label: 'Financier', icon: <AccountBalance />, roles: ['admin'] },
-      { path: '/help', label: 'Aide', icon: <QuestionAnswer />, roles: ['admin', 'editor', 'viewer', 'user'] }
+      { path: '/home', label: 'Accueil', icon: <HomeOutlined />, page: 'home' as const },
+      { path: '/quote', label: 'Nouveau Devis', icon: <AddIcon />, page: 'quote' as const },
+      { path: '/history', label: 'Historique', icon: <HistoryOutlined />, page: 'history' as const },
+      { path: '/clients', label: 'Clients', icon: <PeopleOutlineOutlined />, page: 'clients' as const },
+      { path: '/items', label: 'Gérer les articles', icon: <InventoryOutlined />, page: 'items' as const },
+      { path: '/intervention', label: 'Intervention', icon: <AssignmentOutlined />, page: 'intervention' as const },
+      { path: '/planning', label: 'Planning', icon: <ScheduleIcon />, page: 'planning' as const },
+      { path: '/org-chart', label: 'Organigramme', icon: <BusinessOutlined />, page: 'org-chart' as const },
+      { path: '/users', label: 'Utilisateurs', icon: <ManageAccounts />, page: 'users' as const },
+      { path: '/logs', label: 'Journal', icon: <ListAlt />, page: 'logs' as const },
+      { path: '/financial', label: 'Financier', icon: <AccountBalance />, page: 'financial' as const },
+      { path: '/help', label: 'Aide', icon: <QuestionAnswer />, page: 'help' as const }
     ];
 
     if (!user) return [];
 
-    return allItems.filter(item => item.roles.includes(user.role));
+    return allItems.filter(item => hasAccess(item.page));
   };
 
   const navItems = getNavItems();
@@ -182,10 +232,22 @@ const Layout: React.FC<LayoutProps> = ({
               aria-label="open drawer"
               edge="start"
               onClick={handleDrawerToggle}
-              sx={{ mr: 2 }}
+              sx={{ mr: 1 }}
             >
               <Menu />
             </IconButton>
+            {!isHomePage && (
+              <Tooltip title="Retour à la page précédente">
+                <IconButton
+                  color="inherit"
+                  aria-label="Retour"
+                  onClick={handleBack}
+                  sx={{ mr: 1 }}
+                >
+                  <ArrowBack />
+                </IconButton>
+              </Tooltip>
+            )}
             <Typography variant="h6" noWrap component="div">
               Chanitec
             </Typography>
@@ -239,6 +301,21 @@ const Layout: React.FC<LayoutProps> = ({
       <Box className={`dashboard-main ${isMobile ? 'mobile-main' : ''}`}>
         {isMobile && <Box className="mobile-toolbar-spacer" />}
         <Box className="dashboard-content">
+          {!isHomePage && (
+            <Box className="layout-back-bar">
+              <Tooltip title="Retour à la page précédente">
+                <Button
+                  className="layout-back-button"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ArrowBack />}
+                  onClick={handleBack}
+                >
+                  Retour
+                </Button>
+              </Tooltip>
+            </Box>
+          )}
           {children}
         </Box>
       </Box>
